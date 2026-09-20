@@ -1,0 +1,49 @@
+.code {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--fg);
+
+  :global(.hljs-keyword),
+  :global(.hljs-selector-tag),
+  :global(.hljs-section) {
+    color: var(--grape);
+    font-weight: 600;
+  }
+
+  :global(.hljs-string),
+  :global(.hljs-regexp),
+  :global(.hljs-addition) {
+    color: var(--green);
+  }
+
+  :global(.hljs-comment),
+  :global(.hljs-quote),
+  :global(.hljs-meta) {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  :global(.hljs-number),
+  :global(.hljs-literal),
+  :global(.hljs-type),
+  :global(.hljs-built_in) {
+    color: var(--teal);
+  }
+
+  :global(.hljs-title),
+  :global(.hljs-name) {
+    color: var(--fg);
+  }
+
+  :global(.hljs-attr),
+  :global(.hljs-attribute),
+  :global(.hljs-variable),
+  :global(.hljs-operator),
+  :global(.hljs-punctuation) {
+    color: var(--muted);
+  }
+
+  :global(.hljs-deletion) {
+    color: var(--danger);
+  }
+}

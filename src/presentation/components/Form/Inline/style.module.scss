@@ -1,0 +1,31 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  input {
+    min-width: 0;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    border-radius: 6px;
+    padding: 6px 9px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+
+  input:focus {
+    border-color: var(--grape);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(124, 108, 255, 0.25);
+  }
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+
+  input {
+    flex: 1;
+  }
+}

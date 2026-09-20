@@ -1,0 +1,256 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+
+  &.fullWidth {
+    width: 100%;
+  }
+
+  &.vertical {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.list {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  user-select: none;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  &.vertical {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  &.fullWidth {
+    display: flex;
+    width: 100%;
+
+    .tab {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
+
+/* --- Variants --- */
+
+.segmented {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+
+  .tab {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--muted);
+
+    &:hover:not(:disabled):not(.active) {
+      background: var(--bg-hover);
+      color: var(--fg);
+    }
+
+    &.active {
+      background: var(--bg-highest);
+      color: var(--fg);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+  }
+}
+
+.pills {
+  background: transparent;
+  gap: 4px;
+
+  .tab {
+    background: var(--bg-panel2);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    color: var(--muted);
+
+    &:hover:not(:disabled):not(.active) {
+      background: var(--bg-hover);
+      border-color: var(--border);
+      color: var(--fg);
+    }
+
+    &.active {
+      background: var(--bg-raised);
+      border-color: var(--border);
+      color: var(--grape);
+      font-weight: 600;
+    }
+  }
+}
+
+.underline {
+  background: transparent;
+  border-bottom: 1px solid var(--border-soft);
+  gap: 8px;
+
+  &.vertical {
+    border-bottom: none;
+    border-right: 1px solid var(--border-soft);
+  }
+
+  .tab {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    color: var(--muted);
+
+    &:hover:not(:disabled):not(.active) {
+      color: var(--fg);
+    }
+
+    &.active {
+      border-bottom-color: var(--grape);
+      color: var(--grape);
+      font-weight: 600;
+    }
+  }
+
+  &.vertical .tab {
+    border-bottom: none;
+    border-right: 2px solid transparent;
+    margin-bottom: 0;
+    margin-right: -1px;
+
+    &.active {
+      border-right-color: var(--grape);
+    }
+  }
+}
+
+.subtle {
+  background: transparent;
+  gap: 2px;
+
+  .tab {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--muted);
+
+    &:hover:not(:disabled):not(.active) {
+      background: var(--bg-hover);
+      color: var(--fg);
+    }
+
+    &.active {
+      background: var(--grape-dim);
+      color: var(--grape);
+      font-weight: 600;
+    }
+  }
+}
+
+/* --- Sizes --- */
+
+.sm .tab {
+  padding: 3px 8px;
+  font-size: 11px;
+  gap: 5px;
+}
+
+.md .tab {
+  padding: 5px 12px;
+  font-size: 12.5px;
+  gap: 6px;
+}
+
+.lg .tab {
+  padding: 7px 16px;
+  font-size: 13.5px;
+  gap: 8px;
+}
+
+/* --- Base Tab Item --- */
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  white-space: nowrap;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--grape);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var(--grape-dim);
+  color: var(--grape);
+  flex-shrink: 0;
+}
+
+.badgeAlert {
+  background: rgba(255, 122, 122, 0.16);
+  color: #ff7a7a;
+}
+
+/* --- Panel --- */
+
+.panel {
+  width: 100%;
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--grape);
+    outline-offset: 2px;
+  }
+}

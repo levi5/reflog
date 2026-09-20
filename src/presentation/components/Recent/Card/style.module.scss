@@ -1,0 +1,113 @@
+.recents {
+  width: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.recentsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.recentsTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.recentsTitle svg {
+  vertical-align: -2px;
+}
+
+.recentsEmpty {
+  margin: 8px 0 4px;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.recentList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.recentItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.recentItem:hover {
+  background: var(--bg-hover);
+}
+
+.recentBtn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.recentBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.recentBtn strong {
+  font-size: 12px;
+  color: var(--fg);
+}
+
+.recentBtn span {
+  font-size: 11px;
+  color: var(--faint);
+  font-family: var(--mono);
+  word-break: break-all;
+}
+
+.removeRecentBtn {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px;
+  margin-right: 6px;
+  cursor: pointer;
+  color: var(--faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.removeRecentBtn:hover:not(:disabled) {
+  opacity: 1;
+  color: var(--error, #ef4444);
+  background: var(--bg-deep);
+}
+
+.removeRecentBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

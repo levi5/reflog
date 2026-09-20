@@ -1,0 +1,189 @@
+.sidePanel {
+  background: var(--bg-panel2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sideHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--fg);
+}
+.sideHead .pct {
+  color: var(--muted);
+  font-weight: 400;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.progress {
+  height: 6px;
+  background: var(--bg-deep);
+  border-radius: 9999px;
+  overflow: hidden;
+  display: flex;
+}
+.progress .segOk {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  transition: width 0.3s;
+}
+.progress .segErr {
+  display: block;
+  height: 100%;
+  background: var(--red);
+  opacity: 0.8;
+  transition: width 0.3s;
+}
+
+.filterInput {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+.filterInput:focus {
+  border-color: var(--grape);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 108, 255, 0.25);
+}
+
+.fileCards {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fcard {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 9px;
+  cursor: pointer;
+  transition: background 0.13s ease, border-color 0.13s ease, transform 0.13s ease;
+}
+.fcard:hover {
+  background: var(--bg-raised);
+  border-color: var(--faint);
+}
+.fcard.clean {
+  background: var(--bg-deep);
+}
+.fcard.pending {
+  background: transparent;
+}
+.fcard.active {
+  background: var(--bg-highest);
+  box-shadow: var(--shadow-sm);
+}
+.fcard.active:hover {
+  border-color: var(--red);
+}
+
+.fico {
+  font-size: 17px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.fico svg {
+  vertical-align: -3px;
+}
+.fico.ok {
+  color: var(--green);
+}
+.fico.pink {
+  color: var(--red);
+}
+.fico.amber {
+  color: var(--amber);
+}
+.fico.cyan {
+  color: var(--teal);
+}
+.fico.warn {
+  color: var(--amber);
+}
+.fico.pend {
+  color: var(--muted);
+}
+
+.fmeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fname {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fname svg {
+  vertical-align: -2px;
+}
+
+.fmeta small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.fmeta small.subOk {
+  color: var(--green);
+}
+.fmeta small.subErr {
+  color: var(--red);
+}
+
+.fbadge {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+.fbadge.neutral {
+  background: var(--bg-panel2);
+  color: var(--muted);
+}
+.fbadge.green {
+  background: rgba(78, 222, 163, 0.14);
+  color: var(--green);
+  border-color: rgba(78, 222, 163, 0.4);
+}
+.fbadge.red {
+  background: var(--red-container);
+  color: var(--red);
+  font-weight: 700;
+}
+.fbadge.amber {
+  background: rgba(251, 191, 36, 0.13);
+  color: var(--amber);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+.fbadge.cyan {
+  background: var(--bg-panel2);
+  color: var(--teal);
+}

@@ -1,0 +1,124 @@
+.commit {
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  transition: background 0.12s ease;
+  min-height: 46px;
+  cursor: pointer;
+
+}
+
+.commit:hover {
+  background: var(--bg-hover);
+
+  .commit.selected {
+    background: var(--bg-hover);
+    border-left: 3px solid var(--accent);
+  }
+
+}
+
+.graph {
+  flex-shrink: 0;
+  display: block;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.first {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.first b {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.second {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.second code {
+  color: var(--amber);
+  font-family: var(--mono);
+}
+
+.ref {
+  font-size: 10px;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ref.head {
+  background: var(--grape);
+  border-color: var(--grape);
+  color: #fff;
+}
+
+.ref.branch {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.ref.remote {
+  color: var(--teal);
+  border-color: var(--teal);
+}
+
+.ref.tag {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
+.ref.current {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.infoNoGraph {
+  padding-left: 8px;
+}
+
+.amendBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.amendBtn:hover {
+  background: var(--bg-hover);
+  opacity: 1;
+}
+
+.commit:hover .amendBtn {
+  opacity: 1;
+}

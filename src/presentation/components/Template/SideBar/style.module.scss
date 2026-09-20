@@ -1,0 +1,244 @@
+.list {
+  width: 290px;
+  min-width: 240px;
+  border-right: 1px solid var(--border-soft);
+  background: var(--bg-panel);
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--fg);
+}
+
+.listActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tabsRoot {
+  width: 100%;
+}
+
+.emptyHint {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.templateItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.templateMain {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+
+.templateItem:hover {
+  background: var(--bg-raised);
+}
+
+.templateItem.active {
+  background: var(--bg-highest);
+  border-color: var(--faint);
+}
+
+.templateIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--grape-dim);
+  color: var(--grape);
+  flex-shrink: 0;
+}
+
+.templateMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.templateMeta strong {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.templateMeta small {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sourceBadge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--border-soft);
+  color: var(--muted);
+}
+
+.activeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--green-dim);
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.presetList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.presetItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+}
+
+.presetInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.presetTypeTag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--grape-dim);
+  color: var(--grape);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.presetName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.presetScope {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.prefsSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.summaryCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+}
+
+.summaryLabel {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.summaryValue {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+  font-family: var(--mono);
+}
+
+.summaryBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.badgeOn {
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.badgeOff {
+  background: var(--border-soft);
+  color: var(--muted);
+}
+
+.hintCard {
+  padding: 10px;
+  background: var(--bg-raise);
+  border-radius: 6px;
+  border: 1px dashed var(--border-soft);
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+

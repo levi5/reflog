@@ -1,0 +1,56 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-panel);
+  flex-shrink: 0;
+}
+
+.search {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  width: 280px;
+  max-width: 40vw;
+}
+
+.search:focus {
+  border-color: var(--grape);
+  outline: none;
+}
+
+.count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.matchNav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px 6px;
+}
+
+.matchNav .count {
+  min-width: 36px;
+  text-align: center;
+}
+
+.matchNav button.icon-btn {
+  padding: 3px 5px;
+  line-height: 0;
+}
+
+.spacer {
+  flex: 1;
+}

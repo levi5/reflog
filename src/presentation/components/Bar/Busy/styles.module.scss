@@ -1,0 +1,31 @@
+.busyBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 50;
+  background: transparent;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.busyBar.active {
+  opacity: 1;
+}
+
+.busyBar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--blue) 40%,
+    var(--purple) 60%,
+    transparent 100%
+  );
+  animation: busySlide 1.4s ease-in-out infinite;
+}

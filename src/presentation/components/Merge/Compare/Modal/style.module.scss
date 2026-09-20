@@ -1,0 +1,51 @@
+.modalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 980px) {
+  .modalGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pane {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+}
+
+.paneTitle {
+  background: var(--bg-panel2);
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.current .paneTitle {
+  border-left: 3px solid var(--green);
+}
+
+.incoming .paneTitle {
+  border-left: 3px solid var(--violet);
+}
+
+.pane pre {
+  margin: 0 8px;
+  padding: 8px;
+  background: var(--bg-deep);
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-family: var(--mono);
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.pane button {
+  margin: 0 8px;
+}

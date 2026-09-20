@@ -1,0 +1,293 @@
+import {
+  Bookmark,
+  BookOpen,
+  Bug,
+  Cog,
+  FileText,
+  FlaskConical,
+  Hammer,
+  Package,
+  Palette,
+  Recycle,
+  Rocket,
+  Sparkles,
+  Undo2,
+  Wand2,
+} from "lucide-react"
+import type { ReactNode } from "react"
+import type { CommitType } from "../../../../domain/entities/commit/commit-template"
+import { COMMIT_TYPES, SUBJECT_LIMIT } from "../../../../shared/constants/commit/commitTemplate"
+import type { CommitTemplateApi } from "../../../hooks"
+import type { StringKey } from "../../../../i18n"
+import { useTranslation } from "../../../context"
+import { EmojiPicker } from "../../Picker/Emoji"
+import { Select } from "../../Select"
+import styles from "./style.module.scss"
+
+type CommitTypeExtended = CommitType | "chore" | "revert"
+
+export const TYPE_ICONS: Record<CommitTypeExtended, typeof Sparkles> = {
+  feat: Sparkles,
+  fix: Bug,
+  docs: BookOpen,
+  style: Palette,
+  refactor: Package,
+  perf: Rocket,
+  test: FlaskConical,
+  build: Hammer,
+  ci: Cog,
+  chore: Recycle,
+  revert: Undo2,
+}
+
+interface CommitFormProps {
+  api: CommitTemplateApi
+  compact?: boolean
+}
+
+type Translate = (key: StringKey) => string
+
+function buildTypeOptions(
+  translate: Translate,
+  useIcons: boolean,
+): { value: string; label: string; icon?: ReactNode }[] {
+  return [
+    { value: "", label: translate("commitNoType") },
+    ...COMMIT_TYPES.map((commitType) => {
+      const TypeIcon = TYPE_ICONS[commitType]
+      return {
+        value: commitType,
+        label: commitType,
+        icon: useIcons && TypeIcon ? <TypeIcon size={13} aria-hidden /> : undefined,
+      }
+    }),
+  ]
+}
+
+interface TemplateOption {
+  value: string
+  label: string
+  icon?: ReactNode
+}
+
+function buildTemplateOptions(api: CommitTemplateApi): {
+  options: TemplateOption[]
+  currentValue: string
+} {
+  const options: TemplateOption[] = [
+    ...api.presets.map((preset) => ({
+      value: `preset:${preset.id}`,
+      label: preset.scope ? `${preset.name} (${preset.scope})` : preset.name,
+      icon: <Bookmark size={13} aria-hidden />,
+    })),
+    ...api.docs.map((doc) => ({
+      value: `doc:${doc.id}`,
+      label: doc.name,
+      icon: <FileText size={13} aria-hidden />,
+    })),
+  ]
+  const currentValue = `doc:${api.activeDocId}`
+  return { options, currentValue }
+}
+
+function handlePickTemplate(api: CommitTemplateApi, selectedValue: string) {
+  if (selectedValue.startsWith("preset:")) {
+    const preset = api.presets.find((candidate) => candidate.id === selectedValue.slice(7))
+    if (preset) api.applyPreset(preset)
+    return
+  }
+  if (selectedValue.startsWith("doc:")) {
+    const doc = api.docs.find((candidate) => candidate.id === selectedValue.slice(4))
+    if (doc) api.applyDocTemplate(doc)
+  }
+}
+
+function CommitTypeRow({ api }: { api: CommitTemplateApi }) {
+  const { t } = useTranslation()
+  const { options: templateOptions, currentValue: templateValue } = buildTemplateOptions(api)
+
+  return (
+    <div className={styles.row}>
+      <Select
+        label={t("commitType")}
+        value={api.fields.type}
+        options={buildTypeOptions(t, api.prefs.useIcons)}
+        buttonClassName={styles.selectBtn}
+        onChange={(nextType) => api.setField("type", nextType)}
+      />
+      <input
+        className={styles.scope}
+        aria-label={t("commitScope")}
+        value={api.fields.scope}
+        maxLength={24}
+        placeholder={t("commitScope")}
+        onChange={(event) => api.setField("scope", event.target.value)}
+      />
+      <label className={styles.check} title="BREAKING CHANGE (!)">
+        <input
+          type="checkbox"
+          checked={api.fields.breaking}
+          onChange={(event) => api.setField("breaking", event.target.checked)}
+        />
+        <span>!</span>
+      </label>
+      {api.branch && api.canInfer && (
+        <button
+          type="button"
+          className={styles.autoBtn}
+          title={`${t("autoInfer")}: ${api.branch}`}
+          onClick={api.inferBranch}
+        >
+          <Wand2 size={13} />
+        </button>
+      )}
+      <Select
+        label={t("template")}
+        value={templateValue}
+        options={templateOptions}
+        buttonClassName={styles.selectBtn}
+        onChange={(selectedValue) => handlePickTemplate(api, selectedValue)}
+      />
+    </div>
+  )
+}
+
+function CommitSubjectRow({ api }: { api: CommitTemplateApi }) {
+  const { t } = useTranslation()
+  const subjectLength = api.fields.subject.trim().length
+
+  return (
+    <div className={styles.row}>
+      <label className={styles.subjectWrap}>
+        <input
+          aria-label={t("commitSubject")}
+          value={api.fields.subject}
+          placeholder={t("commitSubjectPh")}
+          maxLength={120}
+          onChange={(event) => api.setField("subject", event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+              ;(event.target as HTMLInputElement).form?.requestSubmit()
+            }
+          }}
+        />
+        <span className={styles.counter + (subjectLength > SUBJECT_LIMIT ? ` ${styles.over}` : "")}>
+          {subjectLength}/{SUBJECT_LIMIT}
+        </span>
+      </label>
+      <EmojiPicker
+        title={t("emojiPicker")}
+        onPick={(emoji) => api.setField("subject", `${api.fields.subject}${emoji}`)}
+      />
+    </div>
+  )
+}
+
+function CommitBodyFields({ api }: { api: CommitTemplateApi }) {
+  const { t } = useTranslation()
+  return (
+    <>
+      <div className={styles.row}>
+        <textarea
+          aria-label={t("commitBody")}
+          value={api.fields.body}
+          placeholder={t("commitBody")}
+          rows={2}
+          onChange={(event) => api.setField("body", event.target.value)}
+        />
+      </div>
+      <div className={styles.row}>
+        <input
+          aria-label={t("commitFooter")}
+          value={api.fields.footer}
+          placeholder={t("commitFooter")}
+          onChange={(event) => api.setField("footer", event.target.value)}
+        />
+      </div>
+      <div className={styles.row}>
+        <input
+          aria-label={t("commitCoauthor")}
+          value={api.fields.coauthor}
+          placeholder={t("commitCoauthor")}
+          onChange={(event) => api.setField("coauthor", event.target.value)}
+        />
+      </div>
+      <div className={styles.row}>
+        <label className={styles.check} title={t("commitSignoffHint")}>
+          <input
+            type="checkbox"
+            checked={api.fields.signoff}
+            onChange={(event) => api.setField("signoff", event.target.checked)}
+          />
+          <span>{t("commitSignoff")}</span>
+        </label>
+        <label className={styles.check} title={t("commitSignHint")}>
+          <input
+            type="checkbox"
+            checked={api.fields.sign}
+            onChange={(event) => api.setField("sign", event.target.checked)}
+          />
+          <span>{t("commitSign")}</span>
+        </label>
+      </div>
+    </>
+  )
+}
+
+const HISTORY_PREVIEW_LIMIT = 8
+const HISTORY_LABEL_LIMIT = 80
+
+function CommitHistory({ api }: { api: CommitTemplateApi }) {
+  const { t } = useTranslation()
+  if (api.history.length === 0) return null
+
+  return (
+    <details className={styles.history}>
+      <summary>{t("commitHistory")}</summary>
+      <ul>
+        {api.history.slice(0, HISTORY_PREVIEW_LIMIT).map((historyEntry) => (
+          <li key={historyEntry}>
+            <button type="button" onClick={() => api.applyHistory(historyEntry)} title={historyEntry}>
+              {historyEntry.length > HISTORY_LABEL_LIMIT
+                ? `${historyEntry.slice(0, HISTORY_LABEL_LIMIT)}…`
+                : historyEntry}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
+}
+
+function CommitErrors({ api }: { api: CommitTemplateApi }) {
+  const { t } = useTranslation()
+  if (api.errors.length === 0) return null
+
+  return (
+    <p className={styles.errors} role="alert">
+      {api.errors.map((errorCode) => t(`err_${errorCode}`)).join(" · ")}
+    </p>
+  )
+}
+
+export function CommitForm({ api, compact = false }: CommitFormProps) {
+  const { t } = useTranslation()
+  const showBodyFields = api.showBody || compact
+
+  return (
+    <div className={styles.form}>
+      <CommitTypeRow api={api} />
+      <CommitSubjectRow api={api} />
+
+      {!compact && (
+        <button type="button" className={styles.toggle} onClick={() => api.setShowBody((visible) => !visible)}>
+          {api.showBody ? t("commitCollapse") : t("commitExpand")}
+        </button>
+      )}
+
+      {showBodyFields && <CommitBodyFields api={api} />}
+      <CommitHistory api={api} />
+      <CommitErrors api={api} />
+    </div>
+  )
+}

@@ -1,0 +1,29 @@
+.log {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 40vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.logTarget {
+  color: var(--grape);
+}
+
+.logCmd {
+  color: var(--muted);
+}
+
+.logErr {
+  color: #ff7a7a;
+}

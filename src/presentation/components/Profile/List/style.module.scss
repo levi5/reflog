@@ -1,0 +1,105 @@
+.virtualListWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.listItem:hover {
+  background: var(--bg-raised);
+}
+
+.itemContent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.itemContent code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemContent span {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--mono);
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activeBadge {
+  font-size: 10px;
+  color: var(--green);
+  background: var(--bg-deep);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+
+.listItem:hover .itemActions,
+.itemActions:focus-within {
+  opacity: 1;
+}
+
+.actionBtn {
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.actionBtn:hover:not(:disabled) {
+  background: var(--bg-raised);
+}
+
+.actionBtn.danger:hover:not(:disabled) {
+  color: #ff7a7a;
+}
+
+.actionBtn:focus-visible {
+  outline: 2px solid var(--grape);
+  outline-offset: 2px;
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 8px 4px;
+}

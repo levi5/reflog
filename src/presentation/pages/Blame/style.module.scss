@@ -1,0 +1,239 @@
+.simpleLayout {
+  margin-top: 1.2rem;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  gap: 0;
+  overflow: hidden;
+}
+
+.wrapperMain {
+  position: relative;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  .wrapperFile {
+    width: 100%;
+    height: 100%;
+  }
+
+  .wrapperCommitDetail {
+    width: var(--side-w, 300px);
+    min-width: 220px;
+  }
+}
+
+.conflictSide {
+  width: var(--side-w, 300px);
+  min-width: 220px;
+  border-right: 1px solid var(--border-soft);
+  background: var(--bg-panel);
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mergeMain {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-win);
+}
+
+.mergeMain h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sideHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--fg);
+}
+
+.sideHead .pct {
+  color: var(--muted);
+  font-weight: 400;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.mainHead {
+  padding: 1rem 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mainHead h3 {
+  margin: 0;
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.filter:focus {
+  border-color: var(--grape);
+  outline: none;
+}
+
+.blameRow {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.blameRow:hover {
+  background: var(--bg-hover);
+}
+
+.ln {
+  color: var(--muted);
+  min-width: 3ch;
+  text-align: right;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.sha {
+  margin-bottom: 0.4rem;
+  flex-shrink: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--grape);
+  cursor: pointer;
+}
+
+.sha:hover {
+  color: var(--amber);
+}
+
+.author {
+  color: var(--muted);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.date {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.code {
+  font-family: inherit;
+}
+
+.code :global(.hljs-keyword),
+.code :global(.hljs-selector-tag),
+.code :global(.hljs-section) {
+  color: var(--grape);
+  font-weight: 600;
+}
+
+.code :global(.hljs-string),
+.code :global(.hljs-regexp),
+.code :global(.hljs-addition) {
+  color: var(--green);
+}
+
+.code :global(.hljs-comment),
+.code :global(.hljs-quote),
+.code :global(.hljs-meta) {
+  color: var(--faint);
+  font-style: italic;
+}
+
+.code :global(.hljs-number),
+.code :global(.hljs-literal),
+.code :global(.hljs-type),
+.code :global(.hljs-built_in) {
+  color: var(--teal);
+}
+
+.code :global(.hljs-title),
+.code :global(.hljs-title.function_),
+.code :global(.hljs-name) {
+  color: var(--fg);
+}
+
+.code :global(.hljs-attr),
+.code :global(.hljs-attribute),
+.code :global(.hljs-variable),
+.code :global(.hljs-operator),
+.code :global(.hljs-punctuation) {
+  color: var(--muted);
+}
+
+.code :global(.hljs-deletion) {
+  color: #ff7a7a;
+}
+
+.code {
+  color: var(--fg);
+}
+
+.diff {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  padding: 12px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  max-height: calc(100vh - 160px);
+  overflow: auto;
+  margin: 0;
+  flex: 1;
+}
+
+@media (max-width: 980px) {
+  .simpleLayout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .conflictSide {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .mergeMain {
+    overflow: visible;
+  }
+}

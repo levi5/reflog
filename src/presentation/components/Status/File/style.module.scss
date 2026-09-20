@@ -1,0 +1,69 @@
+.fcard {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: background 0.13s ease, border-color 0.13s ease, transform 0.13s ease;
+}
+.fcard:hover {
+  background: var(--bg-raised);
+  border-color: var(--faint);
+}
+.fcard.active {
+  background: var(--bg-highest);
+  box-shadow: var(--shadow-sm);
+}
+
+.fico {
+  font-size: 16px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+.fico svg {
+  display: block;
+}
+.fico.ok {
+  color: var(--green);
+}
+.fico.warn {
+  color: var(--amber);
+}
+.fico.pend {
+  color: var(--muted);
+}
+
+.fmeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fname {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fname svg {
+  vertical-align: -2px;
+}
+
+.fmeta small {
+  color: var(--muted);
+  font-size: 11px;
+}

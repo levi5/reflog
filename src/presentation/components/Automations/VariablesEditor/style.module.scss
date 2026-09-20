@@ -1,0 +1,17 @@
+.variablesEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.variablesEditor input {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  width: 100%;
+  min-width: 0;
+}

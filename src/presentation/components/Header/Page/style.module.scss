@@ -1,0 +1,38 @@
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.pageIcon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--grape-dim);
+  color: var(--grape);
+  flex-shrink: 0;
+}
+
+.pageInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pageInfo h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.pageInfo p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}

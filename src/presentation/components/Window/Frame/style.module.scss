@@ -1,0 +1,36 @@
+.backdrop {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+.window {
+  width: calc(100% / var(--font-zoom, 1));
+  height: calc(100% / var(--font-zoom, 1));
+  background: var(--bg-win);
+  border: none;
+  border-radius: 0.8rem;
+  box-shadow: var(--shadow-window);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  zoom: var(--font-zoom, 1);
+}
+.window.maximized {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 3.2rem;
+  height: 3.2rem;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-soft);
+  user-select: none;
+  flex-shrink: 0;
+}
+

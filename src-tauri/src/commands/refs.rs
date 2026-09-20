@@ -1,0 +1,233 @@
+use crate::domain::RemoteInfo;
+use crate::runner::GitRunner;
+use crate::AppState;
+use tauri::State;
+
+pub fn branch_delete(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    name: &str,
+    force: bool,
+) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    if force {
+        return runner.run(Some(&root), &["branch", "-D", name]);
+    }
+    runner.run(Some(&root), &["branch", "-d", name])
+}
+
+pub fn branch_rename(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    old: &str,
+    new: &str,
+) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    if new.trim().is_empty() {
+        return Err("nome da branch vazio".to_string());
+    }
+    runner.run(Some(&root), &["branch", "-m", old, new])
+}
+
+pub fn tag_list(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+) -> Result<Vec<String>, String> {
+    let root = runner.repo_root(repo_path)?;
+    let out = runner.run(Some(&root), &["tag", "--list"])?;
+    Ok(out
+        .lines()
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty())
+        .collect())
+}
+
+pub fn tag_create(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    name: &str,
+    message: Option<String>,
+) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    if name.trim().is_empty() {
+        return Err("nome da tag vazio".to_string());
+    }
+    match message {
+        Some(m) if !m.trim().is_empty() => {
+            runner.run(Some(&root), &["tag", "-a", name, "-m", &m])
+        }
+        _ => runner.run(Some(&root), &["tag", name]),
+    }
+}
+
+pub fn tag_delete(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    name: &str,
+) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    runner.run(Some(&root), &["tag", "-d", name])
+}
+
+pub fn remote_list(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+) -> Result<Vec<RemoteInfo>, String> {
+    let root = runner.repo_root(repo_path)?;
+    let out = runner.run(Some(&root), &["remote", "-v"])?;
+    let mut seen = std::collections::HashSet::new();
+    let mut list = vec![];
+    for line in out.lines() {
+        if !line.trim_end().ends_with("(fetch)") {
+            continue;
+        }
+        let mut it = line.split_whitespace();
+        let name = it.next().unwrap_or("").to_string();
+        let url = it.next().unwrap_or("").to_string();
+        if name.is_empty() || !seen.insert(name.clone()) {
+            continue;
+        }
+        list.push(RemoteInfo { name, url });
+    }
+    Ok(list)
+}
+
+pub fn remote_add(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    name: &str,
+    url: &str,
+) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    if name.trim().is_empty() || url.trim().is_empty() {
+        return Err("nome ou URL do remoto vazio".to_string());
+    }
+    runner.run(Some(&root), &["remote", "add", name, url])
+}
+
+pub fn remote_remove(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    name: &str,
+) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    runner.run(Some(&root), &["remote", "remove", name])
+}
+
+#[tauri::command]
+pub async fn git_branch_delete(
+    state: State<'_, AppState>,
+    repo_path: String,
+    name: String,
+    force: bool,
+) -> Result<String, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || branch_delete(runner.as_ref(), &repo_path, &name, force)).await
+}
+
+#[tauri::command]
+pub async fn git_branch_rename(
+    state: State<'_, AppState>,
+    repo_path: String,
+    old: String,
+    new: String,
+) -> Result<String, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || branch_rename(runner.as_ref(), &repo_path, &old, &new)).await
+}
+
+#[tauri::command]
+pub async fn git_tag_list(
+    state: State<'_, AppState>,
+    repo_path: String,
+) -> Result<Vec<String>, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || tag_list(runner.as_ref(), &repo_path)).await
+}
+
+#[tauri::command]
+pub async fn git_tag_create(
+    state: State<'_, AppState>,
+    repo_path: String,
+    name: String,
+    message: Option<String>,
+) -> Result<String, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || tag_create(runner.as_ref(), &repo_path, &name, message)).await
+}
+
+#[tauri::command]
+pub async fn git_tag_delete(
+    state: State<'_, AppState>,
+    repo_path: String,
+    name: String,
+) -> Result<String, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || tag_delete(runner.as_ref(), &repo_path, &name)).await
+}
+
+#[tauri::command]
+pub async fn git_remote_list(
+    state: State<'_, AppState>,
+    repo_path: String,
+) -> Result<Vec<RemoteInfo>, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || remote_list(runner.as_ref(), &repo_path)).await
+}
+
+#[tauri::command]
+pub async fn git_remote_add(
+    state: State<'_, AppState>,
+    repo_path: String,
+    name: String,
+    url: String,
+) -> Result<String, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || remote_add(runner.as_ref(), &repo_path, &name, &url)).await
+}
+
+#[tauri::command]
+pub async fn git_remote_remove(
+    state: State<'_, AppState>,
+    repo_path: String,
+    name: String,
+) -> Result<String, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || remote_remove(runner.as_ref(), &repo_path, &name)).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runner::mock::MockRunner;
+
+    #[test]
+    fn remote_list_keeps_fetch_urls_once() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                (
+                    "remote -v",
+                    "origin\tgit@github.com:x/y.git (fetch)\norigin\tgit@github.com:x/y.git (push)\nupstream\thttps://x.git (fetch)\nupstream\thttps://x.git (push)",
+                ),
+            ],
+            &[],
+        );
+        let list = remote_list(&runner, "/r").unwrap();
+        assert_eq!(list.len(), 2);
+        assert_eq!(list[0].name, "origin");
+        assert_eq!(list[0].url, "git@github.com:x/y.git");
+    }
+
+    #[test]
+    fn tag_list_skips_blank_lines() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("tag --list", "v1.0\nv2.0\n"),
+            ],
+            &[],
+        );
+        assert_eq!(tag_list(&runner, "/r").unwrap(), vec!["v1.0", "v2.0"]);
+    }
+}

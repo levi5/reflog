@@ -1,0 +1,59 @@
+.repobar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.repobar input {
+  width: 220px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+.repobar input:focus {
+  border-color: var(--grape);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 108, 255, 0.25);
+}
+.repobar input.grow {
+  flex: 1;
+  min-width: 200px;
+}
+.repobar .iconBtn {
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  flex-shrink: 0;
+}
+
+.modeToggle {
+  display: flex;
+  gap: 8px;
+}
+
+.modeBtn {
+  background: var(--bg-panel2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 8px 11px;
+  font-size: 12px;
+  border-radius: 8px;
+  transition: background 0.13s ease, color 0.13s ease;
+}
+.modeBtn:hover:not(:disabled):not(.active) {
+  border-color: transparent;
+  color: var(--fg);
+}
+.modeBtn.active {
+  background: var(--grape-dim);
+  border-color: transparent;
+  color: var(--grape);
+  font-weight: 700;
+}

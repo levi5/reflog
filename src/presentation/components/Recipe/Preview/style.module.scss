@@ -1,0 +1,41 @@
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 8px 10px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+
+.previewRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.previewRow code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.previewRow svg {
+  color: var(--amber);
+  flex-shrink: 0;
+}
+
+.invalid {
+  font-size: 11px;
+  color: #ff7a7a;
+  flex-shrink: 0;
+}

@@ -1,0 +1,59 @@
+.root {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+.toggle:hover {
+  color: var(--grape);
+  border-color: var(--grape);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 60;
+  background: var(--bg-panel2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: menu-in 0.12s ease;
+}
+
+.group {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 2px;
+}
+.group:not(:last-child) {
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 6px;
+}
+
+.emoji {
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+}
+.emoji:hover {
+  background: var(--bg-hover);
+}

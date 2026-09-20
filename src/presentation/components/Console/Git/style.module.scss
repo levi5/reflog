@@ -1,0 +1,28 @@
+.console {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  border-left: 1px solid var(--border-soft);
+  background: var(--bg-panel);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.modeRow {
+  display: flex;
+  gap: 4px;
+}
+
+@media (max-width: 860px) {
+  .console {
+      grid-column: 1;
+      grid-row: 1;
+      border-left: none;
+      border-bottom: 1px solid var(--border-soft);
+      max-height: none;
+    }
+}

@@ -1,0 +1,51 @@
+.simpleLayout {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-win);
+
+  & :global(.canvasWrap) {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+    position: relative;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 860px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(60vh, 1fr);
+    overflow-y: auto;
+  }
+
+  .simpleLayout {
+    & :global(.canvasWrap) {
+      min-height: 50vh;
+    }
+  }
+}

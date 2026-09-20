@@ -1,0 +1,225 @@
+.docsLayout {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  gap: 0;
+}
+
+.summary {
+  width: var(--side-w, 210px);
+  min-width: 170px;
+  border-right: 1px solid var(--border-soft);
+  background: var(--bg-panel);
+  padding: 14px 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  position: relative;
+}
+.summary nav,
+.summaryNav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summaryTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 4px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.summaryItem {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.summaryItem:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.summaryItem.active {
+  background: var(--bg-raised);
+  color: var(--grape);
+  font-weight: 700;
+}
+
+.docsMain {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.docsMain > * {
+  width: 100%;
+  max-width: 720px;
+}
+
+.docsHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 2px;
+}
+.docsHead h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.docsHead p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.docsIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.docsCard {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 14px 16px;
+  scroll-margin-top: 10px;
+}
+.docsCard h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.docsCard ol {
+  margin: 10px 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--fg);
+}
+.docsCard li::marker {
+  color: var(--grape);
+  font-weight: 700;
+}
+
+.code {
+  margin: 10px 0 0;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--grape);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+:global(.docFigure) {
+  width: 100%;
+  height: auto;
+  margin: 4px 0 2px;
+  font-family: var(--mono);
+}
+
+:global(.figBox) {
+  fill: var(--bg-deep);
+  stroke: var(--border);
+}
+
+:global(.figAccent) {
+  fill: var(--grape-dim);
+  stroke: var(--grape);
+}
+
+:global(.figOk) {
+  fill: rgba(78, 222, 163, 0.12);
+  stroke: var(--green);
+}
+
+:global(.figType) {
+  fill: var(--grape-dim);
+  stroke: var(--grape);
+}
+
+:global(.figScope) {
+  fill: rgba(255, 190, 90, 0.12);
+  stroke: var(--amber);
+}
+
+:global(.figGhost) {
+  fill: var(--bg-deep);
+  stroke: var(--border-soft);
+}
+
+:global(.figText) {
+  fill: var(--fg);
+  font-size: 12px;
+}
+
+:global(.figMuted) {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+:global(.figLine) {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+
+:global(.figArrow) {
+  fill: var(--muted);
+}
+
+@media (max-width: 860px) {
+  .docsLayout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .summary {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border-soft);
+    padding: 10px 12px;
+  }
+  .summary nav {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 4px;
+  }
+  .summaryTitle {
+    display: none;
+  }
+  .summaryItem {
+    white-space: nowrap;
+  }
+  .docsMain {
+    overflow: visible;
+  }
+}

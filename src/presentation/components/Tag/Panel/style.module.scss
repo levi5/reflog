@@ -1,0 +1,30 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.suggestLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+.chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}

@@ -1,0 +1,18 @@
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: var(--faint);
+}
+.empty svg {
+  vertical-align: -2px;
+}
+.empty.small {
+  padding: 10px;
+}
+.empty.big {
+  padding: 80px 20px;
+  font-size: 14px;
+}
+.empty.ok {
+  color: var(--green);
+}

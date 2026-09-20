@@ -1,0 +1,415 @@
+/* Global CSS animations — single source of truth for @keyframes.
+ * Component modules must NOT redeclare these; just use `animation: <name> ...`.
+ * Names are global (defined once via globals.scss). Renamed generics to avoid
+ * collisions: Drawer `slideIn` -> `drawerSlideIn`, FatalError `slideIn` ->
+ * `toastSlideIn`, BusyBar `slide` -> `busySlide`.
+ */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes busySlide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes haloPulse {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes dotPop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes branchIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes currentPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes lineIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes eventIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes nodeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes nodeGroupIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes headFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes selectedPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1));
+  }
+}
+
+@keyframes edgeIn {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 40;
+  }
+  to {
+    opacity: 0.75;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes dotBlinkAnim {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px var(--grape));
+  }
+  50% {
+    transform: scale(1.4);
+    filter: drop-shadow(0 0 10px var(--grape)) drop-shadow(0 0 16px #fff);
+  }
+}
+
+@keyframes refsBlinkAnim {
+  0%,
+  100% {
+    fill: var(--grape);
+    filter: drop-shadow(0 0 1px transparent);
+  }
+  50% {
+    fill: #c4b5fd;
+    filter: drop-shadow(0 0 6px rgba(196, 181, 253, 0.9));
+  }
+}
+@keyframes freshRippleAnim {
+  0% {
+    r: 6px;
+    opacity: 0.9;
+    stroke-width: 3px;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    r: 22px;
+    opacity: 0;
+    stroke-width: 0.5px;
+  }
+}
+
+@keyframes headJumpAnim {
+  0% {
+    transform: translateY(10px) scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-4px) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes freshEdgeFlow {
+  0% {
+    stroke-dashoffset: 24;
+    filter: drop-shadow(0 0 2px var(--teal));
+  }
+  50% {
+    filter: drop-shadow(0 0 6px var(--teal));
+  }
+  100% {
+    stroke-dashoffset: 0;
+    filter: drop-shadow(0 0 2px var(--teal));
+  }
+}
+
+@keyframes actionBannerSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes actionPulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(168, 85, 247, 0);
+  }
+}
+
+@keyframes scanSweep {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -20% 0;
+  }
+}
+
+@keyframes headWorkBob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.12);
+  }
+}
+
+@keyframes freshShockwave {
+  0% {
+    r: 8px;
+    opacity: 0.9;
+    stroke-width: 3px;
+  }
+  100% {
+    r: 28px;
+    opacity: 0;
+    stroke-width: 0.5px;
+  }
+}
+
+@keyframes spotlightSpin {
+  from {
+    transform: rotate(0deg);
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  to {
+    transform: rotate(360deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes spotBlinkAnim {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 3px var(--teal));
+  }
+  50% {
+    transform: scale(1.4);
+    filter: drop-shadow(0 0 10px var(--teal)) drop-shadow(0 0 16px #fff);
+  }
+}
+
+@keyframes edgeFlowSlow {
+  from {
+    stroke-dashoffset: 18;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes headAura {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px var(--grape));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px var(--grape)) drop-shadow(0 0 20px rgba(124, 108, 255, 0.6));
+  }
+}
+
+@keyframes headRingBreathe {
+  0%,
+  100% {
+    r: 15px;
+    opacity: 0.55;
+  }
+  50% {
+    r: 19px;
+    opacity: 0.15;
+  }
+}
+
+@keyframes errorShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes travelFade {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
