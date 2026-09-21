@@ -17,6 +17,8 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
   const [branches, setBranches] = useState<BranchInfo[]>([])
   const [conflicts, setConflicts] = useState<ConflictFile[]>([])
   const [reflog, setReflog] = useState<ReflogEntry[]>([])
+  const [reflogLoading, setReflogLoading] = useState(false)
+  const [reflogLoaded, setReflogLoaded] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [remotes, setRemotes] = useState<RemoteInfo[]>([])
   const [gitVersion, setGitVersion] = useState("")
@@ -35,57 +37,76 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
     load: (root, limit) => git.graph(root, limit),
     onError: setMsg,
   })
-  const { limit: logLimit, setItems: setLog, setHasMore: setLogHasMore } = logPage
-  const { limit: graphLimit, setItems: setGraph, setHasMore: setGraphHasMore } = graphPage
-  const refreshingRef = useRef(false)
+  const refreshRequestRef = useRef(0)
+  const reflogRequestRef = useRef(0)
+  const reflogLoadingRef = useRef(false)
   const staticCacheRef = useRef<{ repo: string; version: string; remoteUrl: string; gpg: string } | null>(null)
+
+  const loadReflog = useCallback(async () => {
+    if (!repo || reflogLoadingRef.current) return
+    const request = reflogRequestRef.current + 1
+    reflogRequestRef.current = request
+    reflogLoadingRef.current = true
+    setReflogLoading(true)
+    try {
+      const entries = await git.reflog(repo, REFLOG_LIMIT)
+      if (request === reflogRequestRef.current) setReflog(entries)
+    } catch (error) {
+      if (request === reflogRequestRef.current) setMsg(String(error))
+    } finally {
+      if (request === reflogRequestRef.current) {
+        reflogLoadingRef.current = false
+        setReflogLoaded(true)
+        setReflogLoading(false)
+      }
+    }
+  }, [repo, git, setMsg])
 
   const refresh = useCallback(
     async (root: string) => {
-      if (!root || refreshingRef.current) return
-      refreshingRef.current = true
+      if (!root) return
+      const request = refreshRequestRef.current + 1
+      refreshRequestRef.current = request
       setBusy(true)
+      reflogRequestRef.current += 1
+      reflogLoadingRef.current = false
+      setReflogLoading(false)
+      logPage.reset()
+      graphPage.reset()
       try {
         const cached = staticCacheRef.current
         const staticPromise =
           cached?.repo === root
             ? Promise.resolve([cached.version, cached.remoteUrl, cached.gpg] as const)
             : Promise.all([git.version(), git.remoteUrl(root), git.gpg(root)])
-        const [status, branches, log, graph, reflog, conflicts, tags, remotes, [version, remoteUrl, gpg]] =
-          await Promise.all([
-            git.status(root),
-            git.branches(root),
-            git.log(root, logLimit),
-            git.graph(root, graphLimit),
-            git.reflog(root, REFLOG_LIMIT),
-            git.conflicted(root),
-            git.tagList(root),
-            git.remoteList(root),
-            staticPromise,
-          ])
+        const [status, branches, conflicts, tags, remotes, [version, remoteUrl, gpg]] = await Promise.all([
+          git.status(root),
+          git.branches(root),
+          git.conflicted(root),
+          git.tagList(root),
+          git.remoteList(root),
+          staticPromise,
+        ])
+        if (request !== refreshRequestRef.current) return
         staticCacheRef.current = { repo: root, version, remoteUrl, gpg }
         setStatus(status)
         setBranches(branches)
-        setLog(log)
-        setGraph(graph)
-        setReflog(reflog)
+        setReflog([])
+        setReflogLoaded(false)
         setConflicts(conflicts)
         setGitVersion(version)
         setRemoteUrl(remoteUrl)
         setGpg(gpg)
         setTags(tags)
         setRemotes(remotes)
-        setLogHasMore(log.length >= logLimit)
-        setGraphHasMore(graph.length >= graphLimit)
         if (conflicts.length === 0) setMsg("")
       } catch (error) {
-        setMsg(String(error))
+        if (request === refreshRequestRef.current) setMsg(String(error))
       } finally {
-        refreshingRef.current = false
-        setBusy(false)
+        if (request === refreshRequestRef.current) setBusy(false)
       }
     },
-    [git, logLimit, graphLimit, setBusy, setMsg, setLog, setGraph, setLogHasMore, setGraphHasMore],
+    [git, logPage.reset, graphPage.reset, setBusy, setMsg],
   )
 
   useEffect(() => {
@@ -99,6 +120,9 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
     conflicts,
     setConflicts,
     reflog,
+    reflogLoading,
+    reflogLoaded,
+    loadReflog,
     tags,
     remotes,
     gitVersion,

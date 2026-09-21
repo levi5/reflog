@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useDeferredValue, useMemo } from "react"
 import { computeCanvasGeometry } from "../../components/Graph"
 import { headHash, layoutGraph } from "../../../main/adapters"
 import type { CanvasGraphLayout } from "../../../domain/entities/graph/graph-layout"
@@ -18,7 +18,8 @@ interface UseVisualizeGraphOptions {
 }
 
 export function useVisualizeGraph({ graph, query, scope, selectedHash }: UseVisualizeGraphOptions): VisualizeGraph {
-  const layout: CanvasGraphLayout = useMemo(() => layoutGraph(graph), [graph])
+  const deferredGraph = useDeferredValue(graph)
+  const layout: CanvasGraphLayout = useMemo(() => layoutGraph(deferredGraph), [deferredGraph])
   const geometry: CanvasGeometry = useMemo(() => computeCanvasGeometry(layout), [layout])
   const currentHeadHash = useMemo(() => headHash(graph), [graph])
   const normalizedQuery = useMemo(() => normalizeCommitQuery(query, scope), [query, scope])

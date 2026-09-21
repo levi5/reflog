@@ -233,6 +233,8 @@
   "logView": "Log",
   "graphView": "Graph",
   "loadMore": "Load more",
+  "showAll": "Show all",
+  "loadDiff": "Load diff",
   "loading": "Loading...",
   "stagingDiff": "Staging & Diff",
   "mergeConflictsTab": "Merge & Conflicts",

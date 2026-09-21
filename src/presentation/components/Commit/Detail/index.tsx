@@ -1,6 +1,6 @@
 import classnames from "classnames"
 import { Check, Copy, FileText, GitBranch, ListPlus, RotateCcw, Undo2, X } from "lucide-react"
-import { type CSSProperties, useEffect, useState } from "react"
+import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { useTranslation } from "../../../context"
 import type { CommitFileChange, CommitInfo } from "../../../../types"
 import { Icon } from "../../Icons"
@@ -107,38 +107,66 @@ export function CommitDetail({
   const { isCopied, handleCopy } = useCopyFeedback(commit, copied, onCopy)
 
   const [files, setFiles] = useState<CommitFileChange[]>([])
+  const [loadingFiles, setLoadingFiles] = useState(false)
   const [selectedFile, setSelectedFile] = useState<string>("")
   const [diffText, setDiffText] = useState<string>("")
   const [loadingDiff, setLoadingDiff] = useState(false)
+  const diffCacheRef = useRef(new Map<string, string>())
+  const filesRequestRef = useRef(0)
+  const diffRequestRef = useRef(0)
 
   useEffect(() => {
     if (!commit) return
+    diffRequestRef.current += 1
     setSelectedFile("")
     setDiffText("")
+    setLoadingDiff(false)
+    setFiles([])
+    setLoadingFiles(false)
     if (loadFiles) {
+      const request = filesRequestRef.current + 1
+      filesRequestRef.current = request
+      setLoadingFiles(true)
       void loadFiles(commit.hash)
-        .then(setFiles)
-        .catch(() => setFiles([]))
+        .then((nextFiles) => {
+          if (request === filesRequestRef.current) setFiles(nextFiles)
+        })
+        .catch(() => {
+          if (request === filesRequestRef.current) setFiles([])
+        })
+        .finally(() => {
+          if (request === filesRequestRef.current) setLoadingFiles(false)
+        })
     }
-    if (loadDiff) {
-      setLoadingDiff(true)
-      void loadDiff(commit.hash)
-        .then(setDiffText)
-        .catch(() => setDiffText(""))
-        .finally(() => setLoadingDiff(false))
-    }
-  }, [commit, loadFiles, loadDiff])
+  }, [commit, loadFiles])
 
   const handleSelectFile = (file: string) => {
     const next = file === selectedFile ? "" : file
+    diffRequestRef.current += 1
     setSelectedFile(next)
-    if (commit && loadDiff) {
-      setLoadingDiff(true)
-      void loadDiff(commit.hash, next || undefined)
-        .then(setDiffText)
-        .catch(() => setDiffText(""))
-        .finally(() => setLoadingDiff(false))
+    setDiffText("")
+    if (!commit || !loadDiff || !next) return
+
+    const key = `${commit.hash}:${next}`
+    const cached = diffCacheRef.current.get(key)
+    if (cached !== undefined) {
+      setDiffText(cached)
+      return
     }
+
+    const request = diffRequestRef.current
+    setLoadingDiff(true)
+    void loadDiff(commit.hash, next)
+      .then((diff) => {
+        diffCacheRef.current.set(key, diff)
+        if (request === diffRequestRef.current) setDiffText(diff)
+      })
+      .catch(() => {
+        if (request === diffRequestRef.current) setDiffText("")
+      })
+      .finally(() => {
+        if (request === diffRequestRef.current) setLoadingDiff(false)
+      })
   }
 
   if (!commit) return null
@@ -215,44 +243,57 @@ export function CommitDetail({
         )}
       </div>
 
-      {files.length > 0 && (
+      {(loadingFiles || files.length > 0) && (
         <>
           <div className={styles.sectionTitle}>
-            {t("filesChanged")} ({files.length})
+            {t("filesChanged")}
+            {!loadingFiles && ` (${files.length})`}
           </div>
-          <div className={styles.filesList}>
-            {files.map((file) => (
-              <button
-                type="button"
-                key={file.path}
-                className={classnames(styles.fileItem, selectedFile === file.path && styles.fileSelected)}
-                onClick={() => handleSelectFile(file.path)}
-                title={file.path}
-              >
-                <span
-                  className={classnames(
-                    styles.badge,
-                    file.status === "A" && styles.badgeA,
-                    file.status === "D" && styles.badgeD,
-                    file.status === "M" && styles.badgeM,
-                  )}
+          <div className={styles.filesList} aria-busy={loadingFiles}>
+            {loadingFiles ? (
+              <div className={styles.skeletonList} role="status" aria-label={t("loading")}>
+                <i />
+                <i />
+                <i />
+              </div>
+            ) : (
+              files.map((file) => (
+                <button
+                  type="button"
+                  key={file.path}
+                  className={classnames(styles.fileItem, selectedFile === file.path && styles.fileSelected)}
+                  onClick={() => handleSelectFile(file.path)}
+                  title={file.path}
                 >
-                  {file.status}
-                </span>
-                <span>{file.path}</span>
-              </button>
-            ))}
+                  <span
+                    className={classnames(
+                      styles.badge,
+                      file.status === "A" && styles.badgeA,
+                      file.status === "D" && styles.badgeD,
+                      file.status === "M" && styles.badgeM,
+                    )}
+                  >
+                    {file.status}
+                  </span>
+                  <span>{file.path}</span>
+                </button>
+              ))
+            )}
           </div>
         </>
       )}
 
-      {diffText && (
+      {selectedFile && (loadingDiff || diffText) && (
         <>
           <div className={styles.sectionTitle}>
             <FileText size={11} /> Diff {selectedFile ? `: ${selectedFile}` : ""}
           </div>
           {loadingDiff ? (
-            <p className={styles.meta}>{t("loading")}</p>
+            <div className={styles.skeletonDiff} role="status" aria-busy aria-label={t("loading")}>
+              <i />
+              <i />
+              <i />
+            </div>
           ) : (
             <DiffPreview
               content={diffText}

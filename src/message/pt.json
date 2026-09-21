@@ -233,6 +233,8 @@
   "logView": "Histórico",
   "graphView": "Grafo",
   "loadMore": "Carregar mais",
+  "showAll": "Mostrar tudo",
+  "loadDiff": "Carregar diff",
   "loading": "Carregando...",
   "stagingDiff": "Staging e Diff",
   "mergeConflictsTab": "Merge e Conflitos",

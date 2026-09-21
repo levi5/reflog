@@ -72,6 +72,29 @@ export function Graph(_props: Props) {
 
   const currentHasMore = viewMode === "log" ? repo.logHasMore : repo.graphHasMore
   const currentLoading = viewMode === "log" ? repo.logLoading : repo.graphLoading
+  const activeCommitLoading = viewMode === "log" ? repo.logLoading : repo.graphLoading
+  const availableCommitCount = viewMode === "log" ? repo.log.length : repo.graph.length
+
+  useEffect(() => {
+    if (viewMode === "reflog") {
+      if (!repo.reflogLoaded && !repo.reflogLoading) void repo.loadReflog()
+      return
+    }
+
+    if (availableCommitCount === 0 && !activeCommitLoading) {
+      if (viewMode === "log") void repo.loadMoreLog()
+      else void repo.loadMoreGraph()
+    }
+  }, [
+    viewMode,
+    availableCommitCount,
+    activeCommitLoading,
+    repo.reflogLoaded,
+    repo.reflogLoading,
+    repo.loadMoreLog,
+    repo.loadMoreGraph,
+    repo.loadReflog,
+  ])
 
   const handleLoadMore = () => {
     const method = viewMode === "log" ? "loadMoreLog" : "loadMoreGraph"
@@ -98,18 +121,18 @@ export function Graph(_props: Props) {
 
   const handlePageChange = (newPage: number) => {
     setCommitPage(newPage)
-    const neededItems = (newPage + 1) * COMMITS_PER_PAGE
-    if (neededItems >= filteredCommits.length && currentHasMore && !currentLoading) {
+    const preloadThreshold = (newPage + 2) * COMMITS_PER_PAGE
+    if (preloadThreshold >= availableCommitCount && currentHasMore && !currentLoading) {
       handleLoadMore()
     }
   }
 
   useEffect(() => {
-    const isAtOrPastEnd = (commitPage + 1) * COMMITS_PER_PAGE >= filteredCommits.length
-    if (isAtOrPastEnd && currentHasMore && !currentLoading && filteredCommits.length > 0) {
+    const isNearEnd = (commitPage + 2) * COMMITS_PER_PAGE >= availableCommitCount
+    if (isNearEnd && currentHasMore && !currentLoading && availableCommitCount > 0) {
       handleLoadMoreRef.current()
     }
-  }, [commitPage, filteredCommits.length, currentHasMore, currentLoading])
+  }, [commitPage, availableCommitCount, currentHasMore, currentLoading])
 
   const observeLoadMore = useIntersectionObserver<HTMLDivElement>(
     (entries) => {

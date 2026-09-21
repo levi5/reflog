@@ -1,5 +1,5 @@
 import { _Either } from "funcio"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { BlameLine } from "../../../domain/entities/blame/blame"
 import { gitApi } from "../../../infrastructure/git"
 import { t } from "../../../i18n"
@@ -23,6 +23,9 @@ export function useStaging(deps: StagingDeps) {
   const [selectedFile, setSelectedFile] = useState("")
   const [diff, setDiff] = useState("")
   const [diffStaged, setDiffStaged] = useState(false)
+  const [diffLoaded, setDiffLoaded] = useState(false)
+  const [diffLoading, setDiffLoading] = useState(false)
+  const diffRequestRef = useRef(0)
   const [commitMsg, setCommitMsg] = useState("")
   const [newBranch, setNewBranch] = useState("")
   const [blameFile, setBlameFile] = useState("")
@@ -30,19 +33,34 @@ export function useStaging(deps: StagingDeps) {
   const [trackedFiles, setTrackedFiles] = useState<string[]>([])
   const [submodules, setSubmodules] = useState<SubmoduleInfo[]>([])
 
+  const selectDiff = useCallback((file: string, staged: boolean) => {
+    diffRequestRef.current += 1
+    setSelectedFile(file)
+    setDiffStaged(staged)
+    setDiff("")
+    setDiffLoaded(false)
+    setDiffLoading(false)
+  }, [])
+
   const loadDiff = useCallback(
-    async (file: string, staged: boolean) => {
+    async (file = selectedFile, staged = diffStaged) => {
       if (!repo) return
+      const request = diffRequestRef.current + 1
+      diffRequestRef.current = request
       setSelectedFile(file)
       setDiffStaged(staged)
+      setDiffLoading(true)
       const result = await _Either.try.async(() => gitApi.diff(repo, file, staged))
+      if (request !== diffRequestRef.current) return
       if (result.isRight()) {
         setDiff((result.value as string) || t(lang, "noDiff"))
       } else {
         setDiff(String(result.value))
       }
+      setDiffLoaded(true)
+      setDiffLoading(false)
     },
-    [repo, lang],
+    [repo, lang, selectedFile, diffStaged],
   )
 
   const loadBlame = useCallback(
@@ -94,6 +112,15 @@ export function useStaging(deps: StagingDeps) {
       setMsg(String(result.value))
     }
   }, [repo, setMsg])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clear a previously selected file when changing repositories
+  useEffect(() => {
+    diffRequestRef.current += 1
+    setSelectedFile("")
+    setDiff("")
+    setDiffLoaded(false)
+    setDiffLoading(false)
+  }, [repo])
 
   useEffect(() => {
     if (repo) {
@@ -161,7 +188,7 @@ export function useStaging(deps: StagingDeps) {
   const discardFile = async (file: string) => {
     if (!repo || !file) return Promise.resolve()
     if (!(await requestConfirm(t(lang, "discard"), t(lang, "discardConfirm")))) return Promise.resolve()
-    // discard (git restore) só toca o worktree: captura o diff unstaged para o undo
+    // Discard only changes in the working tree and retain a patch for undo.
     const captured = await _Either.try.async(() => gitApi.diff(repo, file, false))
     const undoPatch = captured.isRight() ? String(captured.value ?? "") : ""
     return runAction(
@@ -227,7 +254,7 @@ export function useStaging(deps: StagingDeps) {
   const discardHunk = async (patch: string) => {
     if (!repo || !patch.trim()) return Promise.resolve()
     if (!(await requestConfirm(t(lang, "discard"), t(lang, "discardConfirm")))) return Promise.resolve()
-    // discard aplica o patch com reverse: reaplicar para frente desfaz
+    // Reapplying the original patch restores the discarded hunk.
     return runAction(() => gitApi.applyPatch(repo, patch, false, true), reloadDiff, {
       loadingMessage: t(lang, "discardHunkLoading"),
       successMessage: t(lang, "discardHunkSuccess"),
@@ -258,6 +285,8 @@ export function useStaging(deps: StagingDeps) {
     selectedFile,
     diff,
     diffStaged,
+    diffLoaded,
+    diffLoading,
     commitMsg,
     setCommitMsg,
     newBranch,
@@ -277,6 +306,7 @@ export function useStaging(deps: StagingDeps) {
     blameFile,
     blameLines,
     trackedFiles,
+    selectDiff,
     loadDiff,
     loadBlame,
     loadTracked,

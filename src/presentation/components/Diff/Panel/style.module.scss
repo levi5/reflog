@@ -152,3 +152,25 @@
   font-size: 12px;
   margin-bottom: 8px;
 }
+
+.loadMoreWrap {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.diffSkeleton {
+  width: 96px;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg-deep) 20%, var(--bg-hover) 45%, var(--bg-deep) 70%);
+  background-size: 200% 100%;
+  animation: diffShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes diffShimmer {
+  to {
+    background-position: -200% 0;
+  }
+}

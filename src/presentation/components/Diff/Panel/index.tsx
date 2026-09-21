@@ -8,16 +8,39 @@ import { useTranslation } from "../../../context"
 import styles from "./style.module.scss"
 
 const LINE_KEY_LENGTH = 32
+const LARGE_DIFF_PAGE_LINES = 1000
 
 function stableKey(content: string, prefix: string, index: number): string {
   return `${prefix}-${content.slice(0, LINE_KEY_LENGTH)}-${index}`
+}
+
+function countLines(content: string): number {
+  if (!content) return 0
+  let count = 1
+  for (let index = 0; index < content.length; index += 1) {
+    if (content[index] === "\n") count += 1
+  }
+  return count
+}
+
+function takeLines(content: string, count: number): string {
+  let end = 0
+  let lines = 0
+  while (end < content.length && lines < count) {
+    if (content[end] === "\n") lines += 1
+    end += 1
+  }
+  return content.slice(0, end)
 }
 
 interface DiffPanelProps {
   filePath: string
   isStaged: boolean
   diffContent: string
+  loaded: boolean
+  loading: boolean
   maxHeight?: number
+  onLoad: () => void
   onShowUnstaged: () => void
   onShowStaged: () => void
   onStageFile: () => void
@@ -223,7 +246,10 @@ export function DiffPanel({
   filePath,
   isStaged,
   diffContent,
+  loaded,
+  loading,
   maxHeight,
+  onLoad,
   onShowUnstaged,
   onShowStaged,
   onStageFile,
@@ -237,23 +263,55 @@ export function DiffPanel({
   onEditFile,
 }: DiffPanelProps) {
   const { t } = useTranslation()
-  const parsedDiff = useMemo(() => parseDiff(diffContent), [diffContent])
+  const diffSize = diffContent.length
+  const diffLineCount = useMemo(() => countLines(diffContent), [diffContent])
+  const isLargeDiff = diffSize > MAX_DIFF_BYTES || diffLineCount > MAX_DIFF_LINES
+  const parsedDiff = useMemo(
+    () => (loaded && !isLargeDiff ? parseDiff(diffContent) : { preamble: [], hunks: [] }),
+    [diffContent, isLargeDiff, loaded],
+  )
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [visibleLineCount, setVisibleLineCount] = useState(LARGE_DIFF_PAGE_LINES)
   const [prevDiffRef, setPrevDiffRef] = useState(diffContent)
   const [prevFileRef, setPrevFileRef] = useState(filePath)
   if (prevDiffRef !== diffContent || prevFileRef !== filePath) {
     setPrevDiffRef(diffContent)
     setPrevFileRef(filePath)
     setSelectedKeys(new Set())
+    setVisibleLineCount(LARGE_DIFF_PAGE_LINES)
   }
 
   if (!filePath) {
     return <EmptyState message={t("selectFileHint")} />
   }
 
-  const diffSize = diffContent.length
-  const diffLineCount = diffContent.split("\n").length
-  const isLargeDiff = diffSize > MAX_DIFF_BYTES || diffLineCount > MAX_DIFF_LINES
+  const toolbar = (
+    <DiffToolbar
+      isStaged={isStaged}
+      onShowUnstaged={onShowUnstaged}
+      onShowStaged={onShowStaged}
+      onStageFile={onStageFile}
+      onUnstageFile={onUnstageFile}
+      onDiscardFile={onDiscardFile}
+      onEditFile={onEditFile}
+    />
+  )
+
+  if (!loaded) {
+    return (
+      <>
+        {toolbar}
+        <div className={styles.largeDiffBanner}>
+          <button type="button" className="primary" onClick={onLoad} disabled={loading}>
+            {loading ? t("loading") : t("loadDiff")}
+          </button>
+          {loading && <div className={styles.diffSkeleton} role="status" aria-busy aria-label={t("loading")} />}
+        </div>
+      </>
+    )
+  }
+
+  const visibleDiff = isLargeDiff ? takeLines(diffContent, visibleLineCount) : diffContent
 
   const handleToggleHunk = (hunkIndex: number) => {
     const hunk = parsedDiff.hunks[hunkIndex]
@@ -304,30 +362,31 @@ export function DiffPanel({
     }
   }
 
-  const showUnstaged = onShowUnstaged
-  const showStaged = onShowStaged
-  const stageFile = onStageFile
-  const unstageFile = onUnstageFile
-  const discardFile = onDiscardFile
-  const editFile = onEditFile
-
   return (
     <>
-      <DiffToolbar
-        isStaged={isStaged}
-        onShowUnstaged={showUnstaged}
-        onShowStaged={showStaged}
-        onStageFile={stageFile}
-        onUnstageFile={unstageFile}
-        onDiscardFile={discardFile}
-        onEditFile={editFile}
-      />
+      {toolbar}
       {isLargeDiff && (
         <div className={styles.largeDiffBanner}>
           <span>{t("fileTooLarge")}</span>
         </div>
       )}
-      {parsedDiff.hunks.length === 0 ? (
+      {isLargeDiff ? (
+        <>
+          <pre className={styles.diff} style={maxHeight ? { maxHeight } : undefined}>
+            {visibleDiff}
+          </pre>
+          {visibleLineCount < diffLineCount && (
+            <div className={styles.loadMoreWrap}>
+              <button type="button" onClick={() => setVisibleLineCount((count) => count + LARGE_DIFF_PAGE_LINES)}>
+                {t("loadMore")}
+              </button>
+              <button type="button" onClick={() => setVisibleLineCount(diffLineCount)}>
+                {t("showAll")}
+              </button>
+            </div>
+          )}
+        </>
+      ) : parsedDiff.hunks.length === 0 ? (
         <pre className={styles.diff} style={maxHeight ? { maxHeight } : undefined}>
           {diffContent}
         </pre>

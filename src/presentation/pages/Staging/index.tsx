@@ -147,7 +147,7 @@ export function Staging(_props: Props) {
               files={files}
               selectedFilePath={repo.selectedFile}
               detailed
-              onSelect={(filePath, staged) => repo.loadDiff(filePath, staged)}
+              onSelect={(filePath, staged) => repo.selectDiff(filePath, staged)}
             />
           )}
           {tab === "branches" && (
@@ -201,7 +201,10 @@ export function Staging(_props: Props) {
               filePath={repo.selectedFile}
               isStaged={repo.diffStaged}
               diffContent={repo.diff}
+              loaded={repo.diffLoaded}
+              loading={repo.diffLoading}
               maxHeight={diffHeight.size}
+              onLoad={() => repo.loadDiff()}
               onShowUnstaged={() => repo.loadDiff(repo.selectedFile, false)}
               onShowStaged={() => repo.loadDiff(repo.selectedFile, true)}
               onStageFile={() => repo.stageFile(repo.selectedFile)}

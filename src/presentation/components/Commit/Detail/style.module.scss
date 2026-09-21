@@ -186,6 +186,39 @@
   max-height: 220px;
 }
 
+.skeletonList,
+.skeletonDiff {
+  display: grid;
+  gap: 6px;
+  padding: 6px 4px;
+}
+
+.skeletonList i,
+.skeletonDiff i {
+  display: block;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg-panel) 20%, var(--bg-hover) 45%, var(--bg-panel) 70%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
+
+.skeletonList i:nth-child(2),
+.skeletonDiff i:nth-child(2) {
+  width: 74%;
+}
+
+.skeletonList i:nth-child(3),
+.skeletonDiff i:nth-child(3) {
+  width: 52%;
+}
+
+@keyframes skeletonShimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
 
 @media (max-width: 860px) {
   .detail {

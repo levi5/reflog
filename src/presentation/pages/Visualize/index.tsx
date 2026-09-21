@@ -41,6 +41,10 @@ export const Visualize = () => {
   const isLoadingRef = useState({ loading: false })[0]
 
   useEffect(() => {
+    if (repo.graph.length === 0 && !graphLoading) void loadMoreGraph()
+  }, [repo.graph.length, graphLoading, loadMoreGraph])
+
+  useEffect(() => {
     if (!graphLoading) {
       isLoadingRef.loading = false
     }
