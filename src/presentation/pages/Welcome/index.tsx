@@ -4,6 +4,7 @@ import classnames from "classnames"
 import { Download, FolderSearch, GitFork, History } from "lucide-react"
 
 import { Spinner } from "../../components/Animation/Spinner"
+import { LogoMark } from "../../components/Brand/Logo"
 import { RecentCard } from "../../components/Recent"
 
 import { t } from "../../../i18n"
@@ -83,7 +84,7 @@ export function Welcome(props: Props) {
   return (
     <div className={styles.welcome}>
       <div className={styles.hero}>
-        <img src="/icon.svg" alt="Reflog" className={styles.logo} />
+        <LogoMark className={styles.logo} />
         <h1>{t(lang, "welcomeTitle")}</h1>
         <p>{t(lang, "welcomeSub")}</p>
       </div>

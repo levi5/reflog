@@ -10,7 +10,7 @@ import { t } from "../../../i18n"
 
 import styles from "./style.module.scss"
 
-export const Docs = ()=> {
+export const Docs = () => {
   const { lang } = useSettingsContext()
   const { intro, sections } = DOCS_CONTENT[lang]
   const fig = DOCS_FIGURE_LABELS[lang]
@@ -23,7 +23,8 @@ export const Docs = ()=> {
           if (entry.isIntersecting) setActive(entry.target.id)
         }
       },
-      { rootMargin: "-15% 0px -70% 0px" })
+      { rootMargin: "-15% 0px -70% 0px" },
+    )
 
     const $elements = DOCS_CONTENT[lang].sections
       .map(({ id }) => document.getElementById(id))

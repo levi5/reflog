@@ -82,8 +82,7 @@ export function ErrorFallback({ error, reset }: ErrorFallbackProps) {
       await navigator.clipboard.writeText(text || "unknown error")
       setCopied(true)
       window.setTimeout(() => setCopied(false), 2000)
-    } catch {
-    }
+    } catch {}
   }
 
   return (

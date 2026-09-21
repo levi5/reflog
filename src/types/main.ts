@@ -104,6 +104,16 @@ export type Lang = "pt" | "en"
 
 export type Theme = "dark" | "light" | "glass-dark" | "glass-light"
 
+export type AccentId = "grape" | "blue" | "teal" | "green" | "amber" | "red" | "orange"
+
+export interface AccentOption {
+  id: AccentId
+  /** Hex usado nos temas escuros (dark / glass-dark) */
+  dark: string
+  /** Hex usado nos temas claros (light / glass-light), mais escuro por contraste */
+  light: string
+}
+
 export type FontSize = number
 
 export const DEFAULT_FONT_SIZE = 13

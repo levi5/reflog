@@ -17,9 +17,17 @@
   border-color: rgba(255, 122, 122, 0.5);
   background: rgba(255, 122, 122, 0.1);
 }
+.repoPill.alertPill:hover {
+  border-color: rgba(255, 122, 122, 0.8);
+  background: rgba(255, 122, 122, 0.18);
+}
 
 .filesPill {
   color: var(--amber);
   border-color: rgba(255, 190, 90, 0.4);
   background: rgba(255, 190, 90, 0.08);
+}
+.repoPill.filesPill:hover {
+  border-color: rgba(255, 190, 90, 0.7);
+  background: rgba(255, 190, 90, 0.15);
 }

@@ -134,6 +134,14 @@ export class AutomationsUseCase implements IAutomationsUseCase {
 
 const AUTOMATIONS_STORAGE_KEY = "forgegit.automations"
 
+const LEGACY_ACCENT_HEX = "#7c6cff"
+const ACCENT_VAR = "var(--accent)"
+
+/** Atalhos criados antes do accent theme-aware gravavam o roxo fixo; migra para seguir o accent. */
+function migrateShortcutColor(color: string): string {
+  return color.toLowerCase() === LEGACY_ACCENT_HEX ? ACCENT_VAR : color
+}
+
 function emptyAutomationStore(): AutomationStore {
   return { recipes: [], aliases: [], monitors: [], shortcuts: [] }
 }
@@ -159,14 +167,16 @@ export function loadAutomationStore(storage: IStorage = localStorageAdapter): Au
           }))
         : [],
       shortcuts: Array.isArray(record.shortcuts)
-        ? record.shortcuts.filter(
-            (shortcut): shortcut is AutomationShortcut =>
-              !!shortcut &&
-              typeof shortcut.id === "string" &&
-              typeof shortcut.targetId === "string" &&
-              (shortcut.targetType === "recipe" || shortcut.targetType === "monitor") &&
-              typeof shortcut.color === "string",
-          )
+        ? record.shortcuts
+            .filter(
+              (shortcut): shortcut is AutomationShortcut =>
+                !!shortcut &&
+                typeof shortcut.id === "string" &&
+                typeof shortcut.targetId === "string" &&
+                (shortcut.targetType === "recipe" || shortcut.targetType === "monitor") &&
+                typeof shortcut.color === "string",
+            )
+            .map((shortcut) => ({ ...shortcut, color: migrateShortcutColor(shortcut.color) }))
         : [],
     }
   } catch {

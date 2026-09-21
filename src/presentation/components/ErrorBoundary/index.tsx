@@ -22,8 +22,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.props.onError?.(error, info)
     try {
       console.error("[ErrorBoundary]", error, info.componentStack)
-    } catch {
-    }
+    } catch {}
   }
 
   private handleReset = () => {

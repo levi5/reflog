@@ -1,3 +1,4 @@
+export * from "./accent"
 export * from "./commit"
 export * from "./filter"
 export * from "./message"

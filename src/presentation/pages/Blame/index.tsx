@@ -25,7 +25,6 @@ export const Blame = (_props: Props) => {
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null)
 
   useEffect(() => {
-
     if (repo.repo) void repo.loadTracked()
   }, [repo.repo, repo.loadTracked])
 
@@ -44,16 +43,16 @@ export const Blame = (_props: Props) => {
       }))
   }, [repo.trackedFiles, query, scope])
 
-  const codeNodes = useMemo((): ReactNode[] =>
-    repo.blameLines.map((line: (typeof repo.blameLines)[0]) => {
+  const codeNodes = useMemo(
+    (): ReactNode[] =>
+      repo.blameLines.map((line: (typeof repo.blameLines)[0]) => {
+        if (line.text === "") return " "
 
-      if (line.text === "") return " "
+        const tree = highlightLineHast(line.text, repo.blameFile)
 
-      const tree = highlightLineHast(line.text, repo.blameFile)
-
-      if (!tree) return line.text
-      return toJsxRuntime(tree, { Fragment, jsx, jsxs })
-    }),
+        if (!tree) return line.text
+        return toJsxRuntime(tree, { Fragment, jsx, jsxs })
+      }),
     [repo.blameLines, repo.blameFile],
   )
 
@@ -89,31 +88,34 @@ export const Blame = (_props: Props) => {
             {repo.blameLines.length === 0 && <pre className={styles.diff}>{t(lang, "blameEmpty")}</pre>}
             {repo.blameLines.length !== 0 && (
               <div className={styles.diff}>
-                {repo.blameLines.map(({ commit, summary, lineno, author, date }: (typeof repo.blameLines)[0], i: number) => (
-                  <div key={lineno} className={styles.blameRow} title={`${commit} · ${summary}`}>
-                    <span className={styles.ln}>{lineno}</span>
-                    <button
-                      type="button"
-                      className={styles.sha}
-                      onClick={() =>
-                        setSelectedCommit({
-                          hash: commit,
-                          short: commit.slice(0, 7),
-                          author: author,
-                          date: date,
-                          message: summary,
-                          parents: [],
-                          refs: [],
-                        })
-                      }
-                      title={t(lang, "commitDetails")}>
-                      {commit}
-                    </button>
-                    <span className={styles.author}>{author}</span>
-                    <span className={styles.date}>{date}</span>
-                    <code className={styles.code}>{codeNodes[i] ?? " "}</code>
-                  </div>
-                ))}
+                {repo.blameLines.map(
+                  ({ commit, summary, lineno, author, date }: (typeof repo.blameLines)[0], i: number) => (
+                    <div key={lineno} className={styles.blameRow} title={`${commit} · ${summary}`}>
+                      <span className={styles.ln}>{lineno}</span>
+                      <button
+                        type="button"
+                        className={styles.sha}
+                        onClick={() =>
+                          setSelectedCommit({
+                            hash: commit,
+                            short: commit.slice(0, 7),
+                            author: author,
+                            date: date,
+                            message: summary,
+                            parents: [],
+                            refs: [],
+                          })
+                        }
+                        title={t(lang, "commitDetails")}
+                      >
+                        {commit}
+                      </button>
+                      <span className={styles.author}>{author}</span>
+                      <span className={styles.date}>{date}</span>
+                      <code className={styles.code}>{codeNodes[i] ?? " "}</code>
+                    </div>
+                  ),
+                )}
               </div>
             )}
             {repo.editingFile !== null && (

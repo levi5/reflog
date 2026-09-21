@@ -50,8 +50,10 @@ export function StatusBar(props: Props) {
   const { t } = useTranslation()
   const verified = gpgVerified(gpg)
   const remote = remoteUrl.includes("@") ? remoteUrl : sshHost(remoteUrl)
+  const danger = merging || cherryPicking || reverting || unmergedCount > 0
+  const tone = danger ? "tone-danger" : changedCount > 0 ? "tone-warn" : "tone-clean"
   return (
-    <footer className={styles.statusbar}>
+    <footer className={classnames(styles.statusbar, styles[tone])} data-tone={tone}>
       <span className={styles.sbPath} title={root}>
         <FolderGit2 size={12} /> {root}
       </span>

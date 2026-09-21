@@ -21,6 +21,7 @@ export function AboutSection() {
             {t("version")}: 0.1.0
             {gitVersion ? ` · git ${gitVersion}` : ""}
           </p>
+          <p>{t("developedBy")} Levi Araújo</p>
         </div>
         <div className={styles.settingsControl} />
       </div>

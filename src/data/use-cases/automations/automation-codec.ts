@@ -220,7 +220,7 @@ const shortcutArraySchema = z.array(automationShortcutSchema)
 export function collectValidShortcuts(
   value: unknown,
   idGen: (prefix: string) => string = defaultNewId,
-  defaultColor = "#7c6cff",
+  defaultColor = "var(--accent)",
 ): AutomationShortcut[] {
   if (!Array.isArray(value)) return []
   return value.flatMap((item) => {

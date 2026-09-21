@@ -1,5 +1,5 @@
-export const DEFAULT_QUICK_ACTION_COLOR = "#7c6cff"
-export const DEFAULT_IMPORTED_SHORTCUT_COLOR = "#7c6cff"
+export const DEFAULT_QUICK_ACTION_COLOR = "var(--accent)"
+export const DEFAULT_IMPORTED_SHORTCUT_COLOR = "var(--accent)"
 
 export const DEFAULT_RECIPE_ICON = "Zap"
 export const DEFAULT_RECIPE_COLOR = "#6366f1"

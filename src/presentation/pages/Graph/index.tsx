@@ -52,7 +52,9 @@ export function Graph(_props: Props) {
     const { signoff, sign } = amendApi.fields
 
     const box = await _try.async(async () => {
-      await repo.runAction(async () => { await repo.amendCommit?.(repo.repo, msg, signoff, sign) })
+      await repo.runAction(async () => {
+        await repo.amendCommit?.(repo.repo, msg, signoff, sign)
+      })
 
       pushHistory(msg)
       setAmendCommit(null)
@@ -71,7 +73,7 @@ export function Graph(_props: Props) {
   const currentLoading = viewMode === "log" ? repo.logLoading : repo.graphLoading
 
   const handleLoadMore = () => {
-    const method = viewMode === "log" ? 'loadMoreLog' : 'loadMoreGraph'
+    const method = viewMode === "log" ? "loadMoreLog" : "loadMoreGraph"
 
     _try.sync(() => repo[method]())
   }

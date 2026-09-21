@@ -168,18 +168,50 @@
   flex-shrink: 0;
 }
 .themeDot.dark {
-  background: linear-gradient(135deg, #131319 50%, #7c6cff 50%);
+  background: linear-gradient(135deg, #131319 50%, var(--accent) 50%);
 }
 .themeDot.light {
-  background: linear-gradient(135deg, #f4f4f8 50%, #7c6cff 50%);
+  background: linear-gradient(135deg, #f4f4f8 50%, var(--accent) 50%);
 }
 .themeDot.glass-dark {
-  background: linear-gradient(135deg, #1a1a24 50%, #7c6cff 50%);
+  background: linear-gradient(135deg, #1a1a24 50%, var(--accent) 50%);
   border-color: rgba(255, 255, 255, 0.55);
 }
 .themeDot.glass-light {
-  background: linear-gradient(135deg, #ffffff 50%, #5b4ee0 50%);
+  background: linear-gradient(135deg, #ffffff 50%, var(--accent) 50%);
   border-color: rgba(20, 20, 35, 0.5);
+}
+
+.accentRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.accentDot {
+  width: 26px;
+  height: 26px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  padding: 0;
+  flex-shrink: 0;
+  transition: box-shadow 0.15s ease, transform 0.08s ease;
+}
+
+.accentDot:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.accentDot:focus-visible {
+  outline: 0.2rem solid var(--fg);
+  outline-offset: 0.2rem;
+}
+
+.accentDot.selected {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--bg-panel), 0 0 0 4px var(--accent);
 }
 
 .formSelect {

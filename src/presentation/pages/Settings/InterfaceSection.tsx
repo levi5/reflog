@@ -1,12 +1,13 @@
 import classnames from "classnames"
-import { CaseSensitive, History, Languages, Palette, SlidersHorizontal } from "lucide-react"
+import { Brush, CaseSensitive, History, Languages, Palette, SlidersHorizontal } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Select, type SelectOption } from "../../components/Select"
 import { Switch } from "../../components/Switch"
 import { useSettingsContext, useTranslation } from "../../context"
 import type { StringKey } from "../../../i18n"
 import { clamp } from "../../../shared/utils/number"
-import { DEFAULT_FONT_SIZE, type Lang, MAX_FONT_SIZE, MIN_FONT_SIZE, type Theme } from "../../../types"
+import { type AccentId, DEFAULT_FONT_SIZE, type Lang, MAX_FONT_SIZE, MIN_FONT_SIZE, type Theme } from "../../../types"
+import { ACCENT_OPTIONS, resolveAccentHex } from "../../../shared/constants/accent"
 import { SectionHeading, SettingCard } from "./SettingsCards"
 import styles from "./style.module.scss"
 
@@ -57,8 +58,18 @@ function buildThemeOptions(t: (key: StringKey) => string): SelectOption[] {
 }
 
 export function InterfaceSection() {
-  const { lang, theme, fontSize, reopenLastRepo, setLang, setTheme, setFontSize, setReopenLastRepo } =
-    useSettingsContext()
+  const {
+    lang,
+    theme,
+    accent,
+    fontSize,
+    reopenLastRepo,
+    setLang,
+    setTheme,
+    setAccent,
+    setFontSize,
+    setReopenLastRepo,
+  } = useSettingsContext()
   const { t } = useTranslation()
 
   const handleLanguageChange = (selectedValue: string) => {
@@ -74,6 +85,7 @@ export function InterfaceSection() {
       <SectionHeading icon={<SlidersHorizontal size={13} />} title={t("groupInterface")} />
       <LanguageSettingCard currentLanguage={lang} onLanguageChange={handleLanguageChange} />
       <ThemeSettingCard currentTheme={theme} onThemeChange={handleThemeChange} />
+      <AccentSettingCard currentAccent={accent} currentTheme={theme} onAccentChange={setAccent} />
       <FontSizeSettingCard currentFontSize={fontSize} onFontSizeChange={setFontSize} />
       <ReopenLastSettingCard checked={reopenLastRepo} onCheckedChange={setReopenLastRepo} />
     </>
@@ -117,6 +129,40 @@ function ThemeSettingCard({
         options={buildThemeOptions(t)}
         onChange={(selectedValue) => onThemeChange(normalizeTheme(selectedValue))}
       />
+    </SettingCard>
+  )
+}
+
+function AccentSettingCard({
+  currentAccent,
+  currentTheme,
+  onAccentChange,
+}: {
+  currentAccent: AccentId
+  currentTheme: Theme
+  onAccentChange: (nextAccent: AccentId) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <SettingCard icon={<Brush size={15} />} title={t("accent")} hint={t("settingsAccentHint")}>
+      <div className={styles.accentRow}>
+        {ACCENT_OPTIONS.map((option) => {
+          const hex = resolveAccentHex(option.id, currentTheme)
+          const selected = option.id === currentAccent
+          return (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={selected}
+              aria-label={option.id}
+              title={`${option.id} ${hex}`}
+              className={classnames(styles.accentDot, selected && styles.selected)}
+              style={{ background: hex }}
+              onClick={() => onAccentChange(option.id)}
+            />
+          )
+        })}
+      </div>
     </SettingCard>
   )
 }
