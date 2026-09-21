@@ -1,13 +1,16 @@
 import { BookOpen, ListTree } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
+
 import { Icon } from "../../components/Icons"
 import { ResizableSplitLayout } from "../../components/Resizable"
+
 import { useSettingsContext } from "../../context"
 import { DOCS_CONTENT, DOCS_FIGURE_LABELS } from "../../cms/docs"
 import { t } from "../../../i18n"
+
 import styles from "./style.module.scss"
 
-export function Docs() {
+export const Docs = ()=> {
   const { lang } = useSettingsContext()
   const { intro, sections } = DOCS_CONTENT[lang]
   const fig = DOCS_FIGURE_LABELS[lang]
@@ -20,14 +23,16 @@ export function Docs() {
           if (entry.isIntersecting) setActive(entry.target.id)
         }
       },
-      { rootMargin: "-15% 0px -70% 0px" },
-    )
-    const els = DOCS_CONTENT[lang].sections
-      .map((s) => document.getElementById(s.id))
-      .filter((el): el is HTMLElement => el !== null)
-    els.forEach((el) => {
-      observer.observe(el)
+      { rootMargin: "-15% 0px -70% 0px" })
+
+    const $elements = DOCS_CONTENT[lang].sections
+      .map(({ id }) => document.getElementById(id))
+      .filter((element): element is HTMLElement => element !== null)
+
+    $elements.forEach((element) => {
+      observer.observe(element)
     })
+
     return () => observer.disconnect()
   }, [lang])
 
@@ -37,29 +42,29 @@ export function Docs() {
 
   return (
     <ResizableSplitLayout
-      sidebarWidth={{ initial: 210, min: 170, max: 420, storageKey: "docs.side" }}
+      sidebarWidth={{ initial: 250, min: 200, max: 420, storageKey: "docs.side" }}
       sidebar={
-        <>
+        <Fragment>
           <p className={styles.summaryTitle}>
             <ListTree size={13} />
             {t(lang, "summary")}
           </p>
           <nav className={styles.summaryNav}>
-            {sections.map((s) => (
+            {sections.map(({ id, title }) => (
               <button
-                key={s.id}
+                key={id}
                 type="button"
-                className={styles.summaryItem + (active === s.id ? ` ${styles.active}` : "")}
-                onClick={() => scrollTo(s.id)}
+                className={styles.summaryItem + (active === id ? ` ${styles.active}` : "")}
+                onClick={() => scrollTo(id)}
               >
-                {s.title}
+                {title}
               </button>
             ))}
           </nav>
-        </>
+        </Fragment>
       }
       main={
-        <>
+        <Fragment>
           <div className={styles.docsHead}>
             <span className={styles.docsIcon}>
               <BookOpen size={18} />
@@ -69,22 +74,22 @@ export function Docs() {
               <p>{intro}</p>
             </div>
           </div>
-          {sections.map((s) => (
-            <section key={s.id} id={s.id} className={styles.docsCard}>
-              <h3>{s.title}</h3>
-              {s.figure === "merge" && <Icon.Figure.MergeFlow l={fig} />}
-              {s.figure === "rebase" && <Icon.Figure.RebaseFlow l={fig} />}
-              {s.figure === "commit" && <Icon.Figure.CommitAnatomy l={fig} />}
-              {s.figure === "template" && <Icon.Figure.TemplatePipeline l={fig} />}
+          {sections.map(({ id, title, figure, code, steps }) => (
+            <section key={id} id={id} className={styles.docsCard}>
+              <h3>{title}</h3>
+              {figure === "merge" && <Icon.Figure.MergeFlow l={fig} />}
+              {figure === "rebase" && <Icon.Figure.RebaseFlow l={fig} />}
+              {figure === "commit" && <Icon.Figure.CommitAnatomy l={fig} />}
+              {figure === "template" && <Icon.Figure.TemplatePipeline l={fig} />}
               <ol>
-                {s.steps.map((step) => (
+                {steps.map((step) => (
                   <li key={step}>{step}</li>
                 ))}
               </ol>
-              {s.code && <pre className={styles.code}>{s.code}</pre>}
+              {code && <pre className={styles.code}>{code}</pre>}
             </section>
           ))}
-        </>
+        </Fragment>
       }
     />
   )

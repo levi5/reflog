@@ -2,6 +2,7 @@ import { toJsxRuntime } from "hast-util-to-jsx-runtime"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"
 
+import { Flex } from "@/presentation/components/Wrapper/Flex"
 import { SearchBox } from "../../components/Search"
 import { Status } from "../../components/Status"
 import { Editor } from "../../components/Editor"
@@ -14,24 +15,25 @@ import { t } from "../../../i18n"
 import type { CommitInfo, FileStatus } from "../../../types"
 
 import styles from "./style.module.scss"
-import { Flex } from "@/presentation/components/Wrapper/Flex"
 
 type Props = Record<string, never>
 
-export function Blame(_props: Props) {
+export const Blame = (_props: Props) => {
   const { lang } = useSettingsContext()
   const repo = useRepo()
   const { query, scope } = useSearch()
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null)
 
   useEffect(() => {
+
     if (repo.repo) void repo.loadTracked()
   }, [repo.repo, repo.loadTracked])
 
   const files: FileStatus[] = useMemo(() => {
-    const q = scope === "commits" || scope === "branches" ? "" : query.trim().toLowerCase()
+    const name = scope === "commits" || scope === "branches" ? "" : query.trim().toLowerCase()
+
     return repo.trackedFiles
-      .filter((p: string) => !q || p.toLowerCase().includes(q))
+      .filter((file: string) => !name || file.toLowerCase().includes(name))
       .slice(0, 400)
       .map((path: string) => ({
         path,
@@ -42,14 +44,16 @@ export function Blame(_props: Props) {
       }))
   }, [repo.trackedFiles, query, scope])
 
-  const codeNodes = useMemo(
-    (): ReactNode[] =>
-      repo.blameLines.map((l: (typeof repo.blameLines)[0]) => {
-        if (l.text === "") return " "
-        const tree = highlightLineHast(l.text, repo.blameFile)
-        if (!tree) return l.text
-        return toJsxRuntime(tree, { Fragment, jsx, jsxs })
-      }),
+  const codeNodes = useMemo((): ReactNode[] =>
+    repo.blameLines.map((line: (typeof repo.blameLines)[0]) => {
+
+      if (line.text === "") return " "
+
+      const tree = highlightLineHast(line.text, repo.blameFile)
+
+      if (!tree) return line.text
+      return toJsxRuntime(tree, { Fragment, jsx, jsxs })
+    }),
     [repo.blameLines, repo.blameFile],
   )
 
@@ -57,7 +61,7 @@ export function Blame(_props: Props) {
     <Resizable.Layout
       sidebarWidth={{ initial: 300, min: 220, max: 560, storageKey: "blame.side" }}
       sidebar={
-        <>
+        <Fragment>
           <div className={styles.sideHead}>
             <strong>{t(lang, "blame").toUpperCase()}</strong>
             <span className={styles.pct}>{repo.trackedFiles.length}</span>
@@ -69,7 +73,7 @@ export function Blame(_props: Props) {
             detailed={false}
             onSelect={(filePath) => repo.loadBlame(filePath)}
           />
-        </>
+        </Fragment>
       }
       main={
         <Flex.Row className={styles.wrapperMain}>
@@ -82,39 +86,36 @@ export function Blame(_props: Props) {
                 </button>
               )}
             </div>
-            {repo.blameLines.length === 0 ? (
-              <pre className={styles.diff}>{t(lang, "blameEmpty")}</pre>
-            ) : (
+            {repo.blameLines.length === 0 && <pre className={styles.diff}>{t(lang, "blameEmpty")}</pre>}
+            {repo.blameLines.length !== 0 && (
               <div className={styles.diff}>
-                {repo.blameLines.map((l: (typeof repo.blameLines)[0], i: number) => (
-                  <div key={l.lineno} className={styles.blameRow} title={`${l.commit} · ${l.summary}`}>
-                    <span className={styles.ln}>{l.lineno}</span>
+                {repo.blameLines.map(({ commit, summary, lineno, author, date }: (typeof repo.blameLines)[0], i: number) => (
+                  <div key={lineno} className={styles.blameRow} title={`${commit} · ${summary}`}>
+                    <span className={styles.ln}>{lineno}</span>
                     <button
                       type="button"
                       className={styles.sha}
                       onClick={() =>
                         setSelectedCommit({
-                          hash: l.commit,
-                          short: l.commit.slice(0, 7),
-                          author: l.author,
-                          date: l.date,
-                          message: l.summary,
+                          hash: commit,
+                          short: commit.slice(0, 7),
+                          author: author,
+                          date: date,
+                          message: summary,
                           parents: [],
                           refs: [],
                         })
                       }
-                      title={t(lang, "commitDetails")}
-                    >
-                      {l.commit}
+                      title={t(lang, "commitDetails")}>
+                      {commit}
                     </button>
-                    <span className={styles.author}>{l.author}</span>
-                    <span className={styles.date}>{l.date}</span>
+                    <span className={styles.author}>{author}</span>
+                    <span className={styles.date}>{date}</span>
                     <code className={styles.code}>{codeNodes[i] ?? " "}</code>
                   </div>
                 ))}
               </div>
             )}
-
             {repo.editingFile !== null && (
               <Editor.File
                 filePath={repo.editingFile}

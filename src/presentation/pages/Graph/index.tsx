@@ -1,18 +1,22 @@
-import classnames from "classnames"
-import { GitBranch, History, List } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
+import classnames from "classnames"
+import { _try } from "funcio"
+import { GitBranch, History, List } from "lucide-react"
+
 import { Branch } from "../../components/Branch"
 import { Commit } from "../../components/Commit"
+import { Flex } from "@/presentation/components/Wrapper/Flex"
 import { Modal } from "../../components/Modal"
 import { Pagination } from "../../components/Pagination"
-import { SearchBox } from "../../components/Search"
 import { ResizableSplitLayout } from "../../components/Resizable"
-import { Flex } from "@/presentation/components/Wrapper/Flex"
-import { useRepo, useSearch, useSettingsContext } from "../../context"
+import { SearchBox } from "../../components/Search"
+
 import { matchesQuery, pushHistory } from "../../../main/adapters"
-import { useCommitTemplate } from "../../hooks"
 import { t } from "../../../i18n"
+import { useCommitTemplate } from "../../hooks"
+import { useRepo, useSearch, useSettingsContext } from "../../context"
 import type { CommitInfo } from "../../../types"
+
 import styles from "./style.module.scss"
 
 type Props = Record<string, never>
@@ -42,18 +46,20 @@ export function Graph(_props: Props) {
 
   const confirmAmend = async () => {
     const msg = amendMessage.trim()
+
     if (!amendCommit || !msg || !amendApi.canCommit) return
+
     const { signoff, sign } = amendApi.fields
-    try {
-      await repo.runAction(async () => {
-        await repo.amendCommit?.(repo.repo, msg, signoff, sign)
-      })
+
+    const box = await _try.async(async () => {
+      await repo.runAction(async () => { await repo.amendCommit?.(repo.repo, msg, signoff, sign) })
+
       pushHistory(msg)
       setAmendCommit(null)
       setAmendMessage("")
-    } catch (e) {
-      console.error("Amend failed:", e)
-    }
+    })
+
+    if (box.isLeft()) console.error("Amend failed:", box.value)
   }
 
   const cancelAmend = () => {
@@ -65,11 +71,9 @@ export function Graph(_props: Props) {
   const currentLoading = viewMode === "log" ? repo.logLoading : repo.graphLoading
 
   const handleLoadMore = () => {
-    if (viewMode === "log") {
-      repo.loadMoreLog?.()
-    } else {
-      repo.loadMoreGraph?.()
-    }
+    const method = viewMode === "log" ? 'loadMoreLog' : 'loadMoreGraph'
+
+    _try.sync(() => repo[method]())
   }
 
   const handleLoadMoreRef = useRef(handleLoadMore)

@@ -207,8 +207,15 @@ body,
   width: 100%;
   overflow: hidden;
   background: transparent;
+  border-radius: 0.8rem;
   color: var(--fg);
   font-family: Inter, Cantarell, -apple-system, "Segoe UI", Roboto, ui-sans-serif, sans-serif;
+}
+
+html.is-maximized,
+html.is-maximized body,
+html.is-maximized #root {
+  border-radius: 0;
 }
 
 

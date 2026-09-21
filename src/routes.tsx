@@ -3,6 +3,7 @@ import { createHashRouter } from "react-router-dom"
 
 import { AppLayout } from "./presentation/layout/App"
 import { MainLayout } from "./presentation/layout/MainLayout"
+import { RouteErrorElement, RouteNotFound } from "./presentation/components/ErrorBoundary/RouteErrorElement"
 
 const Welcome = lazy(() => import("./presentation/pages/Welcome").then((m) => ({ default: m.Welcome })))
 const Merge = lazy(() => import("./presentation/pages/Merge").then((m) => ({ default: m.MergePage })))
@@ -30,6 +31,7 @@ export const router = createHashRouter([
   {
     path: "/",
     element: <AppLayout />,
+    errorElement: <RouteErrorElement />,
     children: [
       {
         path: "",
@@ -44,6 +46,7 @@ export const router = createHashRouter([
           { path: "automation", element: <AutomationHub /> },
           { path: "docs", element: <Docs /> },
           { path: "settings", element: <Settings /> },
+          { path: "*", element: <RouteNotFound /> },
         ],
       },
     ],

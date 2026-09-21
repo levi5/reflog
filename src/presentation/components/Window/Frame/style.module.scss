@@ -15,11 +15,33 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
   zoom: var(--font-zoom, 1);
 }
 .window.maximized {
   border-radius: 0;
   box-shadow: none;
+}
+
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  height: 30px;
+  z-index: 50;
+  cursor: nwse-resize;
+  touch-action: none;
+  border-bottom-right-radius: 0.8rem;
+  background:
+    radial-gradient(circle at right bottom, transparent 10px, var(--border) 10px, var(--border) 11.5px, transparent 11.5px),
+    radial-gradient(circle at right bottom, transparent 15px, var(--border) 15px, var(--border) 16.5px, transparent 16.5px),
+    radial-gradient(circle at right bottom, transparent 20px, var(--border) 20px, var(--border) 21.5px, transparent 21.5px);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.window:hover .resizeHandle {
+  opacity: 0.9;
 }
 
 .titlebar {
