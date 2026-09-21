@@ -72,6 +72,7 @@ pub fn run() {
             commands::sync::git_stash_list,
             commands::sync::git_stash_drop,
             commands::sync::git_stash_show,
+            commands::sync::git_stash_apply,
             commands::staging::git_cherry_pick,
             commands::staging::git_cherry_pick_continue,
             commands::staging::git_cherry_pick_abort,

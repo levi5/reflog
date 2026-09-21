@@ -1,6 +1,6 @@
 use crate::runner::GitRunner;
 use crate::domain::StashItem;
-
+use crate::commands::validation::{validate_ref_name, validate_stash_message};
 use crate::AppState;
 use tauri::State;
 
@@ -11,14 +11,15 @@ pub fn merge_opts(
     squash: bool,
     no_ff: bool,
 ) -> Result<String, String> {
+    validate_ref_name(branch)?;
     let root = runner.repo_root(repo_path)?;
     if squash {
-        return runner.run(Some(&root), &["merge", "--squash", branch]);
+        return runner.run(Some(&root), &["merge", "--squash", "--", branch]);
     }
     if no_ff {
-        return runner.run(Some(&root), &["merge", "--no-ff", "--no-edit", branch]);
+        return runner.run(Some(&root), &["merge", "--no-ff", "--no-edit", "--", branch]);
     }
-    runner.run(Some(&root), &["merge", branch])
+    runner.run(Some(&root), &["merge", "--", branch])
 }
 
 pub fn fetch(
@@ -52,6 +53,7 @@ pub fn pull(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
                 {
                     let branch = branch_out.trim();
                     if !branch.is_empty() && branch != "HEAD" {
+                        validate_ref_name(branch)?;
                         let _ = runner.run(
                             Some(&root),
                             &[
@@ -84,6 +86,7 @@ pub fn push(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
                 {
                     let branch = branch_out.trim();
                     if !branch.is_empty() && branch != "HEAD" {
+                        validate_ref_name(branch)?;
                         return runner.run(Some(&root), &["push", "-u", "origin", branch]);
                     }
                 }
@@ -98,6 +101,9 @@ pub fn stash(
     repo_path: &str,
     message: Option<String>,
 ) -> Result<String, String> {
+    if let Some(ref m) = message {
+        validate_stash_message(m)?;
+    }
     let root = runner.repo_root(repo_path)?;
     match message {
         Some(m) if !m.trim().is_empty() => {
@@ -276,6 +282,6 @@ mod tests {
         assert_eq!(list[0].message, "WIP on main: 1234 feat");
         assert_eq!(list[1].index, 1);
         assert_eq!(list[1].selector, "stash@{1}");
+        assert_eq!(list[1].message, "On feat: test");
     }
 }
-

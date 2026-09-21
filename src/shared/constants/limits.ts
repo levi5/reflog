@@ -16,6 +16,10 @@ export const MAX_PROFILES = 12
 export const COMMIT_DETAIL_WIDTH = 280
 export const COMMIT_DETAIL_MIN_WIDTH = 220
 export const COMMIT_DETAIL_MAX_WIDTH = 520
+export const MAX_DIFF_LINES = 5000
+export const MAX_DIFF_BYTES = 2 * 1024 * 1024
+export const MAX_FILE_SIZE = 1024 * 1024
+export const MAX_HISTORY_ITEMS = 200
 
 export const SIDEBAR_DEFAULTS = {
   initial: 300,

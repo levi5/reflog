@@ -4,19 +4,35 @@ use crate::AppState;
 use std::path::Path;
 use tauri::State;
 
+fn is_safe_repo_path(file: &str) -> bool {
+    if file.is_empty()
+        || file.starts_with('/')
+        || file.contains("..")
+        || file.contains('\0')
+    {
+        return false;
+    }
+    true
+}
+
 pub fn conflicted_of(
     runner: &dyn GitRunner,
     repo_path: &str,
 ) -> Result<Vec<ConflictFile>, String> {
     let root = runner.repo_root(repo_path)?;
+    let canonical_root = std::fs::canonicalize(&root).map_err(|e| e.to_string())?;
     let out = runner.run(Some(&root), &["diff", "--name-only", "--diff-filter=U"])?;
     let mut files = vec![];
     for line in out.lines() {
         let rel = line.trim();
-        if rel.is_empty() {
+        if rel.is_empty() || !is_safe_repo_path(rel) {
             continue;
         }
         let full = Path::new(&root).join(rel);
+        let canonical_target = std::fs::canonicalize(&full).map_err(|e| e.to_string())?;
+        if !canonical_target.starts_with(&canonical_root) {
+            continue;
+        }
         let content = runner
             .read_file(&full)
             .map_err(|e| format!("erro ao ler {rel}: {e}"))?;

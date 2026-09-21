@@ -1,4 +1,7 @@
 use crate::runner::GitRunner;
+use crate::commands::validation::{
+    validate_clone_url, validate_clone_path, validate_config_key, validate_config_value,
+};
 use crate::AppState;
 use tauri::State;
 
@@ -21,18 +24,12 @@ pub fn gpg(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
 }
 
 pub fn clone(runner: &dyn GitRunner, url: &str, path: &str) -> Result<String, String> {
-    runner.run(None, &["clone", url, path])
+    validate_clone_url(url)?;
+    validate_clone_path(path)?;
+    runner.run(None, &["clone", "--", url, path])
 }
 
-pub async fn clone_async(
-    runner: std::sync::Arc<dyn GitRunner>,
-    url: String,
-    path: String,
-) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || clone(runner.as_ref(), &url, &path))
-        .await
-        .map_err(|e| e.to_string())?
-}
+
 
 fn get_key(
     runner: &dyn GitRunner,
@@ -67,6 +64,8 @@ pub fn config_set(
     value: &str,
     global: bool,
 ) -> Result<String, String> {
+    validate_config_key(key)?;
+    validate_config_value(value)?;
     let scoped_global = global || repo_path.trim().is_empty();
     if value.trim().is_empty() {
         return unset_key(runner, repo_path, key, scoped_global);
@@ -140,7 +139,8 @@ pub async fn git_clone(
     url: String,
     path: String,
 ) -> Result<String, String> {
-    clone_async(state.runner.clone(), url, path).await
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || clone(runner.as_ref(), &url, &path)).await
 }
 
 #[tauri::command]

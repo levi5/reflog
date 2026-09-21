@@ -1,5 +1,6 @@
 use crate::domain::RemoteInfo;
 use crate::runner::GitRunner;
+use crate::commands::validation::{validate_ref_name, validate_remote_name, validate_clone_url};
 use crate::AppState;
 use tauri::State;
 
@@ -9,11 +10,12 @@ pub fn branch_delete(
     name: &str,
     force: bool,
 ) -> Result<String, String> {
+    validate_ref_name(name)?;
     let root = runner.repo_root(repo_path)?;
     if force {
-        return runner.run(Some(&root), &["branch", "-D", name]);
+        return runner.run(Some(&root), &["branch", "-D", "--", name]);
     }
-    runner.run(Some(&root), &["branch", "-d", name])
+    runner.run(Some(&root), &["branch", "-d", "--", name])
 }
 
 pub fn branch_rename(
@@ -22,11 +24,13 @@ pub fn branch_rename(
     old: &str,
     new: &str,
 ) -> Result<String, String> {
-    let root = runner.repo_root(repo_path)?;
+    validate_ref_name(old)?;
+    validate_ref_name(new)?;
     if new.trim().is_empty() {
         return Err("nome da branch vazio".to_string());
     }
-    runner.run(Some(&root), &["branch", "-m", old, new])
+    let root = runner.repo_root(repo_path)?;
+    runner.run(Some(&root), &["branch", "-m", "--", old, new])
 }
 
 pub fn tag_list(
@@ -48,10 +52,8 @@ pub fn tag_create(
     name: &str,
     message: Option<String>,
 ) -> Result<String, String> {
+    validate_ref_name(name)?;
     let root = runner.repo_root(repo_path)?;
-    if name.trim().is_empty() {
-        return Err("nome da tag vazio".to_string());
-    }
     match message {
         Some(m) if !m.trim().is_empty() => {
             runner.run(Some(&root), &["tag", "-a", name, "-m", &m])
@@ -65,8 +67,9 @@ pub fn tag_delete(
     repo_path: &str,
     name: &str,
 ) -> Result<String, String> {
+    validate_ref_name(name)?;
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["tag", "-d", name])
+    runner.run(Some(&root), &["tag", "-d", "--", name])
 }
 
 pub fn remote_list(
@@ -98,10 +101,12 @@ pub fn remote_add(
     name: &str,
     url: &str,
 ) -> Result<String, String> {
-    let root = runner.repo_root(repo_path)?;
+    validate_remote_name(name)?;
+    validate_clone_url(url)?;
     if name.trim().is_empty() || url.trim().is_empty() {
         return Err("nome ou URL do remoto vazio".to_string());
     }
+    let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["remote", "add", name, url])
 }
 
@@ -110,6 +115,7 @@ pub fn remote_remove(
     repo_path: &str,
     name: &str,
 ) -> Result<String, String> {
+    validate_remote_name(name)?;
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["remote", "remove", name])
 }

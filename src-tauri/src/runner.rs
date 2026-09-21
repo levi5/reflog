@@ -1,5 +1,10 @@
+use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use std::time::Duration;
+use wait_timeout::ChildExt;
+
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub trait GitRunner: Send + Sync {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String>;
@@ -14,10 +19,7 @@ pub trait GitRunner: Send + Sync {
         repo: Option<&str>,
         args: &[&str],
         env: &[(&str, &str)],
-    ) -> Result<String, String> {
-        let _ = env;
-        self.run(repo, args)
-    }
+    ) -> Result<String, String>;
     fn read_file(&self, path: &Path) -> Result<String, String>;
     fn write_file(&self, path: &Path, content: &str) -> Result<(), String>;
     fn path_exists(&self, path: &Path) -> bool;
@@ -54,17 +56,63 @@ fn base_command(repo: Option<&str>) -> Command {
     cmd
 }
 
+impl ProcessRunner {
+    fn execute(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        stdin_input: Option<&str>,
+        env_vars: Option<&[(&str, &str)]>,
+        timeout: Duration,
+    ) -> Result<String, String> {
+        let mut cmd = base_command(repo);
+        cmd.args(args);
+
+        if let Some(env) = env_vars {
+            for (k, v) in env {
+                cmd.env(k, v);
+            }
+        }
+
+        if stdin_input.is_some() {
+            cmd.stdin(std::process::Stdio::piped());
+        }
+        cmd.stdout(std::process::Stdio::piped());
+        cmd.stderr(std::process::Stdio::piped());
+
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("falha ao executar git: {e}"))?;
+
+        if let Some(input) = stdin_input {
+            if let Some(mut stdin) = child.stdin.take() {
+                stdin
+                    .write_all(input.as_bytes())
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+
+        match child.wait_timeout(timeout).map_err(|e| e.to_string())? {
+            Some(status) => {
+                let out = child.wait_with_output().map_err(|e| e.to_string())?;
+                if status.success() {
+                    Ok(String::from_utf8_lossy(&out.stdout).to_string())
+                } else {
+                    Err(failure_message(&out.stdout, &out.stderr))
+                }
+            }
+            None => {
+                let _ = child.kill();
+                let _ = child.wait();
+                Err("git excedeu o tempo limite".to_string())
+            }
+        }
+    }
+}
+
 impl GitRunner for ProcessRunner {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String> {
-        let mut cmd = base_command(repo);
-        let out = cmd
-            .args(args)
-            .output()
-            .map_err(|e| format!("falha ao executar git: {e}"))?;
-        match out.status.success() {
-            true => Ok(String::from_utf8_lossy(&out.stdout).to_string()),
-            false => Err(failure_message(&out.stdout, &out.stderr)),
-        }
+        self.execute(repo, args, None, None, DEFAULT_TIMEOUT)
     }
 
     fn run_stdin(
@@ -73,26 +121,7 @@ impl GitRunner for ProcessRunner {
         args: &[&str],
         input: &str,
     ) -> Result<String, String> {
-        use std::io::Write;
-        let mut cmd = base_command(repo);
-        let mut child = cmd
-            .args(args)
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("falha ao executar git: {e}"))?;
-        child
-            .stdin
-            .as_mut()
-            .ok_or_else(|| "sem stdin".to_string())?
-            .write_all(input.as_bytes())
-            .map_err(|e| e.to_string())?;
-        let out = child.wait_with_output().map_err(|e| e.to_string())?;
-        match out.status.success() {
-            true => Ok(String::from_utf8_lossy(&out.stdout).to_string()),
-            false => Err(failure_message(&out.stdout, &out.stderr)),
-        }
+        self.execute(repo, args, Some(input), None, DEFAULT_TIMEOUT)
     }
 
     fn run_env(
@@ -101,18 +130,7 @@ impl GitRunner for ProcessRunner {
         args: &[&str],
         env: &[(&str, &str)],
     ) -> Result<String, String> {
-        let mut cmd = base_command(repo);
-        for (k, v) in env {
-            cmd.env(k, v);
-        }
-        let out = cmd
-            .args(args)
-            .output()
-            .map_err(|e| format!("falha ao executar git: {e}"))?;
-        match out.status.success() {
-            true => Ok(String::from_utf8_lossy(&out.stdout).to_string()),
-            false => Err(failure_message(&out.stdout, &out.stderr)),
-        }
+        self.execute(repo, args, None, Some(env), DEFAULT_TIMEOUT)
     }
 
     fn read_file(&self, path: &Path) -> Result<String, String> {
@@ -177,6 +195,18 @@ pub mod mock {
             _repo: Option<&str>,
             args: &[&str],
             _input: &str,
+        ) -> Result<String, String> {
+            self.outputs
+                .get(&args.join(" "))
+                .cloned()
+                .unwrap_or(Err("unexpected command".to_string()))
+        }
+
+        fn run_env(
+            &self,
+            _repo: Option<&str>,
+            args: &[&str],
+            _env: &[(&str, &str)],
         ) -> Result<String, String> {
             self.outputs
                 .get(&args.join(" "))

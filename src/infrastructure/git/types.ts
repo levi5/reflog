@@ -2,10 +2,14 @@ import type {
   BranchInfo,
   CommitFileChange,
   CommitInfo,
+  ConflictBlock,
   ConflictFile,
+  Identity,
   ReflogEntry,
   RemoteInfo,
+  StashItem,
   StatusResult,
+  SubmoduleInfo,
 } from "../../types"
 
 export interface IGitApi {
@@ -21,8 +25,8 @@ export interface IGitApi {
   diff(repoPath: string, file: string, staged: boolean): Promise<string>
   fileContent(repoPath: string, file: string): Promise<string>
   saveContent(repoPath: string, file: string, content: string): Promise<void>
-  writeTextFile(path: string, content: string): Promise<void>
   conflicted(repoPath: string): Promise<ConflictFile[]>
+  parse(content: string): Promise<ConflictBlock[]>
   add(repoPath: string, files: string[]): Promise<string>
   commit(repoPath: string, message: string, signoff?: boolean, sign?: boolean): Promise<string>
   amendCommit(repoPath: string, message: string, signoff?: boolean, sign?: boolean): Promise<string>
@@ -53,4 +57,20 @@ export interface IGitApi {
   remoteList(repoPath: string): Promise<RemoteInfo[]>
   remoteAdd(repoPath: string, name: string, url: string): Promise<string>
   remoteRemove(repoPath: string, name: string): Promise<string>
+  templateList(repoPath: string, folder: string): Promise<string[]>
+  templateRead(repoPath: string, folder: string, name: string): Promise<string>
+  templateWrite(repoPath: string, folder: string, name: string, content: string): Promise<string>
+  templateDelete(repoPath: string, folder: string, name: string): Promise<string>
+  submodules(repoPath: string): Promise<SubmoduleInfo[]>
+  submoduleUpdate(repoPath: string, submodulePath?: string): Promise<string>
+  stash(repoPath: string, message?: string): Promise<string>
+  stashPop(repoPath: string): Promise<string>
+  stashList(repoPath: string): Promise<StashItem[]>
+  stashShow(repoPath: string, index: number): Promise<string>
+  stashDrop(repoPath: string, index: number): Promise<string>
+  stashApply(repoPath: string, index: number): Promise<string>
+  applyPatch(repoPath: string, patch: string, cached: boolean, reverse: boolean): Promise<string>
+  configGet(repoPath: string, key: string, global?: boolean): Promise<string>
+  configSet(repoPath: string, key: string, value: string, global?: boolean): Promise<string>
+  identity(repoPath: string): Promise<Identity>
 }

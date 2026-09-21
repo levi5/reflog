@@ -1,6 +1,11 @@
 use crate::runner::GitRunner;
+use crate::commands::validation::{
+    validate_ref_name, validate_commit_oid, validate_repo_relative_path, validate_patch_size,
+};
 use crate::AppState;
 use tauri::State;
+
+const MAX_PATCH_BYTES: usize = 5 * 1024 * 1024;
 
 pub fn add(
     runner: &dyn GitRunner,
@@ -10,6 +15,9 @@ pub fn add(
     let root = runner.repo_root(repo_path)?;
     if files.is_empty() {
         return runner.run(Some(&root), &["add", "-A"]);
+    }
+    for f in files {
+        validate_repo_relative_path(f)?;
     }
     let mut args: Vec<&str> = vec!["add", "--"];
     args.extend(files.iter().map(|s| s.as_str()));
@@ -72,11 +80,12 @@ pub fn checkout(
     branch: &str,
     create: bool,
 ) -> Result<String, String> {
+    validate_ref_name(branch)?;
     let root = runner.repo_root(repo_path)?;
     if create {
-        return runner.run(Some(&root), &["checkout", "-b", branch]);
+        return runner.run(Some(&root), &["checkout", "-b", "--", branch]);
     }
-    runner.run(Some(&root), &["checkout", branch])
+    runner.run(Some(&root), &["checkout", "--", branch])
 }
 
 pub fn unstage(
@@ -84,6 +93,7 @@ pub fn unstage(
     repo_path: &str,
     file: &str,
 ) -> Result<String, String> {
+    validate_repo_relative_path(file)?;
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["reset", "HEAD", "--", file])
 }
@@ -93,6 +103,7 @@ pub fn discard(
     repo_path: &str,
     file: &str,
 ) -> Result<String, String> {
+    validate_repo_relative_path(file)?;
     let root = runner.repo_root(repo_path)?;
     match runner.run(Some(&root), &["restore", "--", file]) {
         Ok(o) => Ok(o),
@@ -107,10 +118,11 @@ pub fn apply_patch(
     cached: bool,
     reverse: bool,
 ) -> Result<String, String> {
-    let root = runner.repo_root(repo_path)?;
+    validate_patch_size(patch, MAX_PATCH_BYTES)?;
     if patch.trim().is_empty() {
         return Err("patch vazio".to_string());
     }
+    let root = runner.repo_root(repo_path)?;
     let mut owned: Vec<String> = vec!["apply".to_string()];
     if cached {
         owned.push("--cached".to_string());
@@ -125,6 +137,7 @@ pub fn apply_patch(
 }
 
 pub fn cherry_pick(runner: &dyn GitRunner, repo_path: &str, hash: &str) -> Result<String, String> {
+    validate_commit_oid(hash)?;
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["cherry-pick", hash])
 }
@@ -140,6 +153,7 @@ pub fn cherry_pick_abort(runner: &dyn GitRunner, repo_path: &str) -> Result<Stri
 }
 
 pub fn revert(runner: &dyn GitRunner, repo_path: &str, hash: &str) -> Result<String, String> {
+    validate_commit_oid(hash)?;
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["revert", "--no-edit", hash])
 }
@@ -155,12 +169,14 @@ pub fn revert_abort(runner: &dyn GitRunner, repo_path: &str) -> Result<String, S
 }
 
 pub fn reset(runner: &dyn GitRunner, repo_path: &str, target: &str, mode: &str) -> Result<String, String> {
-    let root = runner.repo_root(repo_path)?;
+    validate_commit_oid(target)?;
     let flag = match mode {
         "soft" => "--soft",
         "hard" => "--hard",
-        _ => "--mixed",
+        "mixed" => "--mixed",
+        _ => return Err("modo de reset inválido".to_string()),
     };
+    let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["reset", flag, target])
 }
 
@@ -310,4 +326,3 @@ pub async fn git_reset(
     let runner = state.runner.clone();
     run_blocking(move || reset(runner.as_ref(), &repo_path, &target, &mode)).await
 }
-

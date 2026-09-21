@@ -2,8 +2,9 @@ import classnames from "classnames"
 import { useMemo, useState } from "react"
 import type { ParsedDiff } from "../../../../domain/entities/diff/diff"
 import { buildHunkPatch, buildPartialPatch, lineKind, parseDiff } from "../../../../main/adapters"
-import { useTranslation } from "../../../context"
+import { MAX_DIFF_LINES, MAX_DIFF_BYTES } from "../../../../shared/constants/limits"
 import { EmptyState } from "../../Empty/State"
+import { useTranslation } from "../../../context"
 import styles from "./style.module.scss"
 
 const LINE_KEY_LENGTH = 32
@@ -250,6 +251,10 @@ export function DiffPanel({
     return <EmptyState message={t("selectFileHint")} />
   }
 
+  const diffSize = diffContent.length
+  const diffLineCount = diffContent.split("\n").length
+  const isLargeDiff = diffSize > MAX_DIFF_BYTES || diffLineCount > MAX_DIFF_LINES
+
   const handleToggleHunk = (hunkIndex: number) => {
     const hunk = parsedDiff.hunks[hunkIndex]
     if (!hunk) return
@@ -317,6 +322,11 @@ export function DiffPanel({
         onDiscardFile={discardFile}
         onEditFile={editFile}
       />
+      {isLargeDiff && (
+        <div className={styles.largeDiffBanner}>
+          <span>{t("fileTooLarge")}</span>
+        </div>
+      )}
       {parsedDiff.hunks.length === 0 ? (
         <pre className={styles.diff} style={maxHeight ? { maxHeight } : undefined}>
           {diffContent}
