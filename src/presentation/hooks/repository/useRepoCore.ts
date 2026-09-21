@@ -16,7 +16,17 @@ import { useRemoteOps } from "./useRemoteOps"
 import { useRepoOpener } from "./useRepoOpener"
 import { useTagOps } from "./useTagOps"
 
-export type View = "graph" | "staging" | "merge" | "blame" | "visualize" | "automation" | "settings" | "docs"
+export type View =
+  | "graph"
+  | "staging"
+  | "merge"
+  | "blame"
+  | "visualize"
+  | "automation"
+  | "monitors"
+  | "templates"
+  | "settings"
+  | "docs"
 
 export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
   const [repoInput, setRepoInput] = useState("")

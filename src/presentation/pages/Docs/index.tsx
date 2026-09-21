@@ -1,10 +1,11 @@
 import { BookOpen, ListTree } from "lucide-react"
-import { Fragment, useEffect, useState } from "react"
+import { Fragment, useState } from "react"
 
 import { Icon } from "../../components/Icons"
 import { ResizableSplitLayout } from "../../components/Resizable"
 
 import { useSettingsContext } from "../../context"
+import { useIntersectionObserver } from "../../hooks"
 import { DOCS_CONTENT, DOCS_FIGURE_LABELS } from "../../cms/docs"
 import { t } from "../../../i18n"
 
@@ -16,26 +17,13 @@ export const Docs = () => {
   const fig = DOCS_FIGURE_LABELS[lang]
   const [active, setActive] = useState(sections[0].id)
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) setActive(entry.target.id)
-        }
-      },
-      { rootMargin: "-15% 0px -70% 0px" },
-    )
-
-    const $elements = DOCS_CONTENT[lang].sections
-      .map(({ id }) => document.getElementById(id))
-      .filter((element): element is HTMLElement => element !== null)
-
-    $elements.forEach((element) => {
-      observer.observe(element)
-    })
-
-    return () => observer.disconnect()
-  }, [lang])
+  const observeSection = useIntersectionObserver<HTMLElement>(
+    (entries) => {
+      const activeEntry = entries.find((entry) => entry.isIntersecting)
+      if (activeEntry) setActive(activeEntry.target.id)
+    },
+    { rootMargin: "-15% 0px -70% 0px" },
+  )
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
@@ -76,7 +64,7 @@ export const Docs = () => {
             </div>
           </div>
           {sections.map(({ id, title, figure, code, steps }) => (
-            <section key={id} id={id} className={styles.docsCard}>
+            <section key={id} ref={observeSection} id={id} className={styles.docsCard}>
               <h3>{title}</h3>
               {figure === "merge" && <Icon.Figure.MergeFlow l={fig} />}
               {figure === "rebase" && <Icon.Figure.RebaseFlow l={fig} />}

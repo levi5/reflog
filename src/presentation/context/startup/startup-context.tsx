@@ -1,23 +1,27 @@
-import { _Either, _Maybe } from "funcio"
+import { _Maybe } from "funcio"
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import {
+  debounce,
+  readVersionedRaw,
+  versionedKey,
+  writeVersionedRaw,
+} from "../../../infrastructure/storage/versioned-storage"
 
-const REOPEN_LAST_STORAGE_KEY = "forgegit.reopenLast"
+const REOPEN_LAST_KEY = "reopen-last"
+export const REOPEN_LAST_STORAGE_KEY = versionedKey(REOPEN_LAST_KEY)
 const DEFAULT_REOPEN_LAST = false
 
 function readStoredReopenLast(): boolean {
-  const result = _Either.try.sync(() => localStorage.getItem(REOPEN_LAST_STORAGE_KEY))
-  const stored = result.isRight() ? (result.value as string | null) : null
+  const stored = readVersionedRaw(REOPEN_LAST_KEY)
   return _Maybe
     .of(stored)
     .map((raw) => raw === "1")
     .getOrElse(DEFAULT_REOPEN_LAST)
 }
 
-function writeStoredReopenLast(reopenLast: boolean): void {
-  _Either.try.sync(() => {
-    localStorage.setItem(REOPEN_LAST_STORAGE_KEY, reopenLast ? "1" : "0")
-  })
-}
+const debouncedWriteReopenLast = debounce((reopenLast: boolean) => {
+  writeVersionedRaw(REOPEN_LAST_KEY, reopenLast ? "1" : "0")
+}, 300)
 
 export interface StartupContextValue {
   reopenLastRepo: boolean
@@ -34,8 +38,17 @@ export function StartupProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    writeStoredReopenLast(reopenLastRepo)
+    debouncedWriteReopenLast(reopenLastRepo)
   }, [reopenLastRepo])
+
+  useEffect(() => {
+    const onStorage = (storageEvent: StorageEvent) => {
+      if (storageEvent.key !== REOPEN_LAST_STORAGE_KEY) return
+      setReopenLastRepoState(storageEvent.newValue === "1")
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
 
   const value = useMemo<StartupContextValue>(
     () => ({

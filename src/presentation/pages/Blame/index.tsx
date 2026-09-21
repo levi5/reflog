@@ -1,6 +1,7 @@
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"
+import { useSearchParams } from "react-router-dom"
 
 import { Flex } from "@/presentation/components/Wrapper/Flex"
 import { SearchBox } from "../../components/Search"
@@ -22,11 +23,23 @@ export const Blame = (_props: Props) => {
   const { lang } = useSettingsContext()
   const repo = useRepo()
   const { query, scope } = useSearch()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null)
+  const fileParam = searchParams.get("file")
+  const repoPath = repo.repo
+  const blameFile = repo.blameFile
+  const loadBlame = repo.loadBlame
+  const loadTracked = repo.loadTracked
 
   useEffect(() => {
-    if (repo.repo) void repo.loadTracked()
-  }, [repo.repo, repo.loadTracked])
+    if (repoPath) void loadTracked()
+  }, [repoPath, loadTracked])
+
+  useEffect(() => {
+    if (fileParam && repoPath && fileParam !== blameFile) {
+      void loadBlame(fileParam)
+    }
+  }, [fileParam, repoPath, blameFile, loadBlame])
 
   const files: FileStatus[] = useMemo(() => {
     const name = scope === "commits" || scope === "branches" ? "" : query.trim().toLowerCase()
@@ -70,7 +83,14 @@ export const Blame = (_props: Props) => {
             files={files}
             selectedFilePath={repo.blameFile}
             detailed={false}
-            onSelect={(filePath) => repo.loadBlame(filePath)}
+            onSelect={(filePath) => {
+              setSearchParams((prev) => {
+                const nextSearchParams = new URLSearchParams(prev)
+                nextSearchParams.set("file", filePath)
+                return nextSearchParams
+              })
+              repo.loadBlame(filePath)
+            }}
           />
         </Fragment>
       }
@@ -89,7 +109,7 @@ export const Blame = (_props: Props) => {
             {repo.blameLines.length !== 0 && (
               <div className={styles.diff}>
                 {repo.blameLines.map(
-                  ({ commit, summary, lineno, author, date }: (typeof repo.blameLines)[0], i: number) => (
+                  ({ commit, summary, lineno, author, date }: (typeof repo.blameLines)[0], lineIndex: number) => (
                     <div key={lineno} className={styles.blameRow} title={`${commit} · ${summary}`}>
                       <span className={styles.ln}>{lineno}</span>
                       <button
@@ -112,7 +132,7 @@ export const Blame = (_props: Props) => {
                       </button>
                       <span className={styles.author}>{author}</span>
                       <span className={styles.date}>{date}</span>
-                      <code className={styles.code}>{codeNodes[i] ?? " "}</code>
+                      <code className={styles.code}>{codeNodes[lineIndex] ?? " "}</code>
                     </div>
                   ),
                 )}

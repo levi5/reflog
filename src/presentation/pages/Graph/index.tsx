@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useSearchParams } from "react-router-dom"
 import classnames from "classnames"
 import { _try } from "funcio"
 import { GitBranch, History, List } from "lucide-react"
@@ -13,7 +14,7 @@ import { SearchBox } from "../../components/Search"
 
 import { matchesQuery, pushHistory } from "../../../main/adapters"
 import { t } from "../../../i18n"
-import { useCommitTemplate } from "../../hooks"
+import { useCommitTemplate, useIntersectionObserver } from "../../hooks"
 import { useRepo, useSearch, useSettingsContext } from "../../context"
 import type { CommitInfo } from "../../../types"
 
@@ -26,6 +27,7 @@ export function Graph(_props: Props) {
   const { lang } = useSettingsContext()
   const repo = useRepo()
   const { query, scope } = useSearch()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState<"graph" | "log" | "reflog">("graph")
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null)
   const [amendCommit, setAmendCommit] = useState<CommitInfo | null>(null)
@@ -37,7 +39,6 @@ export function Graph(_props: Props) {
     repoPath: repo.repo,
     branch: repo.status?.branch ?? "",
   })
-  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   const handleAmend = (commit: CommitInfo) => {
     setAmendCommit(commit)
@@ -110,22 +111,25 @@ export function Graph(_props: Props) {
     }
   }, [commitPage, filteredCommits.length, currentHasMore, currentLoading])
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          handleLoadMoreRef.current()
-        }
-      },
-      { threshold: 0.5 },
-    )
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current)
-    }
-    return () => observer.disconnect()
-  }, [])
+  const observeLoadMore = useIntersectionObserver<HTMLDivElement>(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) handleLoadMoreRef.current()
+    },
+    { threshold: 0.5, enabled: viewMode !== "reflog" },
+  )
 
   const commits = filteredCommits.slice(commitPage * COMMITS_PER_PAGE, (commitPage + 1) * COMMITS_PER_PAGE)
+  const hashParam = searchParams.get("hash")
+  const logCommits = repo.log
+  const graphCommits = repo.graph
+  const selectedHash = selectedCommit?.hash
+  useEffect(() => {
+    if (!hashParam || selectedHash === hashParam) return
+    const found =
+      logCommits.find((c) => c.hash === hashParam || c.short === hashParam) ??
+      graphCommits.find((c) => c.hash === hashParam || c.short === hashParam)
+    if (found) setSelectedCommit(found)
+  }, [hashParam, logCommits, graphCommits, selectedHash])
   const branches = useMemo(
     () =>
       scope === "commits" || scope === "files"
@@ -211,7 +215,15 @@ export function Graph(_props: Props) {
                   currentBranchName={repo.status?.branch ?? ""}
                   showGraph={viewMode === "graph"}
                   selectedHash={selectedCommit?.hash}
-                  onSelect={setSelectedCommit}
+                  onSelect={(commit) => {
+                    setSelectedCommit(commit)
+                    setSearchParams((prev) => {
+                      const nextSearchParams = new URLSearchParams(prev)
+                      if (commit?.hash) nextSearchParams.set("hash", commit.hash)
+                      else nextSearchParams.delete("hash")
+                      return nextSearchParams
+                    })
+                  }}
                   onAmend={handleAmend}
                 />
                 <Pagination
@@ -222,7 +234,7 @@ export function Graph(_props: Props) {
                   loading={currentLoading}
                   onPageChange={handlePageChange}
                 />
-                <div ref={loadMoreRef} />
+                <div ref={observeLoadMore} />
               </>
             )}
             {amendCommit && (

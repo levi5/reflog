@@ -98,6 +98,17 @@
   overflow: hidden;
 }
 
+.panel {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hidden {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .header,
   .guide {

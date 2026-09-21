@@ -1,25 +1,29 @@
-import { _Either, _Maybe } from "funcio"
+import { _Maybe } from "funcio"
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import type { AccentId, Theme } from "../../../types"
 import { DEFAULT_ACCENT_ID, isAccentId, resolveAccentHex } from "../../../shared/constants/accent"
+import {
+  debounce,
+  readVersionedRaw,
+  versionedKey,
+  writeVersionedRaw,
+} from "../../../infrastructure/storage/versioned-storage"
 import { useTheme } from "../theme/theme-context"
 
-const ACCENT_STORAGE_KEY = "forgegit.accent"
+const ACCENT_KEY = "accent"
+export const ACCENT_STORAGE_KEY = versionedKey(ACCENT_KEY)
 
 function readAccentStorage(): AccentId {
-  const result = _Either.try.sync(() => localStorage.getItem(ACCENT_STORAGE_KEY))
-  const stored = result.isRight() ? (result.value as string | null) : null
+  const stored = readVersionedRaw(ACCENT_KEY)
   return _Maybe
     .of(stored)
     .map((val) => (val !== null && isAccentId(val) ? val : DEFAULT_ACCENT_ID))
     .getOrElse(DEFAULT_ACCENT_ID)
 }
 
-function writeAccentStorage(accent: AccentId): void {
-  _Either.try.sync(() => {
-    localStorage.setItem(ACCENT_STORAGE_KEY, accent)
-  })
-}
+const debouncedWriteAccent = debounce((accent: AccentId) => {
+  writeVersionedRaw(ACCENT_KEY, accent)
+}, 300)
 
 function applyAccentVars(accent: AccentId, theme: Theme): void {
   const hex = resolveAccentHex(accent, theme)
@@ -49,9 +53,18 @@ export function AccentProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    writeAccentStorage(accent)
+    debouncedWriteAccent(accent)
     applyAccentVars(accent, theme)
   }, [accent, theme])
+
+  useEffect(() => {
+    const onStorage = (storageEvent: StorageEvent) => {
+      if (storageEvent.key !== ACCENT_STORAGE_KEY || storageEvent.newValue === null) return
+      if (isAccentId(storageEvent.newValue)) setAccentState(storageEvent.newValue)
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
 
   const value = useMemo(() => ({ accent, setAccent }), [accent, setAccent])
 

@@ -1,6 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { type ReactNode, useEffect, useState } from "react"
 import classnames from "classnames"
+import { debounce, readVersionedRaw, writeVersionedRaw } from "../../../../infrastructure/storage/versioned-storage"
 
 import { Windows } from ".."
 
@@ -12,22 +13,22 @@ interface Props {
   children: ReactNode
 }
 
-const MAXIMIZED_STORAGE_KEY = "reflog.window.maximized"
+const MAXIMIZED_KEY = "window.maximized"
 
 function readStoredMaximized(): boolean {
   try {
-    return window.localStorage.getItem(MAXIMIZED_STORAGE_KEY) === "1"
+    return readVersionedRaw(MAXIMIZED_KEY) === "1"
   } catch {
     return false
   }
 }
 
+const debouncedWriteMaximized = debounce((value: boolean) => {
+  writeVersionedRaw(MAXIMIZED_KEY, value ? "1" : "0")
+}, 300)
+
 function writeStoredMaximized(value: boolean) {
-  try {
-    window.localStorage.setItem(MAXIMIZED_STORAGE_KEY, value ? "1" : "0")
-  } catch {
-    return
-  }
+  debouncedWriteMaximized(value)
 }
 
 export function WindowFrame({ children }: Props) {

@@ -1,9 +1,16 @@
-import { _Either, _Maybe } from "funcio"
+import { _Maybe } from "funcio"
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import type { FontSize } from "../../../types"
 import { clamp } from "../../../shared/utils/number"
+import {
+  debounce,
+  readVersionedRaw,
+  versionedKey,
+  writeVersionedRaw,
+} from "../../../infrastructure/storage/versioned-storage"
 
-const FONT_SIZE_STORAGE_KEY = "forgegit.fontsize"
+const FONT_SIZE_KEY = "font-size"
+export const FONT_SIZE_STORAGE_KEY = versionedKey(FONT_SIZE_KEY)
 const DEFAULT_FONT_SIZE: FontSize = 13
 const MIN_FONT_SIZE = 10
 const MAX_FONT_SIZE = 20
@@ -15,8 +22,7 @@ const FONT_SIZE_PRESETS: Record<string, number> = {
 }
 
 function readFontSizeStorage(): FontSize {
-  const result = _Either.try.sync(() => localStorage.getItem(FONT_SIZE_STORAGE_KEY))
-  const stored = result.isRight() ? (result.value as string | null) : null
+  const stored = readVersionedRaw(FONT_SIZE_KEY)
   return _Maybe
     .of(stored)
     .map((raw) => {
@@ -29,11 +35,9 @@ function readFontSizeStorage(): FontSize {
     .getOrElse(DEFAULT_FONT_SIZE)
 }
 
-function writeFontSizeStorage(fontSize: FontSize): void {
-  _Either.try.sync(() => {
-    localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(fontSize))
-  })
-}
+const debouncedWriteFontSize = debounce((fontSize: FontSize) => {
+  writeVersionedRaw(FONT_SIZE_KEY, String(fontSize))
+}, 300)
 
 export interface UiContextValue {
   fontSize: FontSize
@@ -54,10 +58,20 @@ export function UiProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    writeFontSizeStorage(fontSize)
+    debouncedWriteFontSize(fontSize)
     document.documentElement.style.setProperty("--app-fs", `${fontSize}px`)
     document.documentElement.style.setProperty("--font-zoom", `${(fontSize / DEFAULT_FONT_SIZE).toFixed(3)}`)
   }, [fontSize])
+
+  useEffect(() => {
+    const onStorage = (storageEvent: StorageEvent) => {
+      if (storageEvent.key !== FONT_SIZE_STORAGE_KEY || storageEvent.newValue === null) return
+      const parsed = Number.parseInt(storageEvent.newValue, 10)
+      if (!Number.isNaN(parsed)) setFontSizeState(clamp(parsed, MIN_FONT_SIZE, MAX_FONT_SIZE))
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
 
   const value = useMemo<UiContextValue>(
     () => ({

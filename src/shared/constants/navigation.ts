@@ -18,6 +18,8 @@ export const VIEW_LABELS: Record<View, StringKey> = {
   blame: "treeBlame",
   visualize: "visualize",
   automation: "automations",
+  monitors: "monitors",
+  templates: "templateTitle",
   settings: "settings",
   docs: "docs",
 }

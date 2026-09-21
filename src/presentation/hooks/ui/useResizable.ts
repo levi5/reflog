@@ -1,5 +1,6 @@
 import { type KeyboardEvent, type PointerEvent as ReactPointerEvent, useCallback, useState } from "react"
 import { clamp } from "../../../shared/utils/number"
+import { debounce, readVersionedRaw, writeVersionedRaw } from "../../../infrastructure/storage/versioned-storage"
 
 interface Options {
   axis: "x" | "y"
@@ -25,7 +26,7 @@ export interface GripProps {
 
 function loadSize(key: string, initial: number, min: number, max: number): number {
   try {
-    const raw = localStorage.getItem(`reflog.size.${key}`)
+    const raw = readVersionedRaw(`size.${key}`)
     if (!raw) return initial
     const parsed = Number.parseInt(raw, 10)
     if (Number.isNaN(parsed)) return initial
@@ -35,9 +36,13 @@ function loadSize(key: string, initial: number, min: number, max: number): numbe
   }
 }
 
+const debouncedPersistSize = debounce((key: string, value: number) => {
+  persistSize(key, value)
+}, 300)
+
 function persistSize(key: string, value: number): void {
   try {
-    localStorage.setItem(`reflog.size.${key}`, String(value))
+    writeVersionedRaw(`size.${key}`, String(value))
   } catch {
     return
   }
@@ -66,7 +71,7 @@ export function useResizable({ axis, initial, min, max, storageKey, invert }: Op
         setSize(current)
       }
       const up = () => {
-        persistSize(storageKey, current)
+        debouncedPersistSize(storageKey, current)
         window.removeEventListener("pointermove", move)
         window.removeEventListener("pointerup", up)
       }

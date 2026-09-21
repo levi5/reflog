@@ -1,11 +1,23 @@
 import { MAX_RECENTS } from "../constants/limits"
+import { readVersionedRaw, versionedKey, writeVersionedRaw } from "../../infrastructure/storage/versioned-storage"
 
 export { MAX_RECENTS }
-export const RECENTS_KEY = "forgegit.recents"
+export const RECENTS_KEY = versionedKey("recents")
+const LEGACY_RECENTS_KEY = "forgegit.recents"
+
+function readRaw(): string | null {
+  const current = readVersionedRaw("recents")
+  if (current !== null) return current
+  try {
+    return localStorage.getItem(LEGACY_RECENTS_KEY)
+  } catch {
+    return null
+  }
+}
 
 export function readRecents(): string[] {
   try {
-    const raw = localStorage.getItem(RECENTS_KEY)
+    const raw = readRaw()
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -33,7 +45,7 @@ export function removeRecentEntry(previous: string[], root: string): string[] {
 
 export function persistRecents(recents: string[]): void {
   try {
-    localStorage.setItem(RECENTS_KEY, JSON.stringify(recents))
+    writeVersionedRaw("recents", JSON.stringify(recents))
   } catch {
     return
   }
@@ -42,6 +54,7 @@ export function persistRecents(recents: string[]): void {
 export function clearStoredRecents(): void {
   try {
     localStorage.removeItem(RECENTS_KEY)
+    localStorage.removeItem(LEGACY_RECENTS_KEY)
   } catch {
     return
   }

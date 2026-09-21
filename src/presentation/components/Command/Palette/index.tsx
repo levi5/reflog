@@ -1,5 +1,15 @@
 import classnames from "classnames"
-import { BookOpen, Download, Plus, RefreshCw, RotateCcw, Settings as SettingsIcon, Upload } from "lucide-react"
+import {
+  BookOpen,
+  Download,
+  FileText,
+  ListChecks,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Settings as SettingsIcon,
+  Upload,
+} from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { VIEW_LABELS, VIEW_TABS } from "../../../../shared/constants"
@@ -39,6 +49,20 @@ function usePaletteEntries(): PaletteEntry[] {
         group: navGroup,
         icon: <BookOpen size={15} />,
         run: () => navigate("/docs"),
+      },
+      {
+        id: "nav-monitors",
+        label: t("monitors"),
+        group: navGroup,
+        icon: <ListChecks size={15} />,
+        run: () => navigate("/monitors"),
+      },
+      {
+        id: "nav-templates",
+        label: t("templateTitle"),
+        group: navGroup,
+        icon: <FileText size={15} />,
+        run: () => navigate("/templates"),
       },
       {
         id: "nav-settings",

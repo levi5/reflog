@@ -1,5 +1,5 @@
 import { lazy } from "react"
-import { createHashRouter } from "react-router-dom"
+import { createHashRouter, Navigate } from "react-router-dom"
 
 import { AppLayout } from "./presentation/layout/App"
 import { MainLayout } from "./presentation/layout/MainLayout"
@@ -26,6 +26,37 @@ const Settings = lazy(() =>
     default: m.Settings,
   })),
 )
+const RepoDeepLink = lazy(() => import("./presentation/pages/RepoDeepLink").then((m) => ({ default: m.RepoDeepLink })))
+
+export async function repoLoader({ params }: { params: Record<string, string | undefined> }) {
+  const splat = params["*"] ?? ""
+  const [maybeView, ...rest] = splat.split("/").filter(Boolean)
+  const knownViews = new Set(["staging", "graph", "blame", "merge", "visualize", "monitors", "templates", "automation"])
+  const hasView = knownViews.has(maybeView)
+  const encodedPath = hasView ? rest.join("/") : [maybeView, ...rest].filter(Boolean).join("/")
+  const view = hasView ? maybeView : "staging"
+  let repoPath = ""
+  try {
+    repoPath = decodeURIComponent(encodedPath)
+  } catch {
+    repoPath = encodedPath
+  }
+  if (!repoPath) {
+    throw new Response("Repositório não informado na URL", { status: 400 })
+  }
+  try {
+    const { gitApi } = await import("./infrastructure/git")
+    const ok = await gitApi.checkRepo(repoPath)
+    if (!ok) {
+      throw new Response(`Não é um repositório git: ${repoPath}`, { status: 404 })
+    }
+    const root = await gitApi.repoRoot(repoPath)
+    return { repoPath: root || repoPath, view }
+  } catch (e) {
+    if (e instanceof Response) throw e
+    return { repoPath, view }
+  }
+}
 
 export const router = createHashRouter([
   {
@@ -44,6 +75,14 @@ export const router = createHashRouter([
           { path: "blame", element: <Blame /> },
           { path: "visualize", element: <Visualize /> },
           { path: "automation", element: <AutomationHub /> },
+          { path: "automation/:section", element: <AutomationHub /> },
+          { path: "monitors", element: <Navigate to="/automation?section=monitors" replace /> },
+          { path: "templates", element: <Navigate to="/automation?section=templates" replace /> },
+          {
+            path: "repo/*",
+            loader: repoLoader,
+            element: <RepoDeepLink />,
+          },
           { path: "docs", element: <Docs /> },
           { path: "settings", element: <Settings /> },
           { path: "*", element: <RouteNotFound /> },
