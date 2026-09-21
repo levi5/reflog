@@ -31,7 +31,7 @@ function ToastIcon({ type }: { type: MessageType }) {
 }
 
 export function ToastItemView({ message, onDismiss }: ToastItemProps) {
-  const { id, type, title, text } = message
+  const { id, type, title, text, action } = message
 
   return (
     <div className={classnames(styles.toastItem, styles[type])} role="alert" aria-live="polite">
@@ -41,6 +41,18 @@ export function ToastItemView({ message, onDismiss }: ToastItemProps) {
       <div className={styles.contentWrapper}>
         {title && <div className={styles.title}>{title}</div>}
         <div className={styles.text}>{text}</div>
+        {action && (
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={() => {
+              action.onAction()
+              onDismiss(id)
+            }}
+          >
+            {action.label}
+          </button>
+        )}
       </div>
       <button type="button" className={styles.closeButton} onClick={() => onDismiss(id)} aria-label="Close message">
         <X size={14} />

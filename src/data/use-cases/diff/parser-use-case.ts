@@ -31,7 +31,66 @@ export class DiffParserUseCase implements IDiffParserUseCase {
   }
 
   buildHunkPatch(preamble: string[], hunk: DiffHunk): string {
-    const head = preamble.filter(
+    return `${[...this.patchHead(preamble), hunk.header, ...hunk.lines].join("\n").replace(/\n$/, "")}\n`
+  }
+
+  buildPartialPatch(preamble: string[], hunk: DiffHunk, selected: Set<number>): string | null {
+    const body = [...hunk.lines]
+    if (body.length > 0 && body[body.length - 1] === "") body.pop()
+    const out: string[] = []
+    let oldCount = 0
+    let newCount = 0
+    let keptChanges = 0
+    let prevEmitted = false
+    body.forEach((line, index) => {
+      if (line.startsWith("\\")) {
+        // "\ No newline at end of file": só faz sentido após uma linha mantida
+        if (prevEmitted) {
+          out.push(line)
+        } else {
+          prevEmitted = false
+        }
+        return
+      }
+      const isDel = line.startsWith("-")
+      const isAdd = line.startsWith("+")
+      if ((isDel || isAdd) && !selected.has(index)) {
+        if (isDel) {
+          // remoção não selecionada vira contexto
+          out.push(` ${line.slice(1)}`)
+          oldCount += 1
+          newCount += 1
+          prevEmitted = true
+        } else {
+          // adição não selecionada é descartada do patch
+          prevEmitted = false
+        }
+        return
+      }
+      out.push(line)
+      prevEmitted = true
+      if (isDel) {
+        oldCount += 1
+        keptChanges += 1
+      } else if (isAdd) {
+        newCount += 1
+        keptChanges += 1
+      } else {
+        oldCount += 1
+        newCount += 1
+      }
+    })
+    if (keptChanges === 0) return null
+    const match = HUNK_HEADER_REGEX.exec(hunk.header)
+    const oldStart = match ? match[1] : String(hunk.oldStart)
+    const newStart = match ? match[3] : String(hunk.newStart)
+    const suffix = match ? match[5] : ""
+    const header = `@@ -${oldStart},${oldCount} +${newStart},${newCount} @@${suffix}`
+    return `${[...this.patchHead(preamble), header, ...out].join("\n").replace(/\n$/, "")}\n`
+  }
+
+  private patchHead(preamble: string[]): string[] {
+    return preamble.filter(
       (l) =>
         l.startsWith("diff --git") ||
         l.startsWith("index ") ||
@@ -45,7 +104,6 @@ export class DiffParserUseCase implements IDiffParserUseCase {
         l.startsWith("rename from") ||
         l.startsWith("rename to"),
     )
-    return `${[...head, hunk.header, ...hunk.lines].join("\n").replace(/\n$/, "")}\n`
   }
 
   getLineKind(line: string): DiffLineKind {

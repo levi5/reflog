@@ -3,9 +3,15 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 export type MessageType = "error" | "success" | "response" | "info" | "loading"
 
+export interface ToastAction {
+  label: string
+  onAction: () => void
+}
+
 export interface MessageOptions {
   title?: string
   duration?: number
+  action?: ToastAction
 }
 
 export interface AsyncMessageConfig<T = unknown> {
@@ -21,6 +27,7 @@ export interface MessageItem {
   text: string
   duration: number
   createdAt: number
+  action?: ToastAction
 }
 
 export interface MessageContextValue {
@@ -80,6 +87,7 @@ export function MessageProvider({ children }: { children: ReactNode }) {
         text,
         duration,
         createdAt: Date.now(),
+        action: options?.action,
       }
 
       setMessages((prev) => [...prev, newItem])

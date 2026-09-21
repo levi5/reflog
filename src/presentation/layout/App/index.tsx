@@ -4,6 +4,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { t } from "../../../i18n"
 import type { TabItem } from "../../../types/components"
 import { Bar } from "../../components/Bar"
+import { Command } from "../../components/Command"
 import { Dialog } from "../../components/Dialog"
 import { FatalError } from "../../components/FatalError"
 import { Merge } from "../../components/Merge"
@@ -205,6 +206,7 @@ export function AppLayout() {
           </Dialog.Confirm>
         )}
       </Windows.Frame>
+      <Command.Palette />
       <Toast.Container />
       {repo.lastError && (
         <FatalError

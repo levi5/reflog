@@ -161,12 +161,31 @@ export function useStaging(deps: StagingDeps) {
   const discardFile = async (file: string) => {
     if (!repo || !file) return Promise.resolve()
     if (!(await requestConfirm(t(lang, "discard"), t(lang, "discardConfirm")))) return Promise.resolve()
+    // discard (git restore) só toca o worktree: captura o diff unstaged para o undo
+    const captured = await _Either.try.async(() => gitApi.diff(repo, file, false))
+    const undoPatch = captured.isRight() ? String(captured.value ?? "") : ""
     return runAction(
       () => gitApi.discard(repo, file),
       () => loadDiff(file, false),
       {
         loadingMessage: t(lang, "discardFileLoading"),
         successMessage: t(lang, "discardFileSuccess"),
+        successDuration: undoPatch.trim() ? 8000 : undefined,
+        successAction: undoPatch.trim()
+          ? {
+              label: t(lang, "undo"),
+              onAction: () => {
+                void runAction(
+                  () => gitApi.applyPatch(repo, undoPatch, false, false),
+                  () => loadDiff(file, false),
+                  {
+                    loadingMessage: t(lang, "actionProcessing"),
+                    successMessage: t(lang, "actionSuccess"),
+                  },
+                )
+              },
+            }
+          : undefined,
       },
     )
   }
@@ -193,12 +212,35 @@ export function useStaging(deps: StagingDeps) {
       successMessage: t(lang, "hunkUnstageSuccess"),
     })
 
+  const stageSelected = (patch: string) =>
+    runAction(() => gitApi.applyPatch(repo, patch, true, false), reloadDiff, {
+      loadingMessage: t(lang, "hunkStageLoading"),
+      successMessage: t(lang, "hunkStageSuccess"),
+    })
+
+  const unstageSelected = (patch: string) =>
+    runAction(() => gitApi.applyPatch(repo, patch, true, true), reloadDiff, {
+      loadingMessage: t(lang, "hunkUnstageLoading"),
+      successMessage: t(lang, "hunkUnstageSuccess"),
+    })
+
   const discardHunk = async (patch: string) => {
     if (!repo || !patch.trim()) return Promise.resolve()
     if (!(await requestConfirm(t(lang, "discard"), t(lang, "discardConfirm")))) return Promise.resolve()
+    // discard aplica o patch com reverse: reaplicar para frente desfaz
     return runAction(() => gitApi.applyPatch(repo, patch, false, true), reloadDiff, {
       loadingMessage: t(lang, "discardHunkLoading"),
       successMessage: t(lang, "discardHunkSuccess"),
+      successDuration: 8000,
+      successAction: {
+        label: t(lang, "undo"),
+        onAction: () => {
+          void runAction(() => gitApi.applyPatch(repo, patch, false, false), reloadDiff, {
+            loadingMessage: t(lang, "actionProcessing"),
+            successMessage: t(lang, "actionSuccess"),
+          })
+        },
+      },
     })
   }
 
@@ -246,6 +288,8 @@ export function useStaging(deps: StagingDeps) {
     stageHunk,
     unstageHunk,
     discardHunk,
+    stageSelected,
+    unstageSelected,
     stageAll,
     editingFile: editor.editingFile,
     editContent: editor.editContent,

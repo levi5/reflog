@@ -118,6 +118,8 @@ export function useRepository(lang: Lang) {
     stageHunk: staging.stageHunk,
     unstageHunk: staging.unstageHunk,
     discardHunk: staging.discardHunk,
+    stageSelected: staging.stageSelected,
+    unstageSelected: staging.unstageSelected,
     stageAll: staging.stageAll,
     editingFile: staging.editingFile,
     editContent: staging.editContent,

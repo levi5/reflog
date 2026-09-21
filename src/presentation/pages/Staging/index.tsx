@@ -211,6 +211,8 @@ export function Staging(_props: Props) {
               onStageHunk={repo.stageHunk}
               onUnstageHunk={repo.unstageHunk}
               onDiscardHunk={repo.discardHunk}
+              onStageSelected={repo.stageSelected}
+              onUnstageSelected={repo.unstageSelected}
             />
             <ResizeGrip axis="y" grip={diffHeight.grip} />
           </div>

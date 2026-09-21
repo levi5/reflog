@@ -3,6 +3,7 @@ import { CommandConfirmDialog } from "./Dialog/Confirm"
 import { CommandInput } from "./Input"
 import { CommandIntentHint } from "./IntentHint"
 import { CommandLog } from "./Log"
+import { CommandPalette } from "./Palette"
 import { CommandSuggestions } from "./Suggestions"
 
 export const Command = {
@@ -11,5 +12,6 @@ export const Command = {
   Input: CommandInput,
   IntentHint: CommandIntentHint,
   Log: CommandLog,
+  Palette: CommandPalette,
   Suggestions: CommandSuggestions,
 }

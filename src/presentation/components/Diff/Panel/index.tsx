@@ -1,7 +1,7 @@
 import classnames from "classnames"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import type { ParsedDiff } from "../../../../domain/entities/diff/diff"
-import { buildHunkPatch, lineKind, parseDiff } from "../../../../main/adapters"
+import { buildHunkPatch, buildPartialPatch, lineKind, parseDiff } from "../../../../main/adapters"
 import { useTranslation } from "../../../context"
 import { EmptyState } from "../../Empty/State"
 import styles from "./style.module.scss"
@@ -25,6 +25,8 @@ interface DiffPanelProps {
   onStageHunk: (hunkPatch: string) => void
   onUnstageHunk: (hunkPatch: string) => void
   onDiscardHunk: (hunkPatch: string) => void
+  onStageSelected: (partialPatch: string) => void
+  onUnstageSelected: (partialPatch: string) => void
   onEditFile: () => void
 }
 
@@ -92,17 +94,38 @@ interface DiffHunkProps {
   hunkHeader: string
   hunkLines: string[]
   isStaged?: boolean
+  selectedLines: Set<number>
+  onToggleLine: (lineIndex: number) => void
   onToggleHunk: () => void
+  onStageSelected: () => void
   onDiscardHunk: () => void
 }
 
-function DiffHunk({ hunkHeader, hunkLines, isStaged, onToggleHunk, onDiscardHunk }: DiffHunkProps) {
+function isSelectableLine(diffLine: string): boolean {
+  return diffLine.startsWith("+") || diffLine.startsWith("-")
+}
+
+function DiffHunk({
+  hunkHeader,
+  hunkLines,
+  isStaged,
+  selectedLines,
+  onToggleLine,
+  onToggleHunk,
+  onStageSelected,
+  onDiscardHunk,
+}: DiffHunkProps) {
   const { t } = useTranslation()
   return (
     <div className={styles.hunkBlock}>
       <div className={styles.hunkHead}>
         <code>{hunkHeader}</code>
         <span className={styles.hunkBtns}>
+          {selectedLines.size > 0 && (
+            <button type="button" className="mini-btn" onClick={onStageSelected}>
+              {isStaged ? t("unstageLines") : t("stageLines")} ({selectedLines.size})
+            </button>
+          )}
           <button type="button" className="mini-btn" onClick={onToggleHunk}>
             {isStaged ? t("hunkUnstage") : t("hunkStage")}
           </button>
@@ -114,12 +137,31 @@ function DiffHunk({ hunkHeader, hunkLines, isStaged, onToggleHunk, onDiscardHunk
         </span>
       </div>
       <pre className={styles.code}>
-        {hunkLines.map((diffLine, lineIndex) => (
-          <span key={stableKey(diffLine, "line", lineIndex)} className={styles[lineKind(diffLine)]}>
-            {diffLine}
-            {"\n"}
-          </span>
-        ))}
+        {hunkLines.map((diffLine, lineIndex) => {
+          if (!isSelectableLine(diffLine)) {
+            return (
+              <span key={stableKey(diffLine, "line", lineIndex)} className={styles[lineKind(diffLine)]}>
+                {diffLine}
+                {"\n"}
+              </span>
+            )
+          }
+          const isSelected = selectedLines.has(lineIndex)
+          return (
+            <button
+              key={stableKey(diffLine, "line", lineIndex)}
+              type="button"
+              aria-pressed={isSelected}
+              aria-label={diffLine}
+              title={t("selectLinesHint")}
+              className={classnames(styles.lineBtn, styles[lineKind(diffLine)], isSelected && styles.selected)}
+              onClick={() => onToggleLine(lineIndex)}
+            >
+              {diffLine}
+              {"\n"}
+            </button>
+          )
+        })}
       </pre>
     </div>
   )
@@ -129,25 +171,49 @@ interface DiffHunkListProps {
   parsedDiff: ParsedDiff
   isStaged?: boolean
   maxHeight?: number
+  selectedKeys: Set<string>
+  onToggleLine: (hunkIndex: number, lineIndex: number) => void
   onToggleHunk: (hunkIndex: number) => void
+  onStageSelected: (hunkIndex: number) => void
   onDiscardHunk: (hunkIndex: number) => void
 }
 
-function DiffHunkList({ parsedDiff, isStaged, maxHeight, onToggleHunk, onDiscardHunk }: DiffHunkListProps) {
+function DiffHunkList({
+  parsedDiff,
+  isStaged,
+  maxHeight,
+  selectedKeys,
+  onToggleLine,
+  onToggleHunk,
+  onStageSelected,
+  onDiscardHunk,
+}: DiffHunkListProps) {
   return (
     <div className={styles.diff} style={maxHeight ? { maxHeight } : undefined}>
       <DiffPreamble parsedDiff={parsedDiff} />
-      {parsedDiff.hunks.map((hunk, hunkIndex) => (
-        <div key={stableKey(hunk.header, "hunk", hunkIndex)} className={styles.hunkBlock}>
-          <DiffHunk
-            hunkHeader={hunk.header}
-            hunkLines={hunk.lines}
-            isStaged={isStaged}
-            onToggleHunk={() => onToggleHunk(hunkIndex)}
-            onDiscardHunk={() => onDiscardHunk(hunkIndex)}
-          />
-        </div>
-      ))}
+      {parsedDiff.hunks.map((hunk, hunkIndex) => {
+        const selectedLines = new Set<number>()
+        selectedKeys.forEach((key) => {
+          const separator = key.indexOf(":")
+          if (Number(key.slice(0, separator)) === hunkIndex) {
+            selectedLines.add(Number(key.slice(separator + 1)))
+          }
+        })
+        return (
+          <div key={stableKey(hunk.header, "hunk", hunkIndex)} className={styles.hunkBlock}>
+            <DiffHunk
+              hunkHeader={hunk.header}
+              hunkLines={hunk.lines}
+              isStaged={isStaged}
+              selectedLines={selectedLines}
+              onToggleLine={(lineIndex) => onToggleLine(hunkIndex, lineIndex)}
+              onToggleHunk={() => onToggleHunk(hunkIndex)}
+              onStageSelected={() => onStageSelected(hunkIndex)}
+              onDiscardHunk={() => onDiscardHunk(hunkIndex)}
+            />
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -165,10 +231,20 @@ export function DiffPanel({
   onStageHunk,
   onUnstageHunk,
   onDiscardHunk,
+  onStageSelected,
+  onUnstageSelected,
   onEditFile,
 }: DiffPanelProps) {
   const { t } = useTranslation()
   const parsedDiff = useMemo(() => parseDiff(diffContent), [diffContent])
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [prevDiffRef, setPrevDiffRef] = useState(diffContent)
+  const [prevFileRef, setPrevFileRef] = useState(filePath)
+  if (prevDiffRef !== diffContent || prevFileRef !== filePath) {
+    setPrevDiffRef(diffContent)
+    setPrevFileRef(filePath)
+    setSelectedKeys(new Set())
+  }
 
   if (!filePath) {
     return <EmptyState message={t("selectFileHint")} />
@@ -189,6 +265,38 @@ export function DiffPanel({
     const hunk = parsedDiff.hunks[hunkIndex]
     if (!hunk) return
     onDiscardHunk(buildHunkPatch(parsedDiff.preamble, hunk))
+  }
+
+  const handleToggleLine = (hunkIndex: number, lineIndex: number) => {
+    const key = `${hunkIndex}:${lineIndex}`
+    setSelectedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  const handleStageSelected = (hunkIndex: number) => {
+    const hunk = parsedDiff.hunks[hunkIndex]
+    if (!hunk) return
+    const indexes = new Set<number>()
+    selectedKeys.forEach((key) => {
+      const separator = key.indexOf(":")
+      if (Number(key.slice(0, separator)) === hunkIndex) {
+        indexes.add(Number(key.slice(separator + 1)))
+      }
+    })
+    const patch = buildPartialPatch(parsedDiff.preamble, hunk, indexes)
+    if (!patch) return
+    if (isStaged) {
+      onUnstageSelected(patch)
+    } else {
+      onStageSelected(patch)
+    }
   }
 
   const showUnstaged = onShowUnstaged
@@ -218,7 +326,10 @@ export function DiffPanel({
           parsedDiff={parsedDiff}
           isStaged={isStaged}
           maxHeight={maxHeight}
+          selectedKeys={selectedKeys}
+          onToggleLine={handleToggleLine}
           onToggleHunk={handleToggleHunk}
+          onStageSelected={handleStageSelected}
           onDiscardHunk={handleDiscardHunk}
         />
       )}

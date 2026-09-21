@@ -87,6 +87,31 @@
   line-height: 1.5;
 }
 
+.lineBtn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  white-space: pre-wrap;
+  cursor: pointer;
+}
+
+.lineBtn:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  filter: brightness(1.3);
+}
+
+.lineBtn.selected {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .add {
   background: rgba(78, 222, 163, 0.12);
   color: var(--green);

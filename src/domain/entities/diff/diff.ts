@@ -27,5 +27,6 @@ export interface ParsedDiff {
 export interface IDiffParserUseCase {
   parse(text: string): ParsedDiff
   buildHunkPatch(preamble: string[], hunk: DiffHunk): string
+  buildPartialPatch(preamble: string[], hunk: DiffHunk, selected: Set<number>): string | null
   getLineKind(line: string): DiffLineKind
 }

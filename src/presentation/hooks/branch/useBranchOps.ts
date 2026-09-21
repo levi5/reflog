@@ -1,4 +1,4 @@
-import { _pipe } from "funcio"
+import { _Either, _pipe } from "funcio"
 import { useCallback } from "react"
 import { t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
@@ -20,9 +20,30 @@ export function useBranchOps(deps: RepositoryActionDeps) {
       if (!repo || !name) return Promise.resolve()
       const confirmed = await requestConfirm(t(lang, "deleteBranch"), t(lang, "confirmDeleteBranch"))
       if (!confirmed) return Promise.resolve()
-      return gitAction(() => git.branchDelete(repo, name, force), "deleteBranchLoading", "deleteBranchSuccess")
+      const resolved = await _Either.try.async(() => git.run(repo, ["rev-parse", name]))
+      const tipHash = resolved.isRight()
+        ? String(resolved.value ?? "")
+            .trim()
+            .split("\n")[0]
+        : ""
+      return runAction(() => git.branchDelete(repo, name, force), undefined, {
+        loadingMessage: t(lang, "deleteBranchLoading"),
+        successMessage: t(lang, "deleteBranchSuccess"),
+        successDuration: tipHash ? 8000 : undefined,
+        successAction: tipHash
+          ? {
+              label: t(lang, "undo"),
+              onAction: () => {
+                void runAction(() => git.run(repo, ["branch", name, tipHash]), undefined, {
+                  loadingMessage: t(lang, "actionProcessing"),
+                  successMessage: t(lang, "actionSuccess"),
+                })
+              },
+            }
+          : undefined,
+      })
     },
-    [git, repo, lang, gitAction, requestConfirm],
+    [git, repo, lang, runAction, requestConfirm],
   )
 
   const renameBranch = useCallback(

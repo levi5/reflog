@@ -84,7 +84,10 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
         const successText =
           options?.successMessage ?? (typeof out === "string" && out.trim() ? out : t(lang, "actionSuccess"))
         if (successText) {
-          messageService.success(successText, options?.title)
+          messageService.success(successText, options?.title, {
+            duration: options?.successDuration,
+            action: options?.successAction,
+          })
           if (typeof out === "string") setMsg(out)
         }
         after?.()

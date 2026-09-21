@@ -1,4 +1,4 @@
-import { _pipe } from "funcio"
+import { _Either, _pipe } from "funcio"
 import { useCallback } from "react"
 import { t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
@@ -23,9 +23,30 @@ export function useTagOps(deps: RepositoryActionDeps) {
       if (!repo || !name) return Promise.resolve()
       const confirmed = await requestConfirm(t(lang, "deleteTag"), t(lang, "confirmDeleteTag"))
       if (!confirmed) return Promise.resolve()
-      return gitAction(() => git.tagDelete(repo, name), "deleteTagLoading", "deleteTagSuccess")
+      const resolved = await _Either.try.async(() => git.run(repo, ["rev-parse", name]))
+      const tipHash = resolved.isRight()
+        ? String(resolved.value ?? "")
+            .trim()
+            .split("\n")[0]
+        : ""
+      return runAction(() => git.tagDelete(repo, name), undefined, {
+        loadingMessage: t(lang, "deleteTagLoading"),
+        successMessage: t(lang, "deleteTagSuccess"),
+        successDuration: tipHash ? 8000 : undefined,
+        successAction: tipHash
+          ? {
+              label: t(lang, "undo"),
+              onAction: () => {
+                void runAction(() => git.run(repo, ["tag", name, tipHash]), undefined, {
+                  loadingMessage: t(lang, "actionProcessing"),
+                  successMessage: t(lang, "actionSuccess"),
+                })
+              },
+            }
+          : undefined,
+      })
     },
-    [git, repo, lang, gitAction, requestConfirm],
+    [git, repo, lang, runAction, requestConfirm],
   )
 
   return {
