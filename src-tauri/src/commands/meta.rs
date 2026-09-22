@@ -11,9 +11,11 @@ pub fn version(runner: &dyn GitRunner) -> Result<String, String> {
 
 pub fn remote_url(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
-    runner
+    Ok(runner
         .run(Some(&root), &["remote", "get-url", "origin"])
-        .map(|s| s.trim().to_string())
+        .unwrap_or_default()
+        .trim()
+        .to_string())
 }
 
 pub fn gpg(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
@@ -173,4 +175,17 @@ pub async fn git_identity(
 ) -> Result<crate::domain::Identity, String> {
     let runner = state.runner.clone();
     crate::commands::run_blocking(move || identity_of(runner.as_ref(), &repo_path)).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runner::mock::MockRunner;
+
+    #[test]
+    fn returns_empty_url_when_origin_is_not_configured() {
+        let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
+
+        assert_eq!(remote_url(&runner, "/r").unwrap(), "");
+    }
 }

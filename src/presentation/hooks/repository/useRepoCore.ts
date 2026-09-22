@@ -47,7 +47,11 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
 
   const requestConfirm = useCallback((title: string, message: string): Promise<boolean> => {
     return new Promise((resolve) => {
-      setPendingConfirm({ title, message, resolve })
+      const settle = (value: boolean) => {
+        setPendingConfirm(null)
+        resolve(value)
+      }
+      setPendingConfirm({ title, message, resolve: settle })
     })
   }, [])
 

@@ -107,9 +107,9 @@ pub fn stash(
     let root = runner.repo_root(repo_path)?;
     match message {
         Some(m) if !m.trim().is_empty() => {
-            runner.run(Some(&root), &["stash", "push", "-m", &m])
+            runner.run(Some(&root), &["stash", "push", "--include-untracked", "-m", &m])
         }
-        _ => runner.run(Some(&root), &["stash"]),
+        _ => runner.run(Some(&root), &["stash", "push", "--include-untracked"]),
     }
 }
 
@@ -141,17 +141,17 @@ pub fn stash_list(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<StashIt
 
 pub fn stash_show(runner: &dyn GitRunner, repo_path: &str, index: usize) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["stash", "show", "-p", &format!("stash@{index}")])
+    runner.run(Some(&root), &["stash", "show", "-p", &format!("stash@{{{index}}}")])
 }
 
 pub fn stash_drop(runner: &dyn GitRunner, repo_path: &str, index: usize) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["stash", "drop", &format!("stash@{index}")])
+    runner.run(Some(&root), &["stash", "drop", &format!("stash@{{{index}}}")])
 }
 
 pub fn stash_apply(runner: &dyn GitRunner, repo_path: &str, index: usize) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["stash", "apply", &format!("stash@{index}")])
+    runner.run(Some(&root), &["stash", "apply", &format!("stash@{{{index}}}")])
 }
 
 use crate::commands::run_blocking;
@@ -283,5 +283,35 @@ mod tests {
         assert_eq!(list[1].index, 1);
         assert_eq!(list[1].selector, "stash@{1}");
         assert_eq!(list[1].message, "On feat: test");
+    }
+
+    #[test]
+    fn uses_valid_stash_selectors_for_indexed_actions() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash show -p stash@{2}", "patch"),
+                ("stash apply stash@{1}", "applied"),
+                ("stash drop stash@{0}", "dropped"),
+            ],
+            &[],
+        );
+
+        assert_eq!(stash_show(&runner, "/r", 2).unwrap(), "patch");
+        assert_eq!(stash_apply(&runner, "/r", 1).unwrap(), "applied");
+        assert_eq!(stash_drop(&runner, "/r", 0).unwrap(), "dropped");
+    }
+
+    #[test]
+    fn stashes_untracked_files() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash push --include-untracked -m before-checkout", "Saved"),
+            ],
+            &[],
+        );
+
+        assert_eq!(stash(&runner, "/r", Some("before-checkout".into())).unwrap(), "Saved");
     }
 }

@@ -11,7 +11,9 @@ import { useTagOps } from "../../../src/presentation/hooks/repository/useTagOps"
 function renderActions(confirmed = true) {
   const git = {
     ...gitApi,
+    status: vi.fn().mockResolvedValue({ files: [] }),
     checkout: vi.fn().mockResolvedValue("ok"),
+    stash: vi.fn().mockResolvedValue("Saved working directory"),
     branchDelete: vi.fn().mockResolvedValue("ok"),
     branchRename: vi.fn().mockResolvedValue("ok"),
     tagCreate: vi.fn().mockResolvedValue("ok"),
@@ -66,6 +68,29 @@ describe("repository actions", () => {
     expect(git.branchDelete).not.toHaveBeenCalled()
     expect(git.remoteRemove).not.toHaveBeenCalled()
     expect(git.reset).not.toHaveBeenCalled()
+  })
+
+  it("stashes local changes before switching branches after confirmation", async () => {
+    const { actions, git, requestConfirm } = renderActions()
+    git.status.mockResolvedValue({ files: [{ path: "f.tsx" }] })
+
+    await actions.checkoutBranch("feature")
+
+    expect(requestConfirm).toHaveBeenCalledTimes(1)
+    expect(git.stash).toHaveBeenCalledWith("/repo", "Reflog: before checkout feature")
+    expect(git.checkout).toHaveBeenCalledWith("/repo", "feature", false)
+    expect(git.stash.mock.invocationCallOrder[0]).toBeLessThan(git.checkout.mock.invocationCallOrder[0])
+  })
+
+  it("does not switch branches when saving local changes is declined", async () => {
+    const { actions, git, requestConfirm } = renderActions(false)
+    git.status.mockResolvedValue({ files: [{ path: "f.tsx" }] })
+
+    await actions.checkoutBranch("feature")
+
+    expect(requestConfirm).toHaveBeenCalledTimes(1)
+    expect(git.stash).not.toHaveBeenCalled()
+    expect(git.checkout).not.toHaveBeenCalled()
   })
 
   it("preserves the force flag and reset mode after confirmation", async () => {

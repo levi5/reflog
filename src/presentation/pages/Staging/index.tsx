@@ -1,5 +1,6 @@
 import { Archive, Boxes, Cloud, FileDiff, GitBranch, Tag as TagIcon } from "lucide-react"
 import { useMemo, useState } from "react"
+import { Navigate } from "react-router-dom"
 import { matchesQuery } from "../../../main/adapters"
 import { t } from "../../../i18n"
 
@@ -121,6 +122,8 @@ export function Staging(_props: Props) {
       repo.submodules.length,
     ],
   )
+
+  if (!repo.repo) return <Navigate to="/" replace />
 
   return (
     <Resizable.Layout

@@ -11,6 +11,8 @@ export interface CanvasNodeClasses {
   node?: string
   halo?: string
   ripple?: string
+  lens?: string
+  lensCore?: string
   headGroup?: string
   headGroupPop?: string
   headPill?: string
@@ -42,6 +44,7 @@ interface CanvasNodeProps extends SVGProps<SVGGElement> {
   isMatch?: boolean
   isActiveMatch?: boolean
   isSpotlight?: boolean
+  isHovered?: boolean
   messagePreview: string
   deletingRefs?: Map<string, string>
   classes?: CanvasNodeClasses
@@ -60,6 +63,7 @@ export const CanvasNode = memo(function CanvasNode({
   isMatch = false,
   isActiveMatch = false,
   isSpotlight = false,
+  isHovered = false,
   messagePreview,
   deletingRefs,
   classes,
@@ -79,7 +83,7 @@ export const CanvasNode = memo(function CanvasNode({
     const cleanRef = ref.replace(/^HEAD -> /, "").trim()
     return !deletingRefNames.some((name) => cleanRef === name || cleanRef.endsWith(`/${name}`))
   })
-  const emphasized = isSelected || isFresh || isActiveMatch || isSpotlight
+  const emphasized = isSelected || isFresh || isActiveMatch || isSpotlight || isHovered
   const showFreshDecor = isFresh && !isSpotlight
   const waveDelay = `${nodeDelay}ms`
   const waveLateDelay = `${nodeDelay + 350}ms`
@@ -146,6 +150,20 @@ export const CanvasNode = memo(function CanvasNode({
               className={classes?.shockwave}
               style={{ animationDelay: waveLateDelay }}
             />
+          </>
+        )}
+        {isHovered && (
+          <>
+            <circle
+              cx={x}
+              cy={y}
+              r={17}
+              fill="none"
+              stroke={laneColor(node.lane)}
+              strokeWidth={1.5}
+              className={classes?.lens}
+            />
+            <circle cx={x} cy={y} r={10} fill="none" stroke="var(--fg)" strokeWidth={1} className={classes?.lensCore} />
           </>
         )}
         {isSpotlight && (

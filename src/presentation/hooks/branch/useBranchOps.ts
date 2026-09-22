@@ -10,9 +10,27 @@ export function useBranchOps(deps: RepositoryActionDeps) {
   const gitAction = useGitAction(lang, runAction)
 
   const checkoutBranch = useCallback(
-    (branch: string) =>
-      gitAction(() => git.checkout(repo, branch, false), "checkoutBranchLoading", "checkoutBranchSuccess"),
-    [git, repo, gitAction],
+    async (branch: string) => {
+      if (!repo || !branch) return Promise.resolve()
+      const status = await git.status(repo)
+      if (status.files.length === 0) {
+        return gitAction(() => git.checkout(repo, branch, false), "checkoutBranchLoading", "checkoutBranchSuccess")
+      }
+      const confirmed = await requestConfirm(t(lang, "checkoutWithChanges"), t(lang, "checkoutWithChangesHint"))
+      if (!confirmed) return Promise.resolve()
+      return runAction(
+        async () => {
+          await git.stash(repo, `Reflog: before checkout ${branch}`)
+          return git.checkout(repo, branch, false)
+        },
+        undefined,
+        {
+          loadingMessage: t(lang, "checkoutStashing"),
+          successMessage: t(lang, "checkoutStashed"),
+        },
+      )
+    },
+    [git, repo, lang, gitAction, requestConfirm, runAction],
   )
 
   const deleteBranch = useCallback(

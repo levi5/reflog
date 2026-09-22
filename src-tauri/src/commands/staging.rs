@@ -83,9 +83,9 @@ pub fn checkout(
     validate_ref_name(branch)?;
     let root = runner.repo_root(repo_path)?;
     if create {
-        return runner.run(Some(&root), &["checkout", "-b", "--", branch]);
+        return runner.run(Some(&root), &["checkout", "-b", branch]);
     }
-    runner.run(Some(&root), &["checkout", "--", branch])
+    runner.run(Some(&root), &["checkout", branch])
 }
 
 pub fn unstage(
@@ -325,4 +325,25 @@ pub async fn git_reset(
 ) -> Result<String, String> {
     let runner = state.runner.clone();
     run_blocking(move || reset(runner.as_ref(), &repo_path, &target, &mode)).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runner::mock::MockRunner;
+
+    #[test]
+    fn checks_out_existing_and_new_branches_as_refs() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("checkout fix/c", "Switched to branch 'fix/c'"),
+                ("checkout -b feature/new", "Switched to a new branch 'feature/new'"),
+            ],
+            &[],
+        );
+
+        assert!(checkout(&runner, "/r", "fix/c", false).is_ok());
+        assert!(checkout(&runner, "/r", "feature/new", true).is_ok());
+    }
 }

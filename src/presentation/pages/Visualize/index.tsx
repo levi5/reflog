@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Bar } from "../../components/Bar"
 import { Command } from "../../components/Command"
@@ -23,9 +23,12 @@ export const Visualize = () => {
   const { query, setQuery, scope } = useSearch()
   const viewport = useGraphViewport()
   const [selectedHash, setSelectedHash] = useState("")
+  const lastGraphRef = useRef(repo.graph)
+  if (repo.graph.length > 0) lastGraphRef.current = repo.graph
+  const visibleGraph = repo.graph.length > 0 ? repo.graph : lastGraphRef.current
 
   const graph = useVisualizeGraph({
-    graph: repo.graph,
+    graph: visibleGraph,
     query,
     scope,
     selectedHash,
@@ -56,7 +59,7 @@ export const Visualize = () => {
     const checkout = consoleSession.changes.find((change) => change.kind === "checkout")
     if (checkout?.kind !== "checkout") return null
     const hashForRef = (name: string) =>
-      repo.graph.find((commit) =>
+      visibleGraph.find((commit) =>
         commit.refs.some((ref) => {
           const clean = ref.replace(/^HEAD -> /, "").trim()
           return clean === name || clean.endsWith(`/${name}`)
@@ -66,12 +69,12 @@ export const Visualize = () => {
     const toHash = hashForRef(checkout.to)
     if (!fromHash || !toHash || fromHash === toHash) return null
     return { fromHash, toHash, key: `${fromHash}-${toHash}` }
-  }, [consoleSession.changes, repo.graph])
+  }, [consoleSession.changes, visibleGraph])
 
   const lastLine = consoleSession.lines[consoleSession.lines.length - 1]
   const errorKey = lastLine?.err ? lastLine.at : 0
 
-  if (repo.graph.length === 0) {
+  if (visibleGraph.length === 0) {
     if (graphLoading) {
       return (
         <div className={styles.simpleLayout}>

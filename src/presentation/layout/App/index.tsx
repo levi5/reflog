@@ -15,7 +15,6 @@ import { Windows } from "../../components/Window"
 
 import { SearchProvider, useMessage, useRepo, useSettingsContext } from "../../context"
 import { t } from "../../../i18n"
-import { useAutoRefresh } from "../../hooks/ui/useAutoRefresh"
 import { useProfiles } from "../../hooks"
 import { VIEW_LABELS, VIEW_TABS } from "../../../shared/constants"
 import type { TabItem } from "../../../types/components"
@@ -110,8 +109,6 @@ export function AppLayout() {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [profiles.cycle])
-
-  useAutoRefresh({ repoRoot: repo.repo, busy: repo.busy, opening: repo.opening, refresh: repo.refresh })
 
   return (
     <SearchProvider>

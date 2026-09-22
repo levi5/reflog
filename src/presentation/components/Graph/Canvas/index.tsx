@@ -20,6 +20,8 @@ const NODE_CLASSES = {
   node: styles.node,
   halo: styles.halo,
   ripple: styles.ripple,
+  lens: styles.lens,
+  lensCore: styles.lensCore,
   shockwave: styles.shockwave,
   spotRing: styles.spotRing,
   spotBlink: styles.spotBlink,
@@ -84,6 +86,7 @@ export function GraphCanvas({
 }: GraphCanvasProps) {
   const { t } = useTranslation()
   const canvasLabel = t("visualize")
+  const [hoveredHash, setHoveredHash] = useState("")
 
   const [containerHeight, setContainerHeight] = useState<number>(() => {
     return viewport.containerRef.current?.clientHeight || (typeof window !== "undefined" ? window.innerHeight : 800)
@@ -164,6 +167,11 @@ export function GraphCanvas({
     return new Set(layout.nodes.filter((node) => freshHashes.includes(node.commit.hash)).map((node) => node.row))
   }, [layout.nodes, freshHashes])
 
+  const hoveredLane = useMemo(
+    () => layout.nodes.find((node) => node.commit.hash === hoveredHash)?.lane,
+    [layout.nodes, hoveredHash],
+  )
+
   const travel = useMemo(() => {
     if (!headTravel) return null
     const fromNode = layout.nodes.find((node) => node.commit.hash === headTravel.fromHash)
@@ -204,6 +212,8 @@ export function GraphCanvas({
         {visibleEdges.map((edge) => {
           const { path, animationDelay } = edgeShape(edge)
           const isConnectedToFresh = freshRows.has(edge.fromRow) || freshRows.has(edge.toRow)
+          const isInHoveredLane =
+            hoveredLane !== undefined && (edge.fromLane === hoveredLane || edge.toLane === hoveredLane)
           return (
             <Icon.Graph.Connection
               key={`${edge.fromLane}-${edge.fromRow}-${edge.toLane}-${edge.toRow}`}
@@ -211,7 +221,11 @@ export function GraphCanvas({
               color={laneColor(edge.fromLane)}
               strokeWidth={edge.merge ? MERGE_EDGE_STROKE_WIDTH : DEFAULT_EDGE_STROKE_WIDTH}
               opacity={isConnectedToFresh ? 1 : EDGE_OPACITY}
-              className={classnames(styles.edge, isConnectedToFresh && styles.freshEdge)}
+              className={classnames(
+                styles.edge,
+                isConnectedToFresh && styles.freshEdge,
+                isInHoveredLane && styles.lensEdge,
+              )}
               style={{
                 d: `path("${path}")`,
                 animationDelay: `${animationDelay}ms`,
@@ -235,8 +249,11 @@ export function GraphCanvas({
               isMatch={matchedHashes.has(node.commit.hash)}
               isActiveMatch={activeMatchHash !== "" && node.commit.hash === activeMatchHash}
               isSpotlight={spotlightHashes.has(node.commit.hash)}
+              isHovered={hoveredHash === node.commit.hash}
               messagePreview={truncateCommitMessage(node.commit.message)}
               onSelectCommit={onSelectCommit}
+              onPointerEnter={() => setHoveredHash(node.commit.hash)}
+              onPointerLeave={() => setHoveredHash("")}
               classes={NODE_CLASSES}
             />
           )

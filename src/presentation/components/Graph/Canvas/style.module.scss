@@ -207,6 +207,27 @@
   pointer-events: none;
 }
 
+.lens {
+  stroke-dasharray: 3 4;
+  animation: lensOrbit 1.1s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.lensCore {
+  animation: lensCorePulse 0.9s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.lensEdge {
+  stroke-width: 2.8px;
+  stroke-dasharray: 3 3;
+  animation: lensEdgeFlow 0.7s linear infinite;
+}
+
 .freshEdge {
   stroke-dasharray: 6 3;
   animation: freshEdgeFlow 1.2s linear infinite;
@@ -217,4 +238,31 @@
     headFloat 2.2s ease-in-out 0.5s infinite;
   transform-box: fill-box;
   transform-origin: center;
+}
+
+@keyframes lensOrbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lensCorePulse {
+  to {
+    opacity: 0.25;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes lensEdgeFlow {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lens,
+  .lensCore,
+  .lensEdge {
+    animation: none;
+  }
 }

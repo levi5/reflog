@@ -91,7 +91,11 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
         const staticPromise =
           cached?.repo === root
             ? Promise.resolve([cached.version, cached.remoteUrl, cached.gpg] as const)
-            : Promise.all([git.version(), git.remoteUrl(root), git.gpg(root)])
+            : Promise.all([
+                git.version().catch(() => ""),
+                git.remoteUrl(root).catch(() => ""),
+                git.gpg(root).catch(() => ""),
+              ])
         const [status, branches, conflicts, tags, remotes, [version, remoteUrl, gpg]] = await Promise.all([
           git.status(root),
           git.branches(root),
