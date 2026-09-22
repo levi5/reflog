@@ -184,7 +184,6 @@ pub fn run_git(
     let root = runner.repo_root(repo_path)?;
     let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
 
-    // Use longer timeout for submodule foreach with network commands
     let is_submodule_foreach_network = args[0] == "submodule"
         && args.iter().any(|a| a == "foreach")
         && args.iter().any(|a| a == "pull" || a == "fetch" || a == "push");

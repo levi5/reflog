@@ -284,8 +284,6 @@ mod tests {
             ],
         );
 
-        // git diff exits with 1 when it finds a difference; receiving the full
-        // diff here proves its output pipe was drained while the process ran.
         assert!(result.unwrap_err().contains("diff --git"));
     }
 

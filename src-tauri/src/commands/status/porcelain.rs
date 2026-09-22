@@ -36,7 +36,6 @@ pub fn parse(porcelain: &str) -> Porcelain {
         let x = line[0..1].to_string();
         let y = line[1..2].to_string();
         let p = line[3..].to_string();
-        // Porcelain v1 with -z emits a second NUL-delimited path for renames/copies.
         if x == "R" || x == "C" || y == "R" || y == "C" {
             let _ = entries.next();
         }
