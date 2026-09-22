@@ -9,6 +9,7 @@ type VisualizeBarProps = {
   laneCount: number
   matchCount: number
   matchIndex: number
+  zoomPercent: string
   onSearchQueryChange: (nextQuery: string) => void
   onPrevMatch: () => void
   onNextMatch: () => void
@@ -24,6 +25,7 @@ export const VisualizeBar = ({
   laneCount,
   matchCount,
   matchIndex,
+  zoomPercent,
   onPrevMatch,
   onNextMatch,
   onZoomIn,
@@ -77,6 +79,9 @@ export const VisualizeBar = ({
         {nodeCount} · {laneCount}
       </span>
       <div className={styles.spacer} />
+      <span className={styles.count} aria-live="polite">
+        {zoomPercent}
+      </span>
       <button type="button" className="icon-btn" onClick={onZoomIn} title="+">
         <ZoomIn size={14} />
       </button>

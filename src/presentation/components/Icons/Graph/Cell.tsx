@@ -2,26 +2,45 @@ import type { SVGProps } from "react"
 import type { GraphRow } from "../../../../domain/entities/graph/commit-graph"
 import { laneColor } from "../../../../main/adapters"
 
-const LANE_W = 14
-const ROW_H = 44
+// GitLens metrics: compact rows, narrow lanes, seamless vertical stitching.
+export const GITLENS_LANE_W = 14
+export const GITLENS_ROW_H = 28
+
+const LANE_W = GITLENS_LANE_W
+const ROW_H = GITLENS_ROW_H
 
 interface CellProps extends SVGProps<SVGSVGElement> {
   row: GraphRow
   lanes: number
+  rowHeight?: number
+  laneWidth?: number
 }
 
-export const Cell = ({ row, lanes, ...svgProps }: CellProps) => {
-  const width = lanes * LANE_W
-  const x = (l: number) => l * LANE_W + LANE_W / 2
-  const mid = ROW_H / 2
+export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svgProps }: CellProps) => {
+  const width = Math.max(lanes, 1) * laneWidth
+  const x = (l: number) => l * laneWidth + laneWidth / 2
+  const mid = rowHeight / 2
+  const color = laneColor(row.lane)
 
   return (
-    <svg width={width} height={ROW_H} aria-hidden="true" {...svgProps}>
+    <svg width={width} height={rowHeight} aria-hidden="true" {...svgProps}>
+      {/* pass-through / entering lines (top half) */}
       {row.top.map((h, j) => {
         if (h === null || h === undefined) return null
-        const color = laneColor(j)
+        const c = laneColor(j)
         if (j === row.lane) {
-          return <line key={`enter-${h}`} x1={x(j)} y1={0} x2={x(j)} y2={mid} stroke={color} strokeWidth={2} />
+          return (
+            <line
+              key={`enter-${h}`}
+              x1={x(j)}
+              y1={0}
+              x2={x(j)}
+              y2={mid}
+              stroke={c}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
+          )
         }
         const continues = row.bottom[j] === h
         return (
@@ -30,12 +49,15 @@ export const Cell = ({ row, lanes, ...svgProps }: CellProps) => {
             x1={x(j)}
             y1={0}
             x2={x(j)}
-            y2={continues ? ROW_H : mid}
-            stroke={color}
+            y2={continues ? rowHeight : mid}
+            stroke={c}
             strokeWidth={2}
+            strokeLinecap="round"
+            opacity={0.9}
           />
         )
       })}
+      {/* outgoing links (bottom half) — straight when same lane, smooth S-curve otherwise */}
       {row.links.map((l) =>
         l.toLane === l.fromLane ? (
           <line
@@ -43,28 +65,31 @@ export const Cell = ({ row, lanes, ...svgProps }: CellProps) => {
             x1={x(l.fromLane)}
             y1={mid}
             x2={x(l.toLane)}
-            y2={ROW_H}
+            y2={rowHeight}
             stroke={laneColor(l.fromLane)}
             strokeWidth={2}
+            strokeLinecap="round"
           />
         ) : (
           <path
             key={`link-${l.fromLane}-${l.toLane}`}
-            d={`M ${x(l.fromLane)} ${mid} C ${x(l.fromLane)} ${mid + 11}, ${x(l.toLane)} ${ROW_H - 11}, ${x(l.toLane)} ${ROW_H}`}
+            d={`M ${x(l.fromLane)} ${mid} C ${x(l.fromLane)} ${mid + rowHeight / 4}, ${x(l.toLane)} ${rowHeight - rowHeight / 4}, ${x(l.toLane)} ${rowHeight}`}
             fill="none"
             stroke={laneColor(l.fromLane)}
             strokeWidth={2}
+            strokeLinecap="round"
           />
         ),
       )}
-      <circle
-        cx={x(row.lane)}
-        cy={mid}
-        r={row.isMerge ? 5.5 : 4.5}
-        fill={laneColor(row.lane)}
-        stroke="var(--bg-win)"
-        strokeWidth={1.5}
-      />
+      {/* node dot — GitLens style: solid for commits, hollow ring for merges */}
+      {row.isMerge ? (
+        <>
+          <circle cx={x(row.lane)} cy={mid} r={6} fill="var(--bg-win)" stroke={color} strokeWidth={2} />
+          <circle cx={x(row.lane)} cy={mid} r={2} fill={color} />
+        </>
+      ) : (
+        <circle cx={x(row.lane)} cy={mid} r={4.5} fill={color} stroke="var(--bg-win)" strokeWidth={1} />
+      )}
     </svg>
   )
 }

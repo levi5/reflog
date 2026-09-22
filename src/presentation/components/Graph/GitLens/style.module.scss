@@ -1,0 +1,276 @@
+.list {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-win);
+  outline: none;
+  --gitlens-row-h: 28px;
+  --gitlens-font: 13px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: var(--gitlens-row-h);
+  min-height: var(--gitlens-row-h);
+  width: 100%;
+  padding: 0 12px 0 0;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  position: relative;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  animation: gitlensRowIn 0.3s ease backwards;
+  transition: background 0.12s ease;
+
+  &:hover {
+    background: var(--bg-hover);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: -1px;
+  }
+}
+
+.selected {
+  background: var(--bg-hover);
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--accent);
+  }
+}
+
+.selected .graph {
+  animation: selectedPulse 2s ease-in-out infinite;
+}
+
+.dimmed {
+  opacity: 0.28;
+}
+
+.graph {
+  flex-shrink: 0;
+  display: block;
+  height: var(--gitlens-row-h);
+}
+
+.graph circle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: var(--gitlens-font);
+  line-height: var(--gitlens-row-h);
+  padding-left: 8px;
+}
+
+.message {
+  color: var(--fg);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.selected .message,
+.row:hover .message {
+  color: #fff;
+}
+
+.author {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.refs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.ref {
+  font-size: 10px;
+  line-height: 15px;
+  padding: 0 6px;
+  border-radius: 9px;
+  border: 1px solid var(--green);
+  color: var(--green);
+  white-space: nowrap;
+}
+
+.refHead {
+  background: var(--grape);
+  border-color: var(--grape);
+  color: #fff;
+}
+
+.refTag {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.head .graph {
+  animation: headAura 2.4s ease-in-out infinite;
+}
+
+.matched .message {
+  font-weight: 600;
+}
+
+.matched .graph {
+  filter: drop-shadow(0 0 3px var(--grape));
+}
+
+.activeMatch {
+  background: var(--bg-hover);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.activeMatch .graph {
+  animation: gitlensActiveGlow 1.4s ease-in-out infinite alternate;
+}
+
+.fresh::after,
+.spotlight::after,
+.travelFrom::after,
+.travelTo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fresh::after {
+  background: color-mix(in srgb, var(--grape) 28%, transparent);
+  animation: gitlensFlashFade 1.6s ease forwards;
+}
+
+.fresh .graph {
+  animation: gitlensFreshGlow 1.4s ease-in-out infinite alternate;
+}
+
+.spotlight {
+  outline: 1px dashed var(--teal);
+  outline-offset: -1px;
+}
+
+.spotlight::after {
+  background: color-mix(in srgb, var(--teal) 16%, transparent);
+  animation: pulse 1.4s ease-in-out infinite alternate;
+}
+
+.spotlight .graph {
+  animation: gitlensSpotGlow 1.4s ease-in-out infinite alternate;
+}
+
+.travelFrom::after,
+.travelTo::after {
+  background: color-mix(in srgb, var(--grape) 22%, transparent);
+  animation: travelFade 0.9s ease forwards;
+}
+
+@keyframes gitlensRowIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gitlensFlashFade {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes gitlensFreshGlow {
+  from {
+    filter: drop-shadow(0 0 2px var(--grape));
+  }
+  to {
+    filter: drop-shadow(0 0 8px var(--grape));
+  }
+}
+
+@keyframes gitlensActiveGlow {
+  from {
+    filter: drop-shadow(0 0 2px var(--accent));
+  }
+  to {
+    filter: drop-shadow(0 0 7px var(--accent));
+  }
+}
+
+@keyframes gitlensSpotGlow {
+  from {
+    filter: drop-shadow(0 0 2px var(--teal));
+  }
+  to {
+    filter: drop-shadow(0 0 8px var(--teal));
+  }
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.loadMore {
+  font-size: 12px;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-soft);
+  color: var(--fg);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+
+  &:hover {
+    border-color: var(--grape);
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  animation: pulse 1.2s ease-in-out infinite;
+}

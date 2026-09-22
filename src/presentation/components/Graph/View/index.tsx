@@ -1,9 +1,10 @@
+import { useMemo } from "react"
 import { Loader2, Sparkles } from "lucide-react"
 import classnames from "classnames"
 import type { GraphViewerProps } from "../../../../types/components/graph"
 import { useTranslation } from "../../../context"
 import { Commit } from "../../Commit"
-import { GraphCanvas } from "../Canvas"
+import { GitLensList } from "../GitLens"
 import styles from "./style.module.scss"
 
 const COMMIT_DETAIL_STORAGE_KEY = "viz.detail"
@@ -32,10 +33,14 @@ export function GraphViewer({
   onLoadMore,
 }: GraphViewerProps) {
   const { t } = useTranslation()
+  const commits = useMemo(
+    () => [...graph.layout.nodes].sort((a, b) => a.row - b.row).map((node) => node.commit),
+    [graph.layout.nodes],
+  )
 
   return (
     <div
-      key={errorKey}
+      data-error-key={errorKey}
       className={classnames(styles.canvasBody, errorKey !== 0 && styles.canvasError)}
       ref={viewport.containerRef}
     >
@@ -49,36 +54,31 @@ export function GraphViewer({
         </div>
       )}
       {isLoading && (
-        <div className={styles.loadingBanner}>
-          <Loader2 size={13} className={styles.loadingSpinner} />
-          <span>{t("loading")}</span>
+        <div className={styles.appendingWrap} role="status" aria-busy>
+          <span className={styles.appendingPill}>
+            <Loader2 size={13} className={styles.loadingSpinner} />
+            {t("loading")}
+          </span>
         </div>
       )}
-      <GraphCanvas
-        layout={graph.layout}
-        geometry={graph.geometry}
-        viewport={viewport}
-        headHash={graph.headHash}
-        freshHashes={freshHashes}
+      <GitLensList
+        commits={commits}
+        selectedHash={selectedHash}
         dimmedHashes={graph.dimmedHashes}
         matchedHashes={matchedHashes}
         activeMatchHash={activeMatchHash}
+        freshHashes={freshHashes}
         spotlightHashes={spotlightHashes}
+        headHash={graph.headHash}
         headTravel={headTravel}
-        isRunning={isRunning}
-        selectedHash={selectedHash}
-        onSelectCommit={onSelectCommit}
+        zoom={viewport.scale}
+        isLoading={isLoading}
         hasMore={hasMore}
-        loading={isLoading}
         onLoadMore={onLoadMore}
+        onSelectCommit={onSelectCommit}
+        onZoomIn={viewport.zoomIn}
+        onZoomOut={viewport.zoomOut}
       />
-      {hasMore && !isLoading && (
-        <div className={styles.loadMoreWrap}>
-          <button type="button" className={styles.loadMoreButton} onClick={onLoadMore} title={t("loadMore")}>
-            {t("loadMore")}
-          </button>
-        </div>
-      )}
       <Commit.Detail
         className={styles.commitDetails}
         commit={graph.selectedCommit}

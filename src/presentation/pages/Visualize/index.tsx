@@ -96,6 +96,7 @@ export const Visualize = () => {
         laneCount={graph.layout.lanes}
         matchCount={matchNav.matchCount}
         matchIndex={matchNav.activeIndex}
+        zoomPercent={`${Math.round(viewport.scale * 100)}%`}
         onPrevMatch={matchNav.goPrev}
         onNextMatch={matchNav.goNext}
         onZoomIn={viewport.zoomIn}
