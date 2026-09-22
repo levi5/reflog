@@ -68,7 +68,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     [lang, messageService],
   )
 
-  const { handleOpen, handleBrowse, pickDir, cloneRepo } = useRepoOpener({
+  const { handleOpen, handleBrowse, pickDir, cloneRepo, initRepo } = useRepoOpener({
     lang,
     repoInput,
     opening,
@@ -204,6 +204,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     handleBrowse,
     pickDir,
     cloneRepo,
+    initRepo,
     runAction,
     checkoutBranch: branchOps.checkoutBranch,
     deleteBranch: branchOps.deleteBranch,

@@ -240,6 +240,7 @@
   "showAll": "Mostrar tudo",
   "loadDiff": "Carregar diff",
   "largeDiffPreview": "Diff grande: exibindo em partes.",
+  "diffTooLarge": "O diff excede o limite seguro para visualização.",
   "loading": "Carregando...",
   "stagingDiff": "Staging e Diff",
   "mergeConflictsTab": "Merge e Conflitos",

@@ -83,7 +83,7 @@ pub fn run() {
             commands::history::diff::git_show,
             commands::files::content::get_file_content,
             commands::files::content::save_file_content,
-            commands::files::content::write_text_file,
+            
             commands::files::conflicted::get_conflicted_files,
             commands::files::conflicted::parse_conflicts,
             commands::staging::git_add,

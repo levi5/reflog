@@ -5,9 +5,19 @@ use std::time::Duration;
 use wait_timeout::ChildExt;
 
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
+pub const OUTPUT_LIMIT_ERROR: &str = "saída do git excede o limite permitido";
 
 pub trait GitRunner: Send + Sync {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String>;
+    fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String> {
+        self.run(repo, args).and_then(|output| {
+            if output.len() > max_bytes {
+                Err(OUTPUT_LIMIT_ERROR.to_string())
+            } else {
+                Ok(output)
+            }
+        })
+    }
     fn run_stdin(
         &self,
         repo: Option<&str>,
@@ -45,6 +55,26 @@ fn failure_message(stdout: &[u8], stderr: &[u8]) -> String {
     String::from_utf8_lossy(stdout).trim().to_string()
 }
 
+fn drain_pipe<R: Read>(mut pipe: R, max_bytes: Option<usize>) -> Result<(Vec<u8>, bool), String> {
+    let mut output = Vec::new();
+    let mut exceeded = false;
+    let mut buffer = [0; 8192];
+    loop {
+        let read = pipe.read(&mut buffer).map_err(|e| e.to_string())?;
+        if read == 0 {
+            return Ok((output, exceeded));
+        }
+        if let Some(limit) = max_bytes {
+            let remaining = limit.saturating_sub(output.len());
+            let captured = remaining.min(read);
+            output.extend_from_slice(&buffer[..captured]);
+            exceeded |= captured < read;
+        } else {
+            output.extend_from_slice(&buffer[..read]);
+        }
+    }
+}
+
 fn base_command(repo: Option<&str>) -> Command {
     let mut cmd = Command::new("git");
     if let Some(dir) = repo {
@@ -64,6 +94,7 @@ impl ProcessRunner {
         stdin_input: Option<&str>,
         env_vars: Option<&[(&str, &str)]>,
         timeout: Duration,
+        max_output_bytes: Option<usize>,
     ) -> Result<String, String> {
         let mut cmd = base_command(repo);
         cmd.args(args);
@@ -88,22 +119,8 @@ impl ProcessRunner {
         // a large diff fills an OS pipe buffer.
         let stdout = child.stdout.take().ok_or_else(|| "stdout indisponível".to_string())?;
         let stderr = child.stderr.take().ok_or_else(|| "stderr indisponível".to_string())?;
-        let stdout_reader = std::thread::spawn(move || {
-            let mut output = Vec::new();
-            stdout
-                .take(u64::MAX)
-                .read_to_end(&mut output)
-                .map(|_| output)
-                .map_err(|e| e.to_string())
-        });
-        let stderr_reader = std::thread::spawn(move || {
-            let mut output = Vec::new();
-            stderr
-                .take(u64::MAX)
-                .read_to_end(&mut output)
-                .map(|_| output)
-                .map_err(|e| e.to_string())
-        });
+        let stdout_reader = std::thread::spawn(move || drain_pipe(stdout, max_output_bytes));
+        let stderr_reader = std::thread::spawn(move || drain_pipe(stderr, max_output_bytes));
 
         if let Some(input) = stdin_input {
             if let Some(mut stdin) = child.stdin.take() {
@@ -118,17 +135,22 @@ impl ProcessRunner {
             None => {
                 let _ = child.kill();
                 let _ = child.wait();
-                let _ = stdout_reader.join();
-                let _ = stderr_reader.join();
+                // Do not wait for the readers: a Git helper can inherit the pipe and
+                // keep it open after the direct child has been terminated.
+                drop(stdout_reader);
+                drop(stderr_reader);
                 return Err("git excedeu o tempo limite".to_string());
             }
         };
-        let stdout = stdout_reader
+        let (stdout, stdout_exceeded) = stdout_reader
             .join()
             .map_err(|_| "falha ao ler stdout do git".to_string())??;
-        let stderr = stderr_reader
+        let (stderr, stderr_exceeded) = stderr_reader
             .join()
             .map_err(|_| "falha ao ler stderr do git".to_string())??;
+        if stdout_exceeded || stderr_exceeded {
+            return Err(OUTPUT_LIMIT_ERROR.to_string());
+        }
         if status.success() {
             Ok(String::from_utf8_lossy(&stdout).to_string())
         } else {
@@ -139,7 +161,11 @@ impl ProcessRunner {
 
 impl GitRunner for ProcessRunner {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String> {
-        self.execute(repo, args, None, None, DEFAULT_TIMEOUT)
+        self.execute(repo, args, None, None, DEFAULT_TIMEOUT, None)
+    }
+
+    fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String> {
+        self.execute(repo, args, None, None, DEFAULT_TIMEOUT, Some(max_bytes))
     }
 
     fn run_stdin(
@@ -148,7 +174,7 @@ impl GitRunner for ProcessRunner {
         args: &[&str],
         input: &str,
     ) -> Result<String, String> {
-        self.execute(repo, args, Some(input), None, DEFAULT_TIMEOUT)
+        self.execute(repo, args, Some(input), None, DEFAULT_TIMEOUT, None)
     }
 
     fn run_env(
@@ -157,7 +183,7 @@ impl GitRunner for ProcessRunner {
         args: &[&str],
         env: &[(&str, &str)],
     ) -> Result<String, String> {
-        self.execute(repo, args, None, Some(env), DEFAULT_TIMEOUT)
+        self.execute(repo, args, None, Some(env), DEFAULT_TIMEOUT, None)
     }
 
     fn read_file(&self, path: &Path) -> Result<String, String> {
@@ -199,6 +225,29 @@ mod tests {
         // git diff exits with 1 when it finds a difference; receiving the full
         // diff here proves its output pipe was drained while the process ran.
         assert!(result.unwrap_err().contains("diff --git"));
+    }
+
+    #[test]
+    fn rejects_output_larger_than_limit_without_blocking_the_process() {
+        let dir = tempfile::tempdir().unwrap();
+        let before = dir.path().join("before.txt");
+        let after = dir.path().join("after.txt");
+        std::fs::write(&before, "").unwrap();
+        std::fs::write(&after, "x".repeat(128 * 1024)).unwrap();
+
+        let result = ProcessRunner.run_limited(
+            None,
+            &[
+                "diff",
+                "--no-index",
+                "--",
+                before.to_str().unwrap(),
+                after.to_str().unwrap(),
+            ],
+            1024,
+        );
+
+        assert_eq!(result.unwrap_err(), OUTPUT_LIMIT_ERROR);
     }
 }
 

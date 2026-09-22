@@ -123,7 +123,6 @@ export const gitApi = {
   submodules: (repoPath: string) => invokeTyped<SubmoduleInfo[]>("git_submodule_list", { repoPath }),
   submoduleUpdate: (repoPath: string, submodulePath?: string) =>
     invokeTyped<string>("git_submodule_update", { repoPath, submodulePath }),
-  writeTextFile: (path: string, content: string) => invokeTyped<void>("write_text_file", { path, content }),
 }
 
 export type GitApi = typeof gitApi

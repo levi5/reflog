@@ -124,6 +124,7 @@ export function CommitDetail({
   const [loadingFiles, setLoadingFiles] = useState(false)
   const [selectedFile, setSelectedFile] = useState<string>("")
   const [diffText, setDiffText] = useState<string>("")
+  const [diffError, setDiffError] = useState("")
   const [loadingDiff, setLoadingDiff] = useState(false)
   const diffCacheRef = useRef(new Map<string, string>())
   const filesRequestRef = useRef(0)
@@ -134,6 +135,7 @@ export function CommitDetail({
     diffRequestRef.current += 1
     setSelectedFile("")
     setDiffText("")
+    setDiffError("")
     setLoadingDiff(false)
     setFiles([])
     setLoadingFiles(false)
@@ -159,6 +161,7 @@ export function CommitDetail({
     diffRequestRef.current += 1
     setSelectedFile(next)
     setDiffText("")
+    setDiffError("")
     if (!commit || !loadDiff || !next) return
 
     const key = `${commit.hash}:${next}`
@@ -175,8 +178,13 @@ export function CommitDetail({
         diffCacheRef.current.set(key, diff)
         if (request === diffRequestRef.current) setDiffText(diff)
       })
-      .catch(() => {
-        if (request === diffRequestRef.current) setDiffText("")
+      .catch((error: unknown) => {
+        if (request === diffRequestRef.current) {
+          setDiffText("")
+          setDiffError(
+            error instanceof Error && error.message.includes("limite") ? t("diffTooLarge") : t("actionFailed"),
+          )
+        }
       })
       .finally(() => {
         if (request === diffRequestRef.current) setLoadingDiff(false)
@@ -307,7 +315,7 @@ export function CommitDetail({
         </>
       )}
 
-      {selectedFile && (loadingDiff || diffText) && (
+      {selectedFile && (loadingDiff || diffText || diffError) && (
         <>
           <div className={styles.sectionTitle}>
             <FileText size={11} /> Diff {selectedFile ? `: ${selectedFile}` : ""}
@@ -317,6 +325,10 @@ export function CommitDetail({
               <i />
               <i />
               <i />
+            </div>
+          ) : diffError ? (
+            <div className={styles.diffError} role="alert">
+              {diffError}
             </div>
           ) : largeDiff ? (
             <div className={styles.largeDiff}>

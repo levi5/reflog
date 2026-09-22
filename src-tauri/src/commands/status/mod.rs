@@ -16,6 +16,10 @@ fn short_head(runner: &dyn GitRunner, root: &str) -> String {
 
 fn resolve_branch(runner: &dyn GitRunner, info: &str, root: &str) -> String {
     const DETACHED: &str = "HEAD (no branch)";
+    const UNBORN_PREFIX: &str = "No commits yet on ";
+    if let Some(branch) = info.strip_prefix(UNBORN_PREFIX) {
+        return branch.to_string();
+    }
     let name = match info.find("...") {
         Some(dot) => info[..dot].to_string(),
         None => info.split(' ').next().unwrap_or("").to_string(),
@@ -114,5 +118,20 @@ mod tests {
         assert_eq!(v.files[0].staged, true);
         assert_eq!(v.files[1].unmerged, true);
         assert_eq!(v.files[2].staged, false);
+    }
+
+    #[test]
+    fn keeps_initial_branch_for_unborn_repository() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("rev-parse --git-path MERGE_HEAD", "/r/.git/MERGE_HEAD"),
+                ("rev-parse --git-path CHERRY_PICK_HEAD", "/r/.git/CHERRY_PICK_HEAD"),
+                ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
+                ("status --porcelain=v1 -z -b -uall", "## No commits yet on main\0"),
+            ],
+            &[],
+        );
+        assert_eq!(status_of(&runner, "/r").unwrap().branch, "main");
     }
 }

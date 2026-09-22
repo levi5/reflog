@@ -2,7 +2,6 @@ import { save } from "@tauri-apps/plugin-dialog"
 import type { AutomationRecipe } from "../../../domain/entities/automations/automations"
 import { readAutomationImport } from "../../../data/use-cases/automations/automation-import-use-case"
 import { t } from "../../../i18n"
-import { gitApi } from "../../../infrastructure/git"
 import { serializeAutomationsToml } from "../../../main/adapters"
 import { EXPORT_AUTOMATIONS_FILE } from "../../../shared/constants/limits"
 import type { Lang } from "../../../types"
@@ -27,13 +26,16 @@ export function useAutomationTransfer({
 }: TransferOptions) {
   const exportAutomations = async () => {
     try {
+      const tomlContent = serializeAutomationsToml(automations.recipes, automations.monitors)
       const targetPath = await save({
         defaultPath: EXPORT_AUTOMATIONS_FILE,
         filters: [{ name: "TOML", extensions: ["toml"] }],
       })
       if (!targetPath) return
-      const tomlContent = serializeAutomationsToml(automations.recipes, automations.monitors)
-      await gitApi.writeTextFile(targetPath, tomlContent)
+      await save(tomlContent, {
+        defaultPath: targetPath,
+        filters: [{ name: "TOML", extensions: ["toml"] }],
+      })
       setFeedbackMessage("")
     } catch {
       setFeedbackMessage(t(lang, "exportError"))

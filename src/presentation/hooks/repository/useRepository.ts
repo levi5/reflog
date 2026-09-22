@@ -97,6 +97,7 @@ export function useRepository(lang: Lang) {
     handleBrowse: core.handleBrowse,
     pickDir: core.pickDir,
     cloneRepo: core.cloneRepo,
+    initRepo: core.initRepo,
     loadDiff: staging.loadDiff,
     selectDiff: staging.selectDiff,
     runAction: core.runAction,

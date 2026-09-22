@@ -97,7 +97,3 @@ pub fn save_file_content(
     save_content(state.runner.as_ref(), &repo_path, &file, &content)
 }
 
-#[tauri::command]
-pub fn write_text_file(path: String, content: String) -> Result<(), String> {
-    fs::write(path, content).map_err(|e| format!("erro ao salvar arquivo: {e}"))
-}

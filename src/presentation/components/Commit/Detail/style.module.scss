@@ -218,6 +218,15 @@
   font-size: 12px;
 }
 
+.diffError {
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border-soft));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-deep));
+  color: var(--danger);
+  font-size: 12px;
+}
+
 .largeDiff pre {
   margin: 8px 0 0;
   color: var(--fg);

@@ -4,6 +4,9 @@ use crate::domain::CommitFileChange;
 use crate::AppState;
 use tauri::State;
 
+const MAX_DIFF_OUTPUT_BYTES: usize = 2 * 1024 * 1024;
+const MAX_FILE_LIST_OUTPUT_BYTES: usize = 512 * 1024;
+
 pub fn diff_of(
     runner: &dyn GitRunner,
     repo_path: &str,
@@ -17,7 +20,7 @@ pub fn diff_of(
     }
     args.push("--");
     args.push(file);
-    runner.run(Some(&root), &args)
+    runner.run_limited(Some(&root), &args, MAX_DIFF_OUTPUT_BYTES)
 }
 
 pub fn show_of(
@@ -26,7 +29,7 @@ pub fn show_of(
     rev: &str,
 ) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["show", "--stat", rev])
+    runner.run_limited(Some(&root), &["show", "--stat", rev], MAX_FILE_LIST_OUTPUT_BYTES)
 }
 
 pub fn commit_files_of(
@@ -35,9 +38,10 @@ pub fn commit_files_of(
     rev: &str,
 ) -> Result<Vec<CommitFileChange>, String> {
     let root = runner.repo_root(repo_path)?;
-    let out = runner.run(
+    let out = runner.run_limited(
         Some(&root),
         &["diff-tree", "--no-commit-id", "--name-status", "-z", "--root", "--first-parent", "-r", rev],
+        MAX_FILE_LIST_OUTPUT_BYTES,
     )?;
     let mut files = vec![];
     let mut entries = out.split('\0').filter(|entry| !entry.is_empty());
@@ -65,10 +69,10 @@ pub fn commit_diff_of(
     let root = runner.repo_root(repo_path)?;
     match file {
         Some(f) if !f.trim().is_empty() => {
-            runner.run(Some(&root), &["show", rev, "--", &f])
+            runner.run_limited(Some(&root), &["show", "--first-parent", rev, "--", &f], MAX_DIFF_OUTPUT_BYTES)
         }
         _ => {
-            runner.run(Some(&root), &["show", rev])
+            runner.run_limited(Some(&root), &["show", "--first-parent", rev], MAX_DIFF_OUTPUT_BYTES)
         }
     }
 }
@@ -202,5 +206,17 @@ mod tests {
         let files = commit_files_of(&runner, "/r", "abc1234").unwrap();
         assert_eq!(files[0].path, "new\tname");
         assert_eq!(files[0].old_path.as_deref(), Some("old\tname"));
+    }
+
+    #[test]
+    fn uses_first_parent_for_merge_file_diffs() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("show --first-parent merge123 -- src/file.ts", "diff --git a/src/file.ts b/src/file.ts"),
+            ],
+            &[],
+        );
+        assert!(commit_diff_of(&runner, "/r", "merge123", Some("src/file.ts".to_string())).is_ok());
     }
 }
