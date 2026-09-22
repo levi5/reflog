@@ -203,6 +203,7 @@ export function Staging(_props: Props) {
               diffContent={repo.diff}
               loaded={repo.diffLoaded}
               loading={repo.diffLoading}
+              errorMessage={repo.diffError}
               maxHeight={diffHeight.size}
               onLoad={() => repo.loadDiff()}
               onShowUnstaged={() => repo.loadDiff(repo.selectedFile, false)}

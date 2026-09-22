@@ -1,5 +1,5 @@
 use crate::runner::GitRunner;
-use crate::AppState;
+use crate::{AppState, CliPath};
 use tauri::State;
 
 pub fn check(runner: &dyn GitRunner, path: &str) -> bool {
@@ -20,4 +20,9 @@ pub async fn check_repo(state: State<'_, AppState>, path: String) -> Result<bool
 pub async fn repo_root(state: State<'_, AppState>, path: String) -> Result<String, String> {
     let runner = state.runner.clone();
     crate::commands::run_blocking(move || root_of(runner.as_ref(), &path)).await
+}
+
+#[tauri::command]
+pub fn take_cli_path(state: State<'_, CliPath>) -> Option<String> {
+    state.0.lock().ok()?.take()
 }

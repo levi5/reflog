@@ -12,6 +12,7 @@ const COMMIT_MESSAGE_PREVIEW_LENGTH = 72
 const EDGE_OPACITY = 0.75
 const MERGE_EDGE_STROKE_WIDTH = 2.4
 const DEFAULT_EDGE_STROKE_WIDTH = 1.6
+const LOAD_MORE_BUFFER_ROWS = 10
 
 const NODE_CLASSES = {
   group: styles.nodeGroup,
@@ -77,6 +78,9 @@ export function GraphCanvas({
   isRunning,
   selectedHash,
   onSelectCommit,
+  hasMore,
+  loading,
+  onLoadMore,
 }: GraphCanvasProps) {
   const { t } = useTranslation()
   const canvasLabel = t("visualize")
@@ -107,6 +111,11 @@ export function GraphCanvas({
   const { startRow, endRow } = useMemo(() => {
     return computeVisibleRange(layout.nodes.length, viewport.position.y, viewport.scale, containerHeight)
   }, [layout.nodes.length, viewport.position.y, viewport.scale, containerHeight])
+
+  useEffect(() => {
+    if (!hasMore || loading || !onLoadMore) return
+    if (endRow >= layout.nodes.length - LOAD_MORE_BUFFER_ROWS) onLoadMore()
+  }, [endRow, hasMore, layout.nodes.length, loading, onLoadMore])
 
   const visibleNodes = useMemo(() => {
     if (startRow > endRow || endRow < 0 || startRow >= layout.nodes.length) {

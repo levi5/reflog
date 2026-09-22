@@ -8,6 +8,7 @@ type PaginationProps = {
   totalItems: number
   pageSize: number
   hasMore?: boolean
+  totalKnown?: boolean
   loading?: boolean
   onPageChange: (page: number) => void
 }
@@ -26,12 +27,13 @@ export function Pagination({
   totalItems,
   pageSize,
   hasMore = false,
+  totalKnown = false,
   loading = false,
   onPageChange,
 }: PaginationProps) {
   const safePageSize = Math.max(1, pageSize)
   const knownTotal = Math.max(1, Math.ceil(totalItems / safePageSize))
-  const totalPages = hasMore ? Math.max(knownTotal, currentPage + 2) : knownTotal
+  const totalPages = knownTotal
   const lastPage = totalPages - 1
 
   if (totalPages <= 1 && !hasMore) return null
@@ -115,7 +117,7 @@ export function Pagination({
       <button
         type="button"
         className="mini-btn"
-        disabled={atLast || loading}
+        disabled={atLast || loading || (hasMore && !totalKnown)}
         onClick={() => goTo(lastPage)}
         aria-label="Last page"
       >

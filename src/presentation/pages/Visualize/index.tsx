@@ -5,7 +5,9 @@ import { Command } from "../../components/Command"
 import { Console } from "../../components/Console"
 import { EmptyGraphState } from "../../components/Empty/Graph"
 import { Graph } from "../../components/Graph"
+import { Skeleton } from "../../components/Skeleton"
 
+import { t } from "../../../i18n"
 import { useConsoleSession } from "../../hooks/console/useConsoleSession"
 import { useGraphViewport } from "../../hooks"
 import { useMatchNavigator } from "../../hooks"
@@ -35,32 +37,11 @@ export const Visualize = () => {
   })
   const consoleSession = useConsoleSession({ language: lang, repo })
 
-  const { position, scale, containerRef } = viewport
-  const { canvasHeight } = graph.geometry
-  const { graphHasMore, graphLoading, loadMoreGraph } = repo
-  const isLoadingRef = useState({ loading: false })[0]
+  const { graphLoading, loadMoreGraph } = repo
 
   useEffect(() => {
     if (repo.graph.length === 0 && !graphLoading) void loadMoreGraph()
   }, [repo.graph.length, graphLoading, loadMoreGraph])
-
-  useEffect(() => {
-    if (!graphLoading) {
-      isLoadingRef.loading = false
-    }
-  }, [graphLoading, isLoadingRef])
-
-  useEffect(() => {
-    if (!graphHasMore || graphLoading || isLoadingRef.loading) return
-    const container = containerRef.current
-    const viewportHeight = container?.clientHeight ?? window.innerHeight
-    const visibleBottomY = (viewportHeight - (position.y + 20)) / scale
-    const THRESHOLD = 500
-    if (visibleBottomY >= canvasHeight - THRESHOLD) {
-      isLoadingRef.loading = true
-      loadMoreGraph?.()
-    }
-  }, [position.y, scale, canvasHeight, graphHasMore, graphLoading, loadMoreGraph, containerRef, isLoadingRef])
 
   const spotlightHashes = useMemo(() => {
     const hashes = new Set<string>()
@@ -91,6 +72,15 @@ export const Visualize = () => {
   const errorKey = lastLine?.err ? lastLine.at : 0
 
   if (repo.graph.length === 0) {
+    if (graphLoading) {
+      return (
+        <div className={styles.simpleLayout}>
+          <main className="canvasWrap">
+            <Skeleton.Commits count={12} label={t(lang, "loading")} />
+          </main>
+        </div>
+      )
+    }
     return <EmptyGraphState className={styles.simpleLayout} />
   }
 

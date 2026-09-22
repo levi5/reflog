@@ -67,17 +67,21 @@ mod tests {
 
     #[test]
     fn lists_conflicted_files_with_parsed_hunks() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().to_string_lossy().to_string();
+        let file = temp.path().join("ola.txt").to_string_lossy().to_string();
+        std::fs::write(&file, "").unwrap();
         let runner = MockRunner::new(
             &[
-                ("rev-parse --show-toplevel", "/r"),
+                ("rev-parse --show-toplevel", &root),
                 ("diff --name-only --diff-filter=U", "ola.txt\n"),
             ],
             &[(
-                "/r/ola.txt",
+                file.as_str(),
                 "<<<<<<< HEAD\nteste b\n=======\nteste a\n>>>>>>> master\n",
             )],
         );
-        let files = conflicted_of(&runner, "/r").unwrap();
+        let files = conflicted_of(&runner, &root).unwrap();
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].path, "ola.txt");
         assert_eq!(files[0].conflicts.len(), 1);

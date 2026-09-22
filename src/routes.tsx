@@ -4,6 +4,7 @@ import { createHashRouter, Navigate } from "react-router-dom"
 import { AppLayout } from "./presentation/layout/App"
 import { MainLayout } from "./presentation/layout/MainLayout"
 import { RouteErrorElement, RouteNotFound } from "./presentation/components/ErrorBoundary/RouteErrorElement"
+import { RepoProvider } from "./presentation/context"
 
 const Welcome = lazy(() => import("./presentation/pages/Welcome").then((m) => ({ default: m.Welcome })))
 const Merge = lazy(() => import("./presentation/pages/Merge").then((m) => ({ default: m.MergePage })))
@@ -61,7 +62,11 @@ export async function repoLoader({ params }: { params: Record<string, string | u
 export const router = createHashRouter([
   {
     path: "/",
-    element: <AppLayout />,
+    element: (
+      <RepoProvider>
+        <AppLayout />
+      </RepoProvider>
+    ),
     errorElement: <RouteErrorElement />,
     children: [
       {

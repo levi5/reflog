@@ -153,6 +153,11 @@
   margin-bottom: 8px;
 }
 
+.loadError {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
 .loadMoreWrap {
   display: flex;
   gap: 6px;

@@ -235,6 +235,7 @@
   "loadMore": "Load more",
   "showAll": "Show all",
   "loadDiff": "Load diff",
+  "largeDiffPreview": "Large diff: shown in parts.",
   "loading": "Loading...",
   "stagingDiff": "Staging & Diff",
   "mergeConflictsTab": "Merge & Conflicts",

@@ -68,6 +68,9 @@ export function GraphViewer({
         isRunning={isRunning}
         selectedHash={selectedHash}
         onSelectCommit={onSelectCommit}
+        hasMore={hasMore}
+        loading={isLoading}
+        onLoadMore={onLoadMore}
       />
       {hasMore && !isLoading && (
         <div className={styles.loadMoreWrap}>

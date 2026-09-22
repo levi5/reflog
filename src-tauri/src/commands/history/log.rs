@@ -7,19 +7,25 @@ pub fn log_of(
     runner: &dyn GitRunner,
     repo_path: &str,
     limit: Option<usize>,
+    skip: Option<usize>,
 ) -> Result<Vec<CommitInfo>, String> {
     let root = runner.repo_root(repo_path)?;
     let n = limit.unwrap_or(50).to_string();
-    let out = runner.run(
-        Some(&root),
-        &[
-            "log",
-            "--all",
-            &format!("--max-count={n}"),
-            "--pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s",
-            "--date=short",
-        ],
-    )?;
+    let max_count = format!("--max-count={n}");
+    let mut args: Vec<String> = vec![
+        "log".to_string(),
+        "--all".to_string(),
+        max_count,
+        "--pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s".to_string(),
+        "--date=short".to_string(),
+    ];
+    if let Some(s) = skip {
+        if s > 0 {
+            args.push(format!("--skip={s}"));
+        }
+    }
+    let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let out = runner.run(Some(&root), &args_ref)?;
     let mut commits = vec![];
     for line in out.lines() {
         let p: Vec<&str> = line.split('\u{1f}').collect();
@@ -43,21 +49,27 @@ pub fn graph_of(
     runner: &dyn GitRunner,
     repo_path: &str,
     limit: Option<usize>,
+    skip: Option<usize>,
 ) -> Result<Vec<CommitInfo>, String> {
     let root = runner.repo_root(repo_path)?;
     let n = limit.unwrap_or(100).to_string();
-    let out = runner.run(
-        Some(&root),
-        &[
-            "log",
-            "--all",
-            "--decorate",
-            "--topo-order",
-            &format!("--max-count={n}"),
-            "--pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s%x1f%P%x1f%D",
-            "--date=short",
-        ],
-    )?;
+    let max_count = format!("--max-count={n}");
+    let mut args: Vec<String> = vec![
+        "log".to_string(),
+        "--all".to_string(),
+        "--decorate".to_string(),
+        "--topo-order".to_string(),
+        max_count,
+        "--pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s%x1f%P%x1f%D".to_string(),
+        "--date=short".to_string(),
+    ];
+    if let Some(s) = skip {
+        if s > 0 {
+            args.push(format!("--skip={s}"));
+        }
+    }
+    let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let out = runner.run(Some(&root), &args_ref)?;
     let mut commits = vec![];
     for line in out.lines() {
         let p: Vec<&str> = line.split('\u{1f}').collect();
@@ -90,18 +102,23 @@ pub fn reflog_of(
     runner: &dyn GitRunner,
     repo_path: &str,
     limit: Option<usize>,
+    skip: Option<usize>,
 ) -> Result<Vec<ReflogEntry>, String> {
     let root = runner.repo_root(repo_path)?;
     let n = limit.unwrap_or(50).to_string();
-    let out = runner.run(
-        Some(&root),
-        &[
-            "log",
-            "-g",
-            &format!("--max-count={n}"),
-            "--format=%H\x1f%h\x1f%gd\x1f%gs\x1f%an\x1f%cs",
-        ],
-    )?;
+    let max_count = format!("--max-count={n}");
+    let skip_arg = skip.unwrap_or(0).to_string();
+    let skip_flag = format!("--skip={skip_arg}");
+    let mut cmd: Vec<&str> = vec![
+        "log",
+        "-g",
+        &max_count,
+        "--format=%H\x1f%h\x1f%gd\x1f%gs\x1f%an\x1f%cs",
+    ];
+    if skip.unwrap_or(0) > 0 {
+        cmd.push(&skip_flag);
+    }
+    let out = runner.run(Some(&root), &cmd)?;
     let mut entries = vec![];
     for line in out.lines() {
         let p: Vec<&str> = line.split('\u{1f}').collect();
@@ -121,14 +138,29 @@ pub fn reflog_of(
 }
 
 
+pub fn count_of(runner: &dyn GitRunner, repo_path: &str) -> Result<usize, String> {
+    let root = runner.repo_root(repo_path)?;
+    let out = runner.run(Some(&root), &["rev-list", "--all", "--count"])?;
+    out.trim()
+        .parse::<usize>()
+        .map_err(|_| "invalid commit count".to_string())
+}
+
+#[tauri::command]
+pub async fn git_count(state: State<'_, AppState>, repo_path: String) -> Result<usize, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || count_of(runner.as_ref(), &repo_path)).await
+}
+
 #[tauri::command]
 pub async fn git_log(
     state: State<'_, AppState>,
     repo_path: String,
     limit: Option<usize>,
+    skip: Option<usize>,
 ) -> Result<Vec<CommitInfo>, String> {
     let runner = state.runner.clone();
-    crate::commands::run_blocking(move || log_of(runner.as_ref(), &repo_path, limit)).await
+    crate::commands::run_blocking(move || log_of(runner.as_ref(), &repo_path, limit, skip)).await
 }
 
 #[tauri::command]
@@ -136,9 +168,10 @@ pub async fn git_graph(
     state: State<'_, AppState>,
     repo_path: String,
     limit: Option<usize>,
+    skip: Option<usize>,
 ) -> Result<Vec<CommitInfo>, String> {
     let runner = state.runner.clone();
-    crate::commands::run_blocking(move || graph_of(runner.as_ref(), &repo_path, limit)).await
+    crate::commands::run_blocking(move || graph_of(runner.as_ref(), &repo_path, limit, skip)).await
 }
 
 #[tauri::command]
@@ -146,9 +179,10 @@ pub async fn git_reflog(
     state: State<'_, AppState>,
     repo_path: String,
     limit: Option<usize>,
+    skip: Option<usize>,
 ) -> Result<Vec<ReflogEntry>, String> {
     let runner = state.runner.clone();
-    crate::commands::run_blocking(move || reflog_of(runner.as_ref(), &repo_path, limit)).await
+    crate::commands::run_blocking(move || reflog_of(runner.as_ref(), &repo_path, limit, skip)).await
 }
 
 
@@ -169,7 +203,7 @@ mod tests {
             ],
             &[],
         );
-        let list = reflog_of(&runner, "/r", None).unwrap();
+        let list = reflog_of(&runner, "/r", None, None).unwrap();
         assert_eq!(list.len(), 2);
         assert_eq!(list[0].hash, "hash1");
         assert_eq!(list[0].short, "short1");
@@ -191,7 +225,7 @@ mod tests {
             ],
             &[],
         );
-        let list = log_of(&runner, "/r", None).unwrap();
+        let list = log_of(&runner, "/r", None, None).unwrap();
         assert_eq!(list.len(), 2);
         assert_eq!(list[0].hash, "hash1");
         assert_eq!(list[0].short, "short1");
@@ -200,6 +234,32 @@ mod tests {
         assert_eq!(list[0].message, "commit message 1");
         assert_eq!(list[1].hash, "hash2");
         assert_eq!(list[1].date, "2023-05-12");
+    }
+
+    #[test]
+    fn counts_all_commits() {
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("rev-list --all --count", "108\n")],
+            &[],
+        );
+        assert_eq!(count_of(&runner, "/r").unwrap(), 108);
+    }
+
+    #[test]
+    fn paginates_log_with_skip() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                (
+                    "log --all --max-count=50 --pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s --date=short --skip=50",
+                    "hash3\x1fshort3\x1fAuthor 3\x1f2026-09-17\x1fcommit message 3",
+                ),
+            ],
+            &[],
+        );
+        let list = log_of(&runner, "/r", Some(50), Some(50)).unwrap();
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].hash, "hash3");
     }
 
     #[test]
@@ -214,7 +274,7 @@ mod tests {
             ],
             &[],
         );
-        let list = graph_of(&runner, "/r", None).unwrap();
+        let list = graph_of(&runner, "/r", None, None).unwrap();
         assert_eq!(list.len(), 2);
         assert_eq!(list[0].hash, "hash1");
         assert_eq!(list[0].parents, vec!["parent1"]);

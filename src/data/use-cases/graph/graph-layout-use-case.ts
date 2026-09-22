@@ -34,23 +34,26 @@ export class GraphLayoutUseCase implements IGraphLayoutUseCase {
         return
       }
       c.parents.forEach((p, pi) => {
+        const toRow = rowOf.get(p)
         let target: number
         if (laneOf.has(p)) {
           target = laneOf.get(p) as number
-        } else {
+        } else if (toRow !== undefined) {
           target = pi === 0 ? lane : alloc()
           laneOf.set(p, target)
+        } else if (pi === 0) {
+          target = lane
+          laneOf.set(p, target)
+        } else {
+          return
         }
-        const toRow = rowOf.get(p)
-        if (toRow !== undefined) {
-          edges.push({
-            fromLane: lane,
-            fromRow: i,
-            toLane: target,
-            toRow,
-            merge: c.parents.length > 1,
-          })
-        }
+        edges.push({
+          fromLane: lane,
+          fromRow: i,
+          toLane: target,
+          toRow: toRow ?? i + 1,
+          merge: c.parents.length > 1,
+        })
       })
     })
 

@@ -114,6 +114,14 @@ pnpm build      # TypeScript + Vite build
 pnpm tauri build
 ```
 
+## Open From Terminal
+
+With the Reflog binary on your `PATH`, open the Git repository in the current directory with:
+
+```bash
+reflog .
+```
+
 ---
 
 ## 🧪 Commands

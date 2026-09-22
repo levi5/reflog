@@ -24,18 +24,24 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
   const [gitVersion, setGitVersion] = useState("")
   const [remoteUrl, setRemoteUrl] = useState("")
   const [gpg, setGpg] = useState("")
+  const [totalCommits, setTotalCommits] = useState<number | null>(null)
   const localBranches = useMemo(() => branches.filter((branch) => !branch.remote), [branches])
+  const loadLog = useCallback((root: string, limit: number, skip: number) => git.log(root, limit, skip), [git])
+  const loadGraph = useCallback((root: string, limit: number, skip: number) => git.graph(root, limit, skip), [git])
+  const getCommitId = useCallback((commit: CommitInfo) => commit.hash, [])
   const logPage = usePaginated<CommitInfo>({
     repo,
     step: LOG_LIMIT,
-    load: (root, limit) => git.log(root, limit),
+    load: loadLog,
     onError: setMsg,
+    getId: getCommitId,
   })
   const graphPage = usePaginated<CommitInfo>({
     repo,
     step: GRAPH_LIMIT,
-    load: (root, limit) => git.graph(root, limit),
+    load: loadGraph,
     onError: setMsg,
+    getId: getCommitId,
   })
   const refreshRequestRef = useRef(0)
   const reflogRequestRef = useRef(0)
@@ -73,6 +79,13 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
       setReflogLoading(false)
       logPage.reset()
       graphPage.reset()
+      setTotalCommits(null)
+      void git
+        .count(root)
+        .then((total) => {
+          if (request === refreshRequestRef.current) setTotalCommits(total)
+        })
+        .catch(() => {})
       try {
         const cached = staticCacheRef.current
         const staticPromise =
@@ -130,6 +143,7 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
     gpg,
     logPage,
     graphPage,
+    totalCommits,
     refresh,
   }
 }

@@ -1,7 +1,7 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
 import { RouterProvider } from "react-router-dom"
-import { MessageProvider, RepoProvider, SettingsProvider } from "./presentation/context"
+import { MessageProvider, SettingsProvider } from "./presentation/context"
 import { ErrorBoundary } from "./presentation/components/ErrorBoundary"
 import { router } from "./routes"
 import "./styles/globals.scss"
@@ -11,9 +11,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <ErrorBoundary>
       <SettingsProvider>
         <MessageProvider>
-          <RepoProvider>
-            <RouterProvider router={router} />
-          </RepoProvider>
+          <RouterProvider router={router} />
         </MessageProvider>
       </SettingsProvider>
     </ErrorBoundary>

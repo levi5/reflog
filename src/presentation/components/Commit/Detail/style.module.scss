@@ -143,17 +143,18 @@
 }
 
 .fileItem {
+  min-height: 2rem;
+  padding: 0.4rem 0.4rem;
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  padding: 2px 4px;
-  border-radius: 3px;
-  cursor: pointer;
   font-family: var(--mono);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border-radius: 3px;
+  cursor: pointer;
 }
 
 .fileItem:hover, .fileItem.fileSelected {

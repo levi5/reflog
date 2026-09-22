@@ -17,9 +17,10 @@ export interface IGitApi {
   repoRoot(path: string): Promise<string>
   status(repoPath: string): Promise<StatusResult>
   branches(repoPath: string): Promise<BranchInfo[]>
-  log(repoPath: string, limit?: number): Promise<CommitInfo[]>
-  graph(repoPath: string, limit?: number): Promise<CommitInfo[]>
-  reflog(repoPath: string, limit?: number): Promise<ReflogEntry[]>
+  count(repoPath: string): Promise<number>
+  log(repoPath: string, limit?: number, skip?: number): Promise<CommitInfo[]>
+  graph(repoPath: string, limit?: number, skip?: number): Promise<CommitInfo[]>
+  reflog(repoPath: string, limit?: number, skip?: number): Promise<ReflogEntry[]>
   commitFiles(repoPath: string, rev: string): Promise<CommitFileChange[]>
   commitDiff(repoPath: string, rev: string, file?: string): Promise<string>
   diff(repoPath: string, file: string, staged: boolean): Promise<string>

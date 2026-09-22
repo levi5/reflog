@@ -1,35 +1,39 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
+const LOAD_TIMEOUT_MS = 60_000
+
 interface PaginatedOptions<T> {
   repo: string
   step: number
-  load: (repo: string, limit: number) => Promise<T[]>
+  load: (repo: string, limit: number, skip: number) => Promise<T[]>
   onError: (message: string) => void
+  getId?: (item: T) => string
 }
 
-export function usePaginated<T>({ repo, step, load, onError }: PaginatedOptions<T>) {
+export function usePaginated<T>({ repo, step, load, onError, getId }: PaginatedOptions<T>) {
   const [items, setItems] = useState<T[]>([])
-  const [limit, setLimit] = useState(0)
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const loadingRef = useRef(false)
-  const limitRef = useRef(0)
   const hasMoreRef = useRef(true)
   const requestRef = useRef(0)
+  const skipRef = useRef(0)
+  const seenRef = useRef<Set<string>>(new Set())
 
   const reset = useCallback(() => {
     requestRef.current += 1
     loadingRef.current = false
-    limitRef.current = 0
     hasMoreRef.current = true
+    skipRef.current = 0
+    seenRef.current = new Set()
     setItems([])
-    setLimit(0)
     setHasMore(true)
     setLoading(false)
   }, [])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset pagination when switching repos, even though repo isn't read in the body
   useEffect(() => {
+    void repo
+    void step
     reset()
   }, [repo, step, reset])
 
@@ -39,30 +43,46 @@ export function usePaginated<T>({ repo, step, load, onError }: PaginatedOptions<
     requestRef.current = request
     loadingRef.current = true
     setLoading(true)
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error("timeout")), LOAD_TIMEOUT_MS)
+    })
+
     try {
-      const nextLimit = limitRef.current + step
-      const nextItems = await load(repo, nextLimit)
+      const skip = skipRef.current
+      const nextItems = await Promise.race([load(repo, step, skip), timeoutPromise])
       if (request !== requestRef.current) return
-      const nextHasMore = nextItems.length >= nextLimit
-      limitRef.current = nextLimit
+      skipRef.current = skip + nextItems.length
+      const nextHasMore = nextItems.length >= step
       hasMoreRef.current = nextHasMore
-      setItems(nextItems)
-      setLimit(nextLimit)
+      if (getId) {
+        const seen = seenRef.current
+        const fresh = nextItems.filter((item) => {
+          const id = getId(item)
+          if (seen.has(id)) return false
+          seen.add(id)
+          return true
+        })
+        setItems((prev) => [...prev, ...fresh])
+      } else {
+        setItems((prev) => [...prev, ...nextItems])
+      }
       setHasMore(nextHasMore)
     } catch (error: unknown) {
       if (request === requestRef.current) onError(String(error))
     } finally {
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
       if (request === requestRef.current) {
         loadingRef.current = false
         setLoading(false)
       }
     }
-  }, [repo, step, load, onError])
+  }, [repo, step, load, onError, getId])
 
   return {
     items,
     setItems,
-    limit,
     loading,
     hasMore,
     setHasMore,

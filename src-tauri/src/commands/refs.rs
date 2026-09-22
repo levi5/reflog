@@ -38,7 +38,7 @@ pub fn tag_list(
     repo_path: &str,
 ) -> Result<Vec<String>, String> {
     let root = runner.repo_root(repo_path)?;
-    let out = runner.run(Some(&root), &["tag", "--list"])?;
+    let out = runner.run(Some(&root), &["tag", "--list", "--sort=-creatordate"])?;
     Ok(out
         .lines()
         .map(|l| l.trim().to_string())
@@ -230,10 +230,10 @@ mod tests {
         let runner = MockRunner::new(
             &[
                 ("rev-parse --show-toplevel", "/r"),
-                ("tag --list", "v1.0\nv2.0\n"),
+                ("tag --list --sort=-creatordate", "v2.0\nv1.0\n"),
             ],
             &[],
         );
-        assert_eq!(tag_list(&runner, "/r").unwrap(), vec!["v1.0", "v2.0"]);
+        assert_eq!(tag_list(&runner, "/r").unwrap(), vec!["v2.0", "v1.0"]);
     }
 }

@@ -235,6 +235,7 @@
   "loadMore": "Carregar mais",
   "showAll": "Mostrar tudo",
   "loadDiff": "Carregar diff",
+  "largeDiffPreview": "Diff grande: exibindo em partes.",
   "loading": "Carregando...",
   "stagingDiff": "Staging e Diff",
   "mergeConflictsTab": "Merge e Conflitos",

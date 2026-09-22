@@ -1,8 +1,9 @@
 import { ArrowRight, OctagonX, TriangleAlert } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Outlet, useLocation, useNavigate } from "react-router-dom"
-import { t } from "../../../i18n"
-import type { TabItem } from "../../../types/components"
+import { invoke } from "@tauri-apps/api/core"
+import { listen } from "@tauri-apps/api/event"
+
 import { Bar } from "../../components/Bar"
 import { Command } from "../../components/Command"
 import { Dialog } from "../../components/Dialog"
@@ -11,11 +12,15 @@ import { Merge } from "../../components/Merge"
 import { Toast } from "../../components/Toast"
 import { Tabs } from "../../components/Tabs"
 import { Windows } from "../../components/Window"
+
 import { SearchProvider, useMessage, useRepo, useSettingsContext } from "../../context"
-import { useProfiles } from "../../hooks"
+import { t } from "../../../i18n"
 import { useAutoRefresh } from "../../hooks/ui/useAutoRefresh"
-import type { View } from "../../hooks"
+import { useProfiles } from "../../hooks"
 import { VIEW_LABELS, VIEW_TABS } from "../../../shared/constants"
+import type { TabItem } from "../../../types/components"
+import type { View } from "../../hooks"
+
 import styles from "./styles.module.scss"
 
 export interface AppOutletContext {
@@ -69,6 +74,31 @@ export function AppLayout() {
     if (!repo.msg) return
     message.response(repo.msg)
   }, [repo.msg, message.response])
+
+  useEffect(() => {
+    let disposed = false
+    let unlisten: (() => void) | undefined
+    const openCliPath = (path: string) => {
+      if (path.trim()) void repo.handleOpen(path)
+    }
+
+    void listen<string>("cli-open-path", ({ payload }) => openCliPath(payload))
+      .then((stop) => {
+        if (disposed) stop()
+        else unlisten = stop
+      })
+      .catch(() => undefined)
+    void invoke<string | null>("take_cli_path")
+      .then((path) => {
+        if (!disposed && path) openCliPath(path)
+      })
+      .catch(() => undefined)
+
+    return () => {
+      disposed = true
+      unlisten?.()
+    }
+  }, [repo.handleOpen])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

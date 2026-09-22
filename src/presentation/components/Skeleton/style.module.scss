@@ -1,0 +1,66 @@
+.bar {
+  display: block;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg-panel) 20%, var(--bg-hover) 45%, var(--bg-panel) 70%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
+
+.lines {
+  display: grid;
+  gap: 6px;
+  padding: 6px 4px;
+}
+
+.lines .bar:nth-child(3n + 2) {
+  width: 74%;
+}
+
+.lines .bar:nth-child(3n) {
+  width: 52%;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--border-soft);
+  min-height: 46px;
+}
+
+.node {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, var(--bg-panel) 20%, var(--bg-hover) 45%, var(--bg-panel) 70%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.2s ease-in-out infinite;
+}
+
+.rowLines {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.rowLines .bar:last-child {
+  width: 42%;
+  height: 10px;
+}
+
+@keyframes skeletonShimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .node {
+    animation: none;
+  }
+}

@@ -39,6 +39,7 @@ interface DiffPanelProps {
   diffContent: string
   loaded: boolean
   loading: boolean
+  errorMessage: string | null
   maxHeight?: number
   onLoad: () => void
   onShowUnstaged: () => void
@@ -248,6 +249,7 @@ export function DiffPanel({
   diffContent,
   loaded,
   loading,
+  errorMessage,
   maxHeight,
   onLoad,
   onShowUnstaged,
@@ -302,6 +304,11 @@ export function DiffPanel({
       <>
         {toolbar}
         <div className={styles.largeDiffBanner}>
+          {errorMessage && (
+            <span className={styles.loadError} role="alert">
+              {errorMessage}
+            </span>
+          )}
           <button type="button" className="primary" onClick={onLoad} disabled={loading}>
             {loading ? t("loading") : t("loadDiff")}
           </button>
@@ -367,7 +374,7 @@ export function DiffPanel({
       {toolbar}
       {isLargeDiff && (
         <div className={styles.largeDiffBanner}>
-          <span>{t("fileTooLarge")}</span>
+          <span>{t("largeDiffPreview")}</span>
         </div>
       )}
       {isLargeDiff ? (

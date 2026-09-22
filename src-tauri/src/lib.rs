@@ -1,6 +1,7 @@
-use std::sync::Arc;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 use tauri_plugin_cli::CliExt;
 
 mod commands;
@@ -11,6 +12,21 @@ use runner::{GitRunner, ProcessRunner};
 
 pub struct AppState {
     pub runner: Arc<dyn GitRunner>,
+}
+
+pub struct CliPath(pub Mutex<Option<String>>);
+
+fn resolve_cli_path(value: &str) -> String {
+    let path = PathBuf::from(value);
+    if path.is_absolute() {
+        path.to_string_lossy().into_owned()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_default()
+            .join(path)
+            .to_string_lossy()
+            .into_owned()
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,11 +48,18 @@ pub fn run() {
         .manage(AppState {
             runner: Arc::new(ProcessRunner),
         })
+        .manage(CliPath(Mutex::new(None)))
         .setup(|app| {
             if let Ok(matches) = app.cli().matches() {
                 if let Some(path_arg) = matches.args.get("path") {
                     if let Some(value) = path_arg.value.as_str() {
-                        let _ = app.emit("cli-open-path", value);
+                        let path = resolve_cli_path(value);
+                        if let Some(cli_path) = app.try_state::<CliPath>() {
+                            if let Ok(mut stored_path) = cli_path.0.lock() {
+                                *stored_path = Some(path.clone());
+                            }
+                        }
+                        let _ = app.emit("cli-open-path", path);
                     }
                 }
             }
@@ -45,8 +68,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::repo::check_repo,
             commands::repo::repo_root,
+            commands::repo::take_cli_path,
             commands::status::git_status,
             commands::history::branches::git_branches,
+            commands::history::log::git_count,
             commands::history::log::git_log,
             commands::history::log::git_graph,
             commands::history::log::git_reflog,

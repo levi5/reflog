@@ -25,6 +25,7 @@ export function useStaging(deps: StagingDeps) {
   const [diffStaged, setDiffStaged] = useState(false)
   const [diffLoaded, setDiffLoaded] = useState(false)
   const [diffLoading, setDiffLoading] = useState(false)
+  const [diffError, setDiffError] = useState<string | null>(null)
   const diffRequestRef = useRef(0)
   const [commitMsg, setCommitMsg] = useState("")
   const [newBranch, setNewBranch] = useState("")
@@ -40,6 +41,7 @@ export function useStaging(deps: StagingDeps) {
     setDiff("")
     setDiffLoaded(false)
     setDiffLoading(false)
+    setDiffError(null)
   }, [])
 
   const loadDiff = useCallback(
@@ -49,15 +51,18 @@ export function useStaging(deps: StagingDeps) {
       diffRequestRef.current = request
       setSelectedFile(file)
       setDiffStaged(staged)
+      setDiff("")
+      setDiffLoaded(false)
+      setDiffError(null)
       setDiffLoading(true)
       const result = await _Either.try.async(() => gitApi.diff(repo, file, staged))
       if (request !== diffRequestRef.current) return
       if (result.isRight()) {
         setDiff((result.value as string) || t(lang, "noDiff"))
+        setDiffLoaded(true)
       } else {
-        setDiff(String(result.value))
+        setDiffError(String(result.value))
       }
-      setDiffLoaded(true)
       setDiffLoading(false)
     },
     [repo, lang, selectedFile, diffStaged],
@@ -120,6 +125,7 @@ export function useStaging(deps: StagingDeps) {
     setDiff("")
     setDiffLoaded(false)
     setDiffLoading(false)
+    setDiffError(null)
   }, [repo])
 
   useEffect(() => {
@@ -287,6 +293,7 @@ export function useStaging(deps: StagingDeps) {
     diffStaged,
     diffLoaded,
     diffLoading,
+    diffError,
     commitMsg,
     setCommitMsg,
     newBranch,

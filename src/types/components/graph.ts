@@ -52,6 +52,9 @@ export interface GraphCanvasProps {
   isRunning: boolean
   selectedHash: string
   onSelectCommit: (commitHash: string) => void
+  hasMore?: boolean
+  loading?: boolean
+  onLoadMore?: () => void
 }
 
 export interface VisualizeGraph {

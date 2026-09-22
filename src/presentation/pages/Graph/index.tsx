@@ -11,6 +11,7 @@ import { Modal } from "../../components/Modal"
 import { Pagination } from "../../components/Pagination"
 import { ResizableSplitLayout } from "../../components/Resizable"
 import { SearchBox } from "../../components/Search"
+import { Skeleton } from "../../components/Skeleton"
 
 import { matchesQuery, pushHistory } from "../../../main/adapters"
 import { t } from "../../../i18n"
@@ -69,6 +70,15 @@ export function Graph(_props: Props) {
     setAmendCommit(null)
     setAmendMessage("")
   }
+
+  const repoPath = repo.repo
+  useEffect(() => {
+    void viewMode
+    void repoPath
+    void query
+    void scope
+    setCommitPage(0)
+  }, [viewMode, repoPath, query, scope])
 
   const currentHasMore = viewMode === "log" ? repo.logHasMore : repo.graphHasMore
   const currentLoading = viewMode === "log" ? repo.logLoading : repo.graphLoading
@@ -141,7 +151,13 @@ export function Graph(_props: Props) {
     { threshold: 0.5, enabled: viewMode !== "reflog" },
   )
 
+  const isUnfiltered = query.trim() === ""
+  const totalKnown = isUnfiltered && repo.totalCommits != null
+  const paginationTotal = totalKnown ? (repo.totalCommits as number) : filteredCommits.length
+
   const commits = filteredCommits.slice(commitPage * COMMITS_PER_PAGE, (commitPage + 1) * COMMITS_PER_PAGE)
+  const isSeeking = currentHasMore && commitPage * COMMITS_PER_PAGE >= availableCommitCount
+  const paginationLoading = currentLoading || isSeeking
   const hashParam = searchParams.get("hash")
   const logCommits = repo.log
   const graphCommits = repo.graph
@@ -233,28 +249,33 @@ export function Graph(_props: Props) {
               />
             ) : (
               <>
-                <Commit.List
-                  commits={commits}
-                  currentBranchName={repo.status?.branch ?? ""}
-                  showGraph={viewMode === "graph"}
-                  selectedHash={selectedCommit?.hash}
-                  onSelect={(commit) => {
-                    setSelectedCommit(commit)
-                    setSearchParams((prev) => {
-                      const nextSearchParams = new URLSearchParams(prev)
-                      if (commit?.hash) nextSearchParams.set("hash", commit.hash)
-                      else nextSearchParams.delete("hash")
-                      return nextSearchParams
-                    })
-                  }}
-                  onAmend={handleAmend}
-                />
+                {commits.length === 0 && paginationLoading ? (
+                  <Skeleton.Commits count={COMMITS_PER_PAGE} label={t(lang, "loading")} />
+                ) : (
+                  <Commit.List
+                    commits={commits}
+                    currentBranchName={repo.status?.branch ?? ""}
+                    showGraph={viewMode === "graph"}
+                    selectedHash={selectedCommit?.hash}
+                    onSelect={(commit) => {
+                      setSelectedCommit(commit)
+                      setSearchParams((prev) => {
+                        const nextSearchParams = new URLSearchParams(prev)
+                        if (commit?.hash) nextSearchParams.set("hash", commit.hash)
+                        else nextSearchParams.delete("hash")
+                        return nextSearchParams
+                      })
+                    }}
+                    onAmend={handleAmend}
+                  />
+                )}
                 <Pagination
                   currentPage={commitPage}
-                  totalItems={filteredCommits.length}
+                  totalItems={paginationTotal}
                   pageSize={COMMITS_PER_PAGE}
                   hasMore={currentHasMore}
-                  loading={currentLoading}
+                  totalKnown={totalKnown}
+                  loading={paginationLoading}
                   onPageChange={handlePageChange}
                 />
                 <div ref={observeLoadMore} />

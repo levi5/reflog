@@ -39,9 +39,13 @@ export const gitApi = {
   repoRoot: (path: string) => invokeTyped<string>("repo_root", { path }),
   status: (repoPath: string) => invokeTyped<StatusResult>("git_status", { repoPath }),
   branches: (repoPath: string) => invokeTyped<BranchInfo[]>("git_branches", { repoPath }),
-  log: (repoPath: string, limit?: number) => invokeTyped<CommitInfo[]>("git_log", { repoPath, limit }),
-  graph: (repoPath: string, limit = 100) => invokeTyped<CommitInfo[]>("git_graph", { repoPath, limit }),
-  reflog: (repoPath: string, limit?: number) => invokeTyped<ReflogEntry[]>("git_reflog", { repoPath, limit }),
+  count: (repoPath: string) => invokeTyped<number>("git_count", { repoPath }),
+  log: (repoPath: string, limit?: number, skip?: number) =>
+    invokeTyped<CommitInfo[]>("git_log", { repoPath, limit, skip }),
+  graph: (repoPath: string, limit = 100, skip?: number) =>
+    invokeTyped<CommitInfo[]>("git_graph", { repoPath, limit, skip }),
+  reflog: (repoPath: string, limit?: number, skip?: number) =>
+    invokeTyped<ReflogEntry[]>("git_reflog", { repoPath, limit, skip }),
   commitFiles: (repoPath: string, rev: string) =>
     invokeTyped<CommitFileChange[]>("git_commit_files", { repoPath, rev }),
   commitDiff: (repoPath: string, rev: string, file?: string) =>

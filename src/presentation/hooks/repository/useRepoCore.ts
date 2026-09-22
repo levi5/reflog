@@ -181,6 +181,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     remotes: data.remotes,
     log: logPage.items,
     graph: graphPage.items,
+    totalCommits: data.totalCommits,
     conflicts,
     setConflicts,
     busy: busy || opening,
