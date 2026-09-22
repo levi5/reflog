@@ -1,4 +1,4 @@
-use crate::runner::GitRunner;
+use crate::runner::{GitRunner, NETWORK_TIMEOUT};
 use crate::AppState;
 use tauri::State;
 
@@ -183,7 +183,16 @@ pub fn run_git(
     }
     let root = runner.repo_root(repo_path)?;
     let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-    runner.run_env(Some(&root), &refs, &NO_HANG_ENV)
+
+    // Use longer timeout for submodule foreach with network commands
+    let is_submodule_foreach_network = args[0] == "submodule"
+        && args.iter().any(|a| a == "foreach")
+        && args.iter().any(|a| a == "pull" || a == "fetch" || a == "push");
+    if is_submodule_foreach_network {
+        runner.run_env_with_timeout(Some(&root), &refs, &NO_HANG_ENV, NETWORK_TIMEOUT)
+    } else {
+        runner.run_env(Some(&root), &refs, &NO_HANG_ENV)
+    }
 }
 
 #[tauri::command]

@@ -14,9 +14,18 @@ pub trait GitRunner: Send + Sync {
         &self,
         repo: Option<&str>,
         args: &[&str],
-        timeout: Duration,
+        _timeout: Duration,
     ) -> Result<String, String> {
         self.run(repo, args)
+    }
+    fn run_env_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        _timeout: Duration,
+    ) -> Result<String, String> {
+        self.run_env(repo, args, env)
     }
     fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String> {
         self.run(repo, args).and_then(|output| {
@@ -102,7 +111,7 @@ impl ProcessRunner {
         args: &[&str],
         stdin_input: Option<&str>,
         env_vars: Option<&[(&str, &str)]>,
-        timeout: Duration,
+        exec_timeout: Duration,
         max_output_bytes: Option<usize>,
     ) -> Result<String, String> {
         let mut cmd = base_command(repo);
@@ -139,7 +148,7 @@ impl ProcessRunner {
             }
         }
 
-        let status = match child.wait_timeout(timeout).map_err(|e| e.to_string())? {
+        let status = match child.wait_timeout(exec_timeout).map_err(|e| e.to_string())? {
             Some(status) => status,
             None => {
                 let _ = child.kill();
@@ -202,6 +211,16 @@ impl GitRunner for ProcessRunner {
         env: &[(&str, &str)],
     ) -> Result<String, String> {
         self.execute(repo, args, None, Some(env), DEFAULT_TIMEOUT, None)
+    }
+
+    fn run_env_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        timeout: Duration,
+    ) -> Result<String, String> {
+        self.execute(repo, args, None, Some(env), timeout, None)
     }
 
     fn read_file(&self, path: &Path) -> Result<String, String> {
