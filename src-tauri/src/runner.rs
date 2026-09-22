@@ -5,10 +5,19 @@ use std::time::Duration;
 use wait_timeout::ChildExt;
 
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
+pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(120);
 pub const OUTPUT_LIMIT_ERROR: &str = "saída do git excede o limite permitido";
 
 pub trait GitRunner: Send + Sync {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String>;
+    fn run_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        timeout: Duration,
+    ) -> Result<String, String> {
+        self.run(repo, args)
+    }
     fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String> {
         self.run(repo, args).and_then(|output| {
             if output.len() > max_bytes {
@@ -162,6 +171,15 @@ impl ProcessRunner {
 impl GitRunner for ProcessRunner {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String> {
         self.execute(repo, args, None, None, DEFAULT_TIMEOUT, None)
+    }
+
+    fn run_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        timeout: Duration,
+    ) -> Result<String, String> {
+        self.execute(repo, args, None, None, timeout, None)
     }
 
     fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String> {

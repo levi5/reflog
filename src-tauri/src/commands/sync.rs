@@ -1,4 +1,4 @@
-use crate::runner::GitRunner;
+use crate::runner::{GitRunner, NETWORK_TIMEOUT};
 use crate::domain::StashItem;
 use crate::commands::validation::{validate_ref_name, validate_stash_message};
 use crate::AppState;
@@ -29,9 +29,9 @@ pub fn fetch(
 ) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
     if prune {
-        return runner.run(Some(&root), &["fetch", "--all", "--prune"]);
+        return runner.run_with_timeout(Some(&root), &["fetch", "--all", "--prune"], NETWORK_TIMEOUT);
     }
-    runner.run(Some(&root), &["fetch", "--all"])
+    runner.run_with_timeout(Some(&root), &["fetch", "--all"], NETWORK_TIMEOUT)
 }
 
 pub fn merge_abort(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
@@ -41,7 +41,7 @@ pub fn merge_abort(runner: &dyn GitRunner, repo_path: &str) -> Result<String, St
 
 pub fn pull(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
-    match runner.run(Some(&root), &["pull"]) {
+    match runner.run_with_timeout(Some(&root), &["pull"], NETWORK_TIMEOUT) {
         Ok(output) => Ok(output),
         Err(err) => {
             if err.contains("no tracking information")
@@ -63,7 +63,7 @@ pub fn pull(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
                                 branch,
                             ],
                         );
-                        return runner.run(Some(&root), &["pull", "origin", branch]);
+                        return runner.run_with_timeout(Some(&root), &["pull", "origin", branch], NETWORK_TIMEOUT);
                     }
                 }
             }
@@ -74,7 +74,7 @@ pub fn pull(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
 
 pub fn push(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
-    match runner.run(Some(&root), &["push"]) {
+    match runner.run_with_timeout(Some(&root), &["push"], NETWORK_TIMEOUT) {
         Ok(output) => Ok(output),
         Err(err) => {
             if err.contains("has no upstream branch")
@@ -87,7 +87,7 @@ pub fn push(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
                     let branch = branch_out.trim();
                     if !branch.is_empty() && branch != "HEAD" {
                         validate_ref_name(branch)?;
-                        return runner.run(Some(&root), &["push", "-u", "origin", branch]);
+                        return runner.run_with_timeout(Some(&root), &["push", "-u", "origin", branch], NETWORK_TIMEOUT);
                     }
                 }
             }

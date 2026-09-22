@@ -1,4 +1,4 @@
-use crate::runner::GitRunner;
+use crate::runner::{GitRunner, NETWORK_TIMEOUT};
 use crate::commands::validation::{
     validate_clone_url, validate_clone_path, validate_config_key, validate_config_value,
 };
@@ -28,7 +28,7 @@ pub fn gpg(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
 pub fn clone(runner: &dyn GitRunner, url: &str, path: &str) -> Result<String, String> {
     validate_clone_url(url)?;
     validate_clone_path(path)?;
-    runner.run(None, &["clone", "--", url, path])
+    runner.run_with_timeout(None, &["clone", "--", url, path], NETWORK_TIMEOUT)
 }
 
 
