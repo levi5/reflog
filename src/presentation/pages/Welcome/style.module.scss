@@ -1,14 +1,14 @@
 .welcome {
+  max-width: 98rem;
+  width: 100%;
+  margin: 0 auto;
   flex: 1;
   overflow-y: auto;
   padding: 3.2rem 1.6rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  max-width: 680px;
-  width: 100%;
-  margin: 0 auto;
+  gap: 2rem;
 }
 
 .hero {

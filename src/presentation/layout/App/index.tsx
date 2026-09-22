@@ -30,7 +30,7 @@ export interface AppOutletContext {
 export function AppLayout() {
   const { lang } = useSettingsContext()
   const [showRepoBar, setShowRepoBar] = useState(true)
-  const [showRebase, setShowRebase] = useState(true)
+  const [showRebase, setShowRebase] = useState(false)
   const [cloneUrl, setCloneUrl] = useState("")
   const [cloneDir, setCloneDir] = useState("")
 

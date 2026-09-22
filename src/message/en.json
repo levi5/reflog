@@ -1,5 +1,9 @@
 {
   "openRepo": "Open repository",
+  "initRepo": "Create repository",
+  "welcomeInitHint": "Turn an existing folder into a local Git repository.",
+  "initializingRepo": "Initializing repository...",
+  "initializedRepo": "Repository initialized.",
   "repoPath": "Repo path",
   "open": "Open",
   "browse": "Browse...",

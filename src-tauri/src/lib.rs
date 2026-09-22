@@ -68,6 +68,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::repo::check_repo,
             commands::repo::repo_root,
+            commands::repo::init_repo,
             commands::repo::take_cli_path,
             commands::status::git_status,
             commands::history::branches::git_branches,

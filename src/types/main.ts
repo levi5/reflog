@@ -76,6 +76,7 @@ export interface StashItem {
 export interface CommitFileChange {
   status: string
   path: string
+  oldPath?: string
 }
 
 export interface ConflictBlock {

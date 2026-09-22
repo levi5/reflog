@@ -129,5 +129,35 @@ export function useRepoOpener({
     [git, opening, lang, messageService, fail, finishOpenRepo, setBusy, setOpening, setMsg],
   )
 
-  return { handleOpen, handleBrowse, pickDir: pickDirectory, cloneRepo }
+  const initRepo = useCallback(
+    (path: string) => {
+      const target = path.trim()
+      if (!target || opening) return Promise.resolve(false)
+      setOpening(true)
+      setBusy(true)
+      setMsg("")
+      const loadingId = messageService.loading(t(lang, "initializingRepo"))
+      return git
+        .init(target)
+        .then(() => git.repoRoot(target))
+        .then((root) => {
+          finishOpenRepo(root)
+          messageService.dismiss(loadingId)
+          messageService.success(t(lang, "initializedRepo"))
+          return true
+        })
+        .catch((error: unknown) => {
+          messageService.dismiss(loadingId)
+          fail(error, t(lang, "actionFailed"))
+          return false
+        })
+        .finally(() => {
+          setBusy(false)
+          setOpening(false)
+        })
+    },
+    [git, opening, lang, messageService, fail, finishOpenRepo, setBusy, setOpening, setMsg],
+  )
+
+  return { handleOpen, handleBrowse, pickDir: pickDirectory, cloneRepo, initRepo }
 }

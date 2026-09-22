@@ -15,6 +15,7 @@ import type {
 export interface IGitApi {
   checkRepo(path: string): Promise<boolean>
   repoRoot(path: string): Promise<string>
+  init(path: string): Promise<string>
   status(repoPath: string): Promise<StatusResult>
   branches(repoPath: string): Promise<BranchInfo[]>
   count(repoPath: string): Promise<number>

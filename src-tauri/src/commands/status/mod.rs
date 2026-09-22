@@ -3,7 +3,7 @@ pub mod porcelain;
 use crate::domain::StatusResult;
 use crate::runner::GitRunner;
 use crate::AppState;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tauri::State;
 
 fn short_head(runner: &dyn GitRunner, root: &str) -> String {
@@ -26,13 +26,25 @@ fn resolve_branch(runner: &dyn GitRunner, info: &str, root: &str) -> String {
     }
 }
 
+fn git_state_path(runner: &dyn GitRunner, root: &str, name: &str) -> PathBuf {
+    let path = runner
+        .run(Some(root), &["rev-parse", "--git-path", name])
+        .unwrap_or_else(|_| format!(".git/{name}"));
+    let path = PathBuf::from(path.trim());
+    if path.is_absolute() {
+        path
+    } else {
+        Path::new(root).join(path)
+    }
+}
+
 pub fn status_of(
     runner: &dyn GitRunner,
     repo_path: &str,
 ) -> Result<StatusResult, String> {
     let root = runner.repo_root(repo_path)?;
     let porcelain =
-        runner.run(Some(&root), &["status", "--porcelain=v1", "-b", "-uall"])?;
+        runner.run(Some(&root), &["status", "--porcelain=v1", "-z", "-b", "-uall"])?;
     let parsed = porcelain::parse(&porcelain);
     let branch = match parsed.branch_info.is_empty() {
         true => runner
@@ -43,10 +55,9 @@ pub fn status_of(
         false => resolve_branch(runner, &parsed.branch_info, &root),
     };
 
-    let root_path = Path::new(&root);
-    let merging = runner.path_exists(&root_path.join(".git/MERGE_HEAD"));
-    let cherry = runner.path_exists(&root_path.join(".git/CHERRY_PICK_HEAD"));
-    let revert = runner.path_exists(&root_path.join(".git/REVERT_HEAD"));
+    let merging = runner.path_exists(&git_state_path(runner, &root, "MERGE_HEAD"));
+    let cherry = runner.path_exists(&git_state_path(runner, &root, "CHERRY_PICK_HEAD"));
+    let revert = runner.path_exists(&git_state_path(runner, &root, "REVERT_HEAD"));
 
     Ok(StatusResult {
         root,
@@ -79,9 +90,12 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 ("rev-parse --abbrev-ref HEAD", "main"),
+                ("rev-parse --git-path MERGE_HEAD", "/r/.git/MERGE_HEAD"),
+                ("rev-parse --git-path CHERRY_PICK_HEAD", "/r/.git/CHERRY_PICK_HEAD"),
+                ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
                 (
-                    "status --porcelain=v1 -b -uall",
-                    "## main...origin/main [ahead 2, behind 1]\nM  f.tsx\nUU ola.txt\n?? new.txt",
+                    "status --porcelain=v1 -z -b -uall",
+                    "## main...origin/main [ahead 2, behind 1]\0M  f.tsx\0UU ola.txt\0?? new.txt\0",
                 ),
             ],
             &[],

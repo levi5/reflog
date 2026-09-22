@@ -35,14 +35,22 @@ pub fn commit_files_of(
     rev: &str,
 ) -> Result<Vec<CommitFileChange>, String> {
     let root = runner.repo_root(repo_path)?;
-    let out = runner.run(Some(&root), &["diff-tree", "--no-commit-id", "--name-status", "-r", rev])?;
+    let out = runner.run(
+        Some(&root),
+        &["diff-tree", "--no-commit-id", "--name-status", "-z", "--root", "--first-parent", "-r", rev],
+    )?;
     let mut files = vec![];
-    for line in out.lines() {
-        let mut it = line.split('\t');
-        let status = it.next().unwrap_or("M").trim().to_string();
-        let path = it.next().unwrap_or("").trim().to_string();
+    let mut entries = out.split('\0').filter(|entry| !entry.is_empty());
+    while let Some(status) = entries.next() {
+        let status = status.to_string();
+        let first_path = entries.next().unwrap_or("").to_string();
+        let (path, old_path) = if status.starts_with('R') || status.starts_with('C') {
+            (entries.next().unwrap_or("").to_string(), Some(first_path))
+        } else {
+            (first_path, None)
+        };
         if !path.is_empty() {
-            files.push(CommitFileChange { status, path });
+            files.push(CommitFileChange { status, path, old_path });
         }
     }
     Ok(files)
@@ -163,8 +171,8 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 (
-                    "diff-tree --no-commit-id --name-status -r abc1234",
-                    "M\tsrc/index.ts\nA\tsrc/types.ts\nD\told.txt",
+                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r abc1234",
+                    "M\0src/index.ts\0A\0src/types.ts\0D\0old.txt\0",
                 ),
             ],
             &[],
@@ -178,5 +186,21 @@ mod tests {
         assert_eq!(files[2].status, "D");
         assert_eq!(files[2].path, "old.txt");
     }
-}
 
+    #[test]
+    fn parses_renames_and_special_paths() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                (
+                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r abc1234",
+                    "R100\0old\tname\0new\tname\0",
+                ),
+            ],
+            &[],
+        );
+        let files = commit_files_of(&runner, "/r", "abc1234").unwrap();
+        assert_eq!(files[0].path, "new\tname");
+        assert_eq!(files[0].old_path.as_deref(), Some("old\tname"));
+    }
+}

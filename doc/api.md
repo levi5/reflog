@@ -6,7 +6,7 @@ All functions are invoked via `@tauri-apps/api/core` `invoke()`.
 import { invoke } from '@tauri-apps/api/core'
 
 // Example
-const status = await invoke<GitStatus>('git_status', { repo: '/path/to/repo' })
+const status = await invoke<GitStatus>('git_status', { repoPath: '/path/to/repo' })
 ```
 
 ---
@@ -37,6 +37,16 @@ invoke<string>('repo_root', { path: string })
 
 ---
 
+### `init_repo`
+
+Initializes Git in a selected directory.
+
+```ts
+invoke<string>('init_repo', { path: string })
+```
+
+---
+
 ## Status
 
 ### `git_status`
@@ -45,19 +55,25 @@ Full working tree status.
 
 ```ts
 interface GitStatus {
-  staged: FileStatus[]
-  unstaged: FileStatus[]
-  untracked: string[]
-  conflicted: string[]
+  root: string
+  branch: string
+  ahead: number
+  behind: number
+  files: FileStatus[]
+  merging: boolean
+  cherryPicking: boolean
+  reverting: boolean
 }
 
 interface FileStatus {
   path: string
-  indexStatus: string    // 'A', 'M', 'D', 'R', 'C', '?'
-  worktreeStatus: string // ' ', 'M', 'D', '?'
+  x: string // index status
+  y: string // working tree status
+  staged: boolean
+  unmerged: boolean
 }
 
-invoke<GitStatus>('git_status', { repo: string })
+invoke<GitStatus>('git_status', { repoPath: string })
 ```
 
 ---
@@ -92,57 +108,25 @@ Paginated commit history.
 ```ts
 interface Commit {
   hash: string
-  shortHash: string
+  short: string
   message: string
-  author: Signature
-  committer: Signature
+  author: string
   parents: string[]
-  date: string // ISO 8601
+  date: string
   refs: string[] // branch names, tags
 }
 
-interface Signature {
-  name: string
-  email: string
-  date: string
-}
-
-interface LogOptions {
-  repo: string
-  limit?: number
-  offset?: number
-  all?: boolean
-  author?: string
-  since?: string
-  until?: string
-  path?: string
-}
-
-invoke<Commit[]>('git_log', options: LogOptions)
+invoke<Commit[]>('git_log', { repoPath: string, limit?: number, skip?: number })
 ```
 
 ---
 
 ### `git_graph`
 
-Data for graph visualization (DAG).
+Commits used by the graph visualization.
 
 ```ts
-interface GraphNode {
-  hash: string
-  parents: string[]
-  refs: string[]
-  author: string
-  date: string
-  message: string
-}
-
-interface GraphData {
-  nodes: GraphNode[]
-  edges: { from: string; to: string }[]
-}
-
-invoke<GraphData>('git_graph', { repo: string, limit?: number })
+invoke<Commit[]>('git_graph', { repoPath: string, limit?: number, skip?: number })
 ```
 
 ---
@@ -174,61 +158,31 @@ Files changed in a commit.
 ```ts
 interface CommitFile {
   path: string
-  status: 'A' | 'M' | 'D' | 'R' | 'C'
+  status: string // A, M, D, R100, C100, etc.
   oldPath?: string // for renames
 }
 
-invoke<CommitFile[]>('git_commit_files', { repo: string, hash: string })
+invoke<CommitFile[]>('git_commit_files', { repoPath: string, rev: string })
 ```
 
 ---
 
 ### `git_commit_diff`
 
-Full diff of a commit.
+Raw unified diff for a commit or one file in that commit.
 
 ```ts
-interface DiffHunk {
-  oldStart: number
-  oldLines: number
-  newStart: number
-  newLines: number
-  lines: DiffLine[]
-}
-
-interface DiffLine {
-  type: 'context' | 'add' | 'remove'
-  content: string
-  oldLineNumber?: number
-  newLineNumber?: number
-}
-
-interface FileDiff {
-  path: string
-  oldPath?: string
-  status: 'A' | 'M' | 'D' | 'R' | 'C'
-  hunks: DiffHunk[]
-  binary: boolean
-}
-
-invoke<FileDiff[]>('git_commit_diff', { repo: string, hash: string })
+invoke<string>('git_commit_diff', { repoPath: string, rev: string, file?: string })
 ```
 
 ---
 
 ### `git_diff`
 
-Working tree or staged diff.
+Raw unified diff for a working-tree or staged file.
 
 ```ts
-interface DiffOptions {
-  repo: string
-  staged?: boolean
-  path?: string
-  cached?: boolean
-}
-
-invoke<FileDiff[]>('git_diff', options: DiffOptions)
+invoke<string>('git_diff', { repoPath: string, file: string, staged: boolean })
 ```
 
 ---

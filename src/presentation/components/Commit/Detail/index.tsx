@@ -14,6 +14,8 @@ import {
   COMMIT_DETAIL_MIN_WIDTH,
   COMMIT_DETAIL_WIDTH,
   HASH_SHORT_LENGTH,
+  MAX_DIFF_BYTES,
+  MAX_DIFF_LINES,
 } from "../../../../shared/constants/limits"
 
 const DEFAULT_STORAGE_KEY = "commit.detail"
@@ -40,6 +42,17 @@ export type CommitDetailProps = {
   initialWidth?: number
   minWidth?: number
   maxWidth?: number
+  expanded?: boolean
+}
+
+function isLargeDiff(content: string): boolean {
+  if (content.length > MAX_DIFF_BYTES) return true
+  let lines = 1
+  for (const char of content) {
+    if (char === "\n") lines += 1
+    if (lines > MAX_DIFF_LINES) return true
+  }
+  return false
 }
 
 function getParentShort(commit: CommitInfo): string {
@@ -94,6 +107,7 @@ export function CommitDetail({
   initialWidth = DEFAULT_WIDTH,
   minWidth = MIN_WIDTH,
   maxWidth = MAX_WIDTH,
+  expanded = false,
 }: CommitDetailProps) {
   const { t } = useTranslation()
   const detailWidth = useResizable({
@@ -173,8 +187,18 @@ export function CommitDetail({
 
   const rootStyle = resizable ? ({ "--side-w": `${detailWidth.size}px` } as CSSProperties) : undefined
 
+  const largeDiff = isLargeDiff(diffText)
+
   return (
-    <aside className={classnames(styles.detail, !resizable && styles.detailFixed, className)} style={rootStyle}>
+    <aside
+      className={classnames(
+        styles.detail,
+        !resizable && styles.detailFixed,
+        expanded && styles.detailExpanded,
+        className,
+      )}
+      style={rootStyle}
+    >
       {resizable && <ResizeGrip axis="x" edge="start" grip={detailWidth.grip} />}
       <DetailHeader shortHash={commit.short} isCopied={isCopied} onCopy={() => void handleCopy()} onClose={onClose} />
       <Icon.Node.MiniGraph
@@ -275,7 +299,7 @@ export function CommitDetail({
                   >
                     {file.status}
                   </span>
-                  <span>{file.path}</span>
+                  <span>{file.oldPath ? `${file.oldPath} -> ${file.path}` : file.path}</span>
                 </button>
               ))
             )}
@@ -293,6 +317,11 @@ export function CommitDetail({
               <i />
               <i />
               <i />
+            </div>
+          ) : largeDiff ? (
+            <div className={styles.largeDiff}>
+              <span>{t("largeDiffPreview")}</span>
+              <pre>{diffText.slice(0, MAX_DIFF_BYTES)}</pre>
             </div>
           ) : (
             <DiffPreview

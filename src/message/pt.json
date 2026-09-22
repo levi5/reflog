@@ -1,5 +1,9 @@
 {
   "openRepo": "Abrir repositório",
+  "initRepo": "Criar repositório",
+  "welcomeInitHint": "Transforme uma pasta existente em um repositório Git local.",
+  "initializingRepo": "Inicializando repositório...",
+  "initializedRepo": "Repositório inicializado.",
   "repoPath": "Caminho do repo",
   "open": "Abrir",
   "browse": "Procurar...",

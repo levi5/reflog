@@ -34,6 +34,7 @@ export function Graph(_props: Props) {
   const [amendCommit, setAmendCommit] = useState<CommitInfo | null>(null)
   const [amendMessage, setAmendMessage] = useState("")
   const [commitPage, setCommitPage] = useState(0)
+  const dismissedCommitHashRef = useRef("")
   const amendApi = useCommitTemplate({
     value: amendMessage,
     onChange: setAmendMessage,
@@ -163,7 +164,11 @@ export function Graph(_props: Props) {
   const graphCommits = repo.graph
   const selectedHash = selectedCommit?.hash
   useEffect(() => {
-    if (!hashParam || selectedHash === hashParam) return
+    if (!hashParam) {
+      dismissedCommitHashRef.current = ""
+      return
+    }
+    if (dismissedCommitHashRef.current === hashParam || selectedHash === hashParam) return
     const found =
       logCommits.find((c) => c.hash === hashParam || c.short === hashParam) ??
       graphCommits.find((c) => c.hash === hashParam || c.short === hashParam)
@@ -258,6 +263,7 @@ export function Graph(_props: Props) {
                     showGraph={viewMode === "graph"}
                     selectedHash={selectedCommit?.hash}
                     onSelect={(commit) => {
+                      dismissedCommitHashRef.current = ""
                       setSelectedCommit(commit)
                       setSearchParams((prev) => {
                         const nextSearchParams = new URLSearchParams(prev)
@@ -302,16 +308,31 @@ export function Graph(_props: Props) {
             )}
           </Flex.Col>
           {selectedCommit && (
-            <Commit.Detail
-              commit={selectedCommit}
-              onClose={() => setSelectedCommit(null)}
-              onCherryPick={repo.cherryPick}
-              onRevert={repo.revert}
-              onReset={repo.resetBranch}
-              onCheckout={(hash) => repo.checkoutBranch(hash)}
-              loadFiles={repo.loadCommitFiles}
-              loadDiff={repo.loadCommitDiff}
-            />
+            <Modal
+              title={t(lang, "commitDetails")}
+              size="lg"
+              onClose={() => {
+                dismissedCommitHashRef.current = selectedCommit.hash
+                setSelectedCommit(null)
+                setSearchParams((prev) => {
+                  const nextSearchParams = new URLSearchParams(prev)
+                  nextSearchParams.delete("hash")
+                  return nextSearchParams
+                })
+              }}
+            >
+              <Commit.Detail
+                commit={selectedCommit}
+                expanded
+                resizable={false}
+                onCherryPick={repo.cherryPick}
+                onRevert={repo.revert}
+                onReset={repo.resetBranch}
+                onCheckout={(hash) => repo.checkoutBranch(hash)}
+                loadFiles={repo.loadCommitFiles}
+                loadDiff={repo.loadCommitDiff}
+              />
+            </Modal>
           )}
         </Flex.Row>
       }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import classnames from "classnames"
-import { Download, FolderSearch, GitFork, History } from "lucide-react"
+import { Download, FolderPlus, FolderSearch, GitFork, History } from "lucide-react"
 
 import { Spinner } from "../../components/Animation/Spinner"
 import { LogoMark } from "../../components/Brand/Logo"
@@ -79,6 +79,13 @@ export function Welcome(props: Props) {
     }
   }
 
+  const handleInit = async () => {
+    const path = await repo.pickDir()
+    if (path && (await repo.initRepo(path))) {
+      navigate("/staging", { replace: true })
+    }
+  }
+
   if (repo.opening) return <Spinner />
 
   return (
@@ -100,6 +107,19 @@ export function Welcome(props: Props) {
           </div>
           <button type="button" className={classnames("primary", styles.action)} onClick={handleOpen} disabled={busy}>
             {t(lang, "browse")}
+          </button>
+        </div>
+
+        <div className={styles.card}>
+          <span className={styles.cardIcon}>
+            <FolderPlus size={18} />
+          </span>
+          <div className={styles.cardMeta}>
+            <strong>{t(lang, "initRepo")}</strong>
+            <p>{t(lang, "welcomeInitHint")}</p>
+          </div>
+          <button type="button" className={classnames("primary", styles.action)} onClick={handleInit} disabled={busy}>
+            {t(lang, "initRepo")}
           </button>
         </div>
 

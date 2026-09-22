@@ -80,12 +80,7 @@ export function MergePage() {
             />
           )}
           {showRebase && (
-            <Merge.Rebase.Strip
-              branch={repo.status?.branch ?? ""}
-              log={repo.log}
-              onStub={() => repo.setMsg(t(lang, "rebaseSoon"))}
-              onClose={toggleRebase}
-            />
+            <Merge.Rebase.Strip branch={repo.status?.branch ?? ""} log={repo.log} onClose={toggleRebase} />
           )}
         </>
       }

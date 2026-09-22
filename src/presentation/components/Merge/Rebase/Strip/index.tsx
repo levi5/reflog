@@ -1,5 +1,5 @@
 import classnames from "classnames"
-import { Check, GripVertical, ListOrdered, Play, Sparkles, X, XCircle } from "lucide-react"
+import { Check, GripVertical, ListOrdered, X } from "lucide-react"
 import { useState } from "react"
 import type { CommitInfo } from "../../../../../types"
 import { useTranslation } from "../../../../context"
@@ -10,7 +10,6 @@ import styles from "./style.module.scss"
 interface Props {
   branch: string
   log: CommitInfo[]
-  onStub: () => void
   onClose: () => void
 }
 
@@ -40,7 +39,7 @@ const toneFor = (action: RebaseAction): string => {
   }
 }
 
-export function RebaseStrip({ branch, log, onStub, onClose }: Props) {
+export function RebaseStrip({ branch, log, onClose }: Props) {
   const { t } = useTranslation()
   const [actions, setActions] = useState<Record<string, RebaseAction>>({})
   const rows = log.slice(0, 4)
@@ -53,25 +52,17 @@ export function RebaseStrip({ branch, log, onStub, onClose }: Props) {
     <div className={styles.rebaseStrip}>
       <div className={styles.rebaseHead}>
         <span className={styles.rebaseTitle}>
-          <ListOrdered size={14} /> <b>{t("rebaseInProgress")}</b>
+          <ListOrdered size={14} /> <b>{t("interactiveRebase")}</b>
         </span>
         <span className={styles.rebaseOnto}>
           {t("rebasingOnto")} {branch}~3
         </span>
         <div className="spacer" />
-        <button type="button" className="mini-btn" onClick={onStub}>
-          <Sparkles size={13} /> {t("autoSquash")}
-        </button>
-        <button type="button" className="mini-btn danger-t" onClick={onStub}>
-          <XCircle size={13} /> {t("abortRebase")}
-        </button>
-        <button type="button" className="mini-btn primary-t" onClick={onStub}>
-          <Play size={13} /> {t("applyRebase")}
-        </button>
         <button type="button" className="mini-btn" onClick={onClose} aria-label="close">
           <X size={13} />
         </button>
       </div>
+      <p className={styles.rebaseHint}>{t("rebaseSoon")}</p>
       <div className={styles.rebaseList}>
         {rows.map((c) => {
           const action = actionOf(c.hash)

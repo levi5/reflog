@@ -7,23 +7,13 @@ pub struct Porcelain {
     pub files: Vec<FileStatus>,
 }
 
-fn clean_path(raw: &str) -> String {
-    let renamed = raw.split(" -> ").last().unwrap_or(raw);
-    match renamed
-        .strip_prefix('"')
-        .and_then(|s| s.strip_suffix('"'))
-    {
-        Some(unquoted) => unquoted.to_string(),
-        None => renamed.to_string(),
-    }
-}
-
 pub fn parse(porcelain: &str) -> Porcelain {
     let mut branch_info = String::new();
     let mut ahead = 0;
     let mut behind = 0;
     let mut files: Vec<FileStatus> = vec![];
-    for line in porcelain.lines() {
+    let mut entries = porcelain.split('\0');
+    while let Some(line) = entries.next() {
         if line.starts_with("## ") {
             let info = line.trim_start_matches("## ").to_string();
             if let Some(b) = info.find("[") {
@@ -45,7 +35,11 @@ pub fn parse(porcelain: &str) -> Porcelain {
         }
         let x = line[0..1].to_string();
         let y = line[1..2].to_string();
-        let p = clean_path(&line[3..]);
+        let p = line[3..].to_string();
+        // Porcelain v1 with -z emits a second NUL-delimited path for renames/copies.
+        if x == "R" || x == "C" || y == "R" || y == "C" {
+            let _ = entries.next();
+        }
         let unmerged =
             (x == "U" || y == "U") || (x == "A" && y == "A") || (x == "D" && y == "D");
         let staged = x != " " && x != "?" && x != "!";
@@ -71,7 +65,7 @@ mod tests {
 
     #[test]
     fn parses_tracking_and_flags() {
-        let parsed = parse("## main...origin/main [ahead 2, behind 1]\nM  f.tsx\nUU ola.txt\n?? new.txt");
+        let parsed = parse("## main...origin/main [ahead 2, behind 1]\0M  f.tsx\0UU ola.txt\0?? new.txt\0");
         assert_eq!(parsed.ahead, 2);
         assert_eq!(parsed.behind, 1);
         assert!(parsed.files[0].staged);
@@ -80,8 +74,9 @@ mod tests {
     }
 
     #[test]
-    fn strips_quotes_and_rename_arrow() {
-        let parsed = parse("## master\nR  \"old name\" -> \"new name\"");
-        assert_eq!(parsed.files[0].path, "new name");
+    fn preserves_special_paths_and_uses_renamed_destination() {
+        let parsed = parse("## master\0R  new\tname\0old\tname\0?? quoted \"name\"\0");
+        assert_eq!(parsed.files[0].path, "new\tname");
+        assert_eq!(parsed.files[1].path, "quoted \"name\"");
     }
 }

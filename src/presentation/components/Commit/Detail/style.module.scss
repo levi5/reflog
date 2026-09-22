@@ -16,6 +16,14 @@
   width: auto;
 }
 
+.detailExpanded {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+}
+
 .detailHead {
   display: flex;
   align-items: center;
@@ -185,6 +193,36 @@
 
 .diffPreview {
   max-height: 220px;
+}
+
+.detailExpanded .filesList {
+  max-height: none;
+  overflow: visible;
+}
+
+.detailExpanded .diffPreview {
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
+  font-size: 12px;
+}
+
+.largeDiff {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--bg-deep);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.largeDiff pre {
+  margin: 8px 0 0;
+  color: var(--fg);
+  font-family: var(--mono);
+  white-space: pre;
 }
 
 .skeletonList,

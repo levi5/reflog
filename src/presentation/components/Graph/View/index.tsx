@@ -4,6 +4,7 @@ import classnames from "classnames"
 import type { GraphViewerProps } from "../../../../types/components/graph"
 import { useTranslation } from "../../../context"
 import { Commit } from "../../Commit"
+import { Modal } from "../../Modal"
 import { GitLensList } from "../GitLens"
 import styles from "./style.module.scss"
 
@@ -79,18 +80,22 @@ export function GraphViewer({
         onZoomIn={viewport.zoomIn}
         onZoomOut={viewport.zoomOut}
       />
-      <Commit.Detail
-        className={styles.commitDetails}
-        commit={graph.selectedCommit}
-        onClose={() => onSelectCommit(NO_COMMIT_SELECTED)}
-        storageKey={COMMIT_DETAIL_STORAGE_KEY}
-        onCherryPick={onCherryPick}
-        onRevert={onRevert}
-        onReset={onReset}
-        onCheckout={onCheckout}
-        loadFiles={loadFiles}
-        loadDiff={loadDiff}
-      />
+      {graph.selectedCommit && (
+        <Modal title={t("commitDetails")} size="lg" onClose={() => onSelectCommit(NO_COMMIT_SELECTED)}>
+          <Commit.Detail
+            commit={graph.selectedCommit}
+            expanded
+            resizable={false}
+            storageKey={COMMIT_DETAIL_STORAGE_KEY}
+            onCherryPick={onCherryPick}
+            onRevert={onRevert}
+            onReset={onReset}
+            onCheckout={onCheckout}
+            loadFiles={loadFiles}
+            loadDiff={loadDiff}
+          />
+        </Modal>
+      )}
     </div>
   )
 }

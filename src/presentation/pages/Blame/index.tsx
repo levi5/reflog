@@ -8,6 +8,7 @@ import { SearchBox } from "../../components/Search"
 import { Status } from "../../components/Status"
 import { Editor } from "../../components/Editor"
 import { Commit } from "../../components/Commit"
+import { Modal } from "../../components/Modal"
 import { Resizable } from "@/presentation/components/Resizable"
 
 import { useRepo, useSearch, useSettingsContext } from "../../context"
@@ -151,16 +152,19 @@ export const Blame = (_props: Props) => {
             )}
           </Flex.Col>
           {selectedCommit && (
-            <Commit.Detail
-              commit={selectedCommit}
-              onClose={() => setSelectedCommit(null)}
-              onCherryPick={repo.cherryPick}
-              onRevert={repo.revert}
-              onReset={repo.resetBranch}
-              onCheckout={(hash) => repo.checkoutBranch(hash)}
-              loadFiles={repo.loadCommitFiles}
-              loadDiff={repo.loadCommitDiff}
-            />
+            <Modal title={t(lang, "commitDetails")} size="lg" onClose={() => setSelectedCommit(null)}>
+              <Commit.Detail
+                commit={selectedCommit}
+                expanded
+                resizable={false}
+                onCherryPick={repo.cherryPick}
+                onRevert={repo.revert}
+                onReset={repo.resetBranch}
+                onCheckout={(hash) => repo.checkoutBranch(hash)}
+                loadFiles={repo.loadCommitFiles}
+                loadDiff={repo.loadCommitDiff}
+              />
+            </Modal>
           )}
         </Flex.Row>
       }

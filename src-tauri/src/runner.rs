@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -84,6 +84,27 @@ impl ProcessRunner {
             .spawn()
             .map_err(|e| format!("falha ao executar git: {e}"))?;
 
+        // Drain both pipes while Git runs. Waiting before reading can deadlock when
+        // a large diff fills an OS pipe buffer.
+        let stdout = child.stdout.take().ok_or_else(|| "stdout indisponível".to_string())?;
+        let stderr = child.stderr.take().ok_or_else(|| "stderr indisponível".to_string())?;
+        let stdout_reader = std::thread::spawn(move || {
+            let mut output = Vec::new();
+            stdout
+                .take(u64::MAX)
+                .read_to_end(&mut output)
+                .map(|_| output)
+                .map_err(|e| e.to_string())
+        });
+        let stderr_reader = std::thread::spawn(move || {
+            let mut output = Vec::new();
+            stderr
+                .take(u64::MAX)
+                .read_to_end(&mut output)
+                .map(|_| output)
+                .map_err(|e| e.to_string())
+        });
+
         if let Some(input) = stdin_input {
             if let Some(mut stdin) = child.stdin.take() {
                 stdin
@@ -92,20 +113,26 @@ impl ProcessRunner {
             }
         }
 
-        match child.wait_timeout(timeout).map_err(|e| e.to_string())? {
-            Some(status) => {
-                let out = child.wait_with_output().map_err(|e| e.to_string())?;
-                if status.success() {
-                    Ok(String::from_utf8_lossy(&out.stdout).to_string())
-                } else {
-                    Err(failure_message(&out.stdout, &out.stderr))
-                }
-            }
+        let status = match child.wait_timeout(timeout).map_err(|e| e.to_string())? {
+            Some(status) => status,
             None => {
                 let _ = child.kill();
                 let _ = child.wait();
-                Err("git excedeu o tempo limite".to_string())
+                let _ = stdout_reader.join();
+                let _ = stderr_reader.join();
+                return Err("git excedeu o tempo limite".to_string());
             }
+        };
+        let stdout = stdout_reader
+            .join()
+            .map_err(|_| "falha ao ler stdout do git".to_string())??;
+        let stderr = stderr_reader
+            .join()
+            .map_err(|_| "falha ao ler stderr do git".to_string())??;
+        if status.success() {
+            Ok(String::from_utf8_lossy(&stdout).to_string())
+        } else {
+            Err(failure_message(&stdout, &stderr))
         }
     }
 }
@@ -143,6 +170,35 @@ impl GitRunner for ProcessRunner {
 
     fn path_exists(&self, path: &Path) -> bool {
         path.exists()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn drains_large_git_output_before_waiting_for_exit() {
+        let dir = tempfile::tempdir().unwrap();
+        let before = dir.path().join("before.txt");
+        let after = dir.path().join("after.txt");
+        std::fs::write(&before, "").unwrap();
+        std::fs::write(&after, "x".repeat(128 * 1024)).unwrap();
+
+        let result = ProcessRunner.run(
+            None,
+            &[
+                "diff",
+                "--no-index",
+                "--",
+                before.to_str().unwrap(),
+                after.to_str().unwrap(),
+            ],
+        );
+
+        // git diff exits with 1 when it finds a difference; receiving the full
+        // diff here proves its output pipe was drained while the process ran.
+        assert!(result.unwrap_err().contains("diff --git"));
     }
 }
 

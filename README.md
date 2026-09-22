@@ -140,9 +140,9 @@ reflog .
 
 ## 📖 Documentation
 
-- [🏗️ Frontend Architecture](./frontend.md) — React architecture, components, hooks, state
-- [⚙️ Backend Architecture](./backend.md) — Rust/Tauri architecture, commands, GitRunner
-- [📡 API Reference](./api.md) — Complete Tauri command reference with TypeScript types
+- [Frontend Architecture](./doc/frontend.md) - React architecture, components, hooks, state
+- [Backend Architecture](./doc/backend.md) - Rust/Tauri architecture, commands, GitRunner
+- [API Reference](./doc/api.md) - Complete Tauri command reference with TypeScript types
 
 ---
 
