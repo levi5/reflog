@@ -1,5 +1,5 @@
 use crate::domain::SubmoduleInfo;
-use crate::runner::GitRunner;
+use crate::runner::{GitRunner, NETWORK_TIMEOUT};
 use crate::AppState;
 use std::collections::HashMap;
 use tauri::State;
@@ -90,10 +90,18 @@ pub fn submodule_update(
     let root = runner.repo_root(repo_path)?;
     match submodule_path {
         Some(p) if !p.trim().is_empty() => {
-            runner.run(Some(&root), &["submodule", "update", "--init", "--recursive", "--", &p])
+            runner.run_with_timeout(
+                Some(&root),
+                &["submodule", "update", "--init", "--recursive", "--progress", "--", &p],
+                NETWORK_TIMEOUT,
+            )
         }
         _ => {
-            runner.run(Some(&root), &["submodule", "update", "--init", "--recursive"])
+            runner.run_with_timeout(
+                Some(&root),
+                &["submodule", "update", "--init", "--recursive", "--jobs", "4", "--progress"],
+                NETWORK_TIMEOUT,
+            )
         }
     }
 }

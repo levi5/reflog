@@ -28,7 +28,7 @@ pub fn gpg(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
 pub fn clone(runner: &dyn GitRunner, url: &str, path: &str) -> Result<String, String> {
     validate_clone_url(url)?;
     validate_clone_path(path)?;
-    runner.run_with_timeout(None, &["clone", "--", url, path], NETWORK_TIMEOUT)
+    runner.run_with_timeout(None, &["clone", "--progress", "--", url, path], NETWORK_TIMEOUT)
 }
 
 

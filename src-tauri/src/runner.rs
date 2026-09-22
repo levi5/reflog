@@ -1,11 +1,13 @@
 use std::io::{Read, Write};
 use std::path::Path;
 use std::process::Command;
-use std::time::Duration;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 use wait_timeout::ChildExt;
 
-pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
-pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(120);
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
+pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(300);
 pub const OUTPUT_LIMIT_ERROR: &str = "saída do git excede o limite permitido";
 
 pub trait GitRunner: Send + Sync {
@@ -73,7 +75,11 @@ fn failure_message(stdout: &[u8], stderr: &[u8]) -> String {
     String::from_utf8_lossy(stdout).trim().to_string()
 }
 
-fn drain_pipe<R: Read>(mut pipe: R, max_bytes: Option<usize>) -> Result<(Vec<u8>, bool), String> {
+fn drain_pipe<R: Read>(
+    mut pipe: R,
+    max_bytes: Option<usize>,
+    activity: Arc<AtomicBool>,
+) -> Result<(Vec<u8>, bool), String> {
     let mut output = Vec::new();
     let mut exceeded = false;
     let mut buffer = [0; 8192];
@@ -82,6 +88,7 @@ fn drain_pipe<R: Read>(mut pipe: R, max_bytes: Option<usize>) -> Result<(Vec<u8>
         if read == 0 {
             return Ok((output, exceeded));
         }
+        activity.store(true, Ordering::Relaxed);
         if let Some(limit) = max_bytes {
             let remaining = limit.saturating_sub(output.len());
             let captured = remaining.min(read);
@@ -99,6 +106,9 @@ fn base_command(repo: Option<&str>) -> Command {
         cmd.arg("-C").arg(dir);
     }
     cmd.env("GIT_TERMINAL_PROMPT", "0");
+    if std::env::var("GIT_SSH_COMMAND").is_err() {
+        cmd.env("GIT_SSH_COMMAND", "ssh -o BatchMode=yes");
+    }
     cmd.env("GIT_PAGER", "cat");
     cmd.env("GIT_EDITOR", "true");
     cmd
@@ -133,12 +143,13 @@ impl ProcessRunner {
             .spawn()
             .map_err(|e| format!("falha ao executar git: {e}"))?;
 
-        // Drain both pipes while Git runs. Waiting before reading can deadlock when
-        // a large diff fills an OS pipe buffer.
         let stdout = child.stdout.take().ok_or_else(|| "stdout indisponível".to_string())?;
         let stderr = child.stderr.take().ok_or_else(|| "stderr indisponível".to_string())?;
-        let stdout_reader = std::thread::spawn(move || drain_pipe(stdout, max_output_bytes));
-        let stderr_reader = std::thread::spawn(move || drain_pipe(stderr, max_output_bytes));
+        let activity = Arc::new(AtomicBool::new(false));
+        let stdout_activity = Arc::clone(&activity);
+        let stderr_activity = Arc::clone(&activity);
+        let stdout_reader = std::thread::spawn(move || drain_pipe(stdout, max_output_bytes, stdout_activity));
+        let stderr_reader = std::thread::spawn(move || drain_pipe(stderr, max_output_bytes, stderr_activity));
 
         if let Some(input) = stdin_input {
             if let Some(mut stdin) = child.stdin.take() {
@@ -148,16 +159,30 @@ impl ProcessRunner {
             }
         }
 
-        let status = match child.wait_timeout(exec_timeout).map_err(|e| e.to_string())? {
-            Some(status) => status,
-            None => {
-                let _ = child.kill();
-                let _ = child.wait();
-                // Do not wait for the readers: a Git helper can inherit the pipe and
-                // keep it open after the direct child has been terminated.
-                drop(stdout_reader);
-                drop(stderr_reader);
-                return Err("git excedeu o tempo limite".to_string());
+        let poll_interval = Duration::from_millis(200);
+        let start_time = Instant::now();
+        let mut last_activity = Instant::now();
+        let max_absolute_timeout = exec_timeout.saturating_mul(10).max(Duration::from_secs(1800));
+
+        let status = loop {
+            match child.wait_timeout(poll_interval).map_err(|e| e.to_string())? {
+                Some(status) => break status,
+                None => {
+                    if activity.swap(false, Ordering::Relaxed) {
+                        last_activity = Instant::now();
+                    }
+
+                    let idle_duration = last_activity.elapsed();
+                    let total_duration = start_time.elapsed();
+
+                    if idle_duration >= exec_timeout || total_duration >= max_absolute_timeout {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        drop(stdout_reader);
+                        drop(stderr_reader);
+                        return Err("git excedeu o tempo limite".to_string());
+                    }
+                }
             }
         };
         let (stdout, stdout_exceeded) = stdout_reader
@@ -285,6 +310,19 @@ mod tests {
         );
 
         assert_eq!(result.unwrap_err(), OUTPUT_LIMIT_ERROR);
+    }
+
+    #[test]
+    fn times_out_on_unresponsive_command() {
+        let result = ProcessRunner.execute(
+            None,
+            &["check-ignore", "--stdin"],
+            None,
+            None,
+            Duration::from_millis(250),
+            None,
+        );
+        assert_eq!(result.unwrap_err(), "git excedeu o tempo limite");
     }
 }
 
