@@ -1,5 +1,5 @@
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
-import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"
 import { useSearchParams } from "react-router-dom"
 
@@ -42,6 +42,18 @@ export const Blame = (_props: Props) => {
     }
   }, [fileParam, repoPath, blameFile, loadBlame])
 
+  const handleSelectFile = useCallback(
+    (filePath: string) => {
+      setSearchParams((prev) => {
+        const nextSearchParams = new URLSearchParams(prev)
+        nextSearchParams.set("file", filePath)
+        return nextSearchParams
+      })
+      repo.loadBlame(filePath)
+    },
+    [setSearchParams, repo.loadBlame],
+  )
+
   const files: FileStatus[] = useMemo(() => {
     const name = scope === "commits" || scope === "branches" ? "" : query.trim().toLowerCase()
 
@@ -80,19 +92,7 @@ export const Blame = (_props: Props) => {
             <span className={styles.pct}>{repo.trackedFiles.length}</span>
           </div>
           <SearchBox placeholder={t(lang, "searchFiles")} />
-          <Status.File
-            files={files}
-            selectedFilePath={repo.blameFile}
-            detailed={false}
-            onSelect={(filePath) => {
-              setSearchParams((prev) => {
-                const nextSearchParams = new URLSearchParams(prev)
-                nextSearchParams.set("file", filePath)
-                return nextSearchParams
-              })
-              repo.loadBlame(filePath)
-            }}
-          />
+          <Status.File files={files} selectedFilePath={repo.blameFile} detailed={false} onSelect={handleSelectFile} />
         </Fragment>
       }
       main={

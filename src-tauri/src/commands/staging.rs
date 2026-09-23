@@ -83,9 +83,9 @@ pub fn checkout(
     validate_ref_name(branch)?;
     let root = runner.repo_root(repo_path)?;
     if create {
-        return runner.run(Some(&root), &["checkout", "-b", "--", branch]);
+        return runner.run(Some(&root), &["checkout", "-b", branch]);
     }
-    runner.run(Some(&root), &["checkout", "--", branch])
+    runner.run(Some(&root), &["checkout", branch])
 }
 
 pub fn unstage(
@@ -177,7 +177,7 @@ pub fn reset(runner: &dyn GitRunner, repo_path: &str, target: &str, mode: &str) 
         _ => return Err("modo de reset inválido".to_string()),
     };
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["reset", flag, "--", target])
+    runner.run(Some(&root), &["reset", flag, target])
 }
 
 
@@ -331,19 +331,94 @@ pub async fn git_reset(
 mod tests {
     use super::*;
     use crate::runner::mock::MockRunner;
+    use crate::runner::ProcessRunner;
 
     #[test]
     fn checks_out_existing_and_new_branches_as_refs() {
         let runner = MockRunner::new(
             &[
                 ("rev-parse --show-toplevel", "/r"),
-                ("checkout -- fix/c", "Switched to branch 'fix/c'"),
-                ("checkout -b -- feature/new", "Switched to a new branch 'feature/new'"),
+                ("checkout fix/c", "Switched to branch 'fix/c'"),
+                ("checkout -b feature/new", "Switched to a new branch 'feature/new'"),
             ],
             &[],
         );
 
         assert!(checkout(&runner, "/r", "fix/c", false).is_ok());
         assert!(checkout(&runner, "/r", "feature/new", true).is_ok());
+    }
+
+    fn git(dir: &str, args: &[&str]) {
+        let out = std::process::Command::new("git")
+            .current_dir(dir)
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .arg("-c")
+            .arg("user.name=demo")
+            .arg("-c")
+            .arg("user.email=demo@demo")
+            .arg("-c")
+            .arg("init.defaultBranch=main")
+            .arg("-c")
+            .arg("commit.gpgsign=false")
+            .args(args)
+            .output()
+            .expect("git binary missing");
+        assert!(
+            out.status.success(),
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    fn git_out(dir: &str, args: &[&str]) -> String {
+        let out = std::process::Command::new("git")
+            .current_dir(dir)
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .args(args)
+            .output()
+            .expect("git binary missing");
+        String::from_utf8_lossy(&out.stdout).to_string()
+    }
+
+    fn fixture() -> (tempfile::TempDir, String) {
+        let temp = tempfile::tempdir().unwrap();
+        let dir = temp.path().to_string_lossy().to_string();
+        git(&dir, &["init"]);
+        std::fs::write(temp.path().join("f.txt"), "1\n").unwrap();
+        git(&dir, &["add", "."]);
+        git(&dir, &["commit", "-m", "one"]);
+        (temp, dir)
+    }
+
+    #[test]
+    fn switches_and_creates_branches_in_real_repo() {
+        let (_temp, dir) = fixture();
+        let runner = ProcessRunner;
+        git(&dir, &["branch", "side"]);
+
+        checkout(&runner, &dir, "side", false).unwrap();
+        assert_eq!(git_out(&dir, &["rev-parse", "--abbrev-ref", "HEAD"]).trim(), "side");
+
+        checkout(&runner, &dir, "feature/new", true).unwrap();
+        assert_eq!(
+            git_out(&dir, &["rev-parse", "--abbrev-ref", "HEAD"]).trim(),
+            "feature/new"
+        );
+    }
+
+    #[test]
+    fn soft_resets_to_previous_commit_in_real_repo() {
+        let (_temp, dir) = fixture();
+        let runner = ProcessRunner;
+        std::fs::write(format!("{dir}/g.txt"), "2\n").unwrap();
+        git(&dir, &["add", "."]);
+        git(&dir, &["commit", "-m", "two"]);
+
+        reset(&runner, &dir, "HEAD~1", "soft").unwrap();
+        assert_eq!(git_out(&dir, &["rev-list", "--count", "HEAD"]).trim(), "1");
+        assert!(git_out(&dir, &["status", "--porcelain"]).contains("g.txt"));
     }
 }

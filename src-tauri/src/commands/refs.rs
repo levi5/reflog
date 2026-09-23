@@ -56,7 +56,7 @@ pub fn tag_create(
     let root = runner.repo_root(repo_path)?;
     match message {
         Some(m) if !m.trim().is_empty() => {
-            runner.run(Some(&root), &["tag", "-a", "--", name, "-m", &m])
+            runner.run(Some(&root), &["tag", "-a", name, "-m", &m])
         }
         _ => runner.run(Some(&root), &["tag", "--", name]),
     }
@@ -206,6 +206,7 @@ pub async fn git_remote_remove(
 mod tests {
     use super::*;
     use crate::runner::mock::MockRunner;
+    use crate::runner::ProcessRunner;
 
     #[test]
     fn remote_list_keeps_fetch_urls_once() {
@@ -235,5 +236,46 @@ mod tests {
             &[],
         );
         assert_eq!(tag_list(&runner, "/r").unwrap(), vec!["v2.0", "v1.0"]);
+    }
+
+    fn git(dir: &str, args: &[&str]) {
+        let out = std::process::Command::new("git")
+            .current_dir(dir)
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .arg("-c")
+            .arg("user.name=demo")
+            .arg("-c")
+            .arg("user.email=demo@demo")
+            .arg("-c")
+            .arg("init.defaultBranch=main")
+            .arg("-c")
+            .arg("commit.gpgsign=false")
+            .args(args)
+            .output()
+            .expect("git binary missing");
+        assert!(
+            out.status.success(),
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    #[test]
+    fn creates_lightweight_and_annotated_tags_in_real_repo() {
+        let temp = tempfile::tempdir().unwrap();
+        let dir = temp.path().to_string_lossy().to_string();
+        git(&dir, &["init"]);
+        std::fs::write(temp.path().join("f.txt"), "1\n").unwrap();
+        git(&dir, &["add", "."]);
+        git(&dir, &["commit", "-m", "one"]);
+
+        let runner = ProcessRunner;
+        tag_create(&runner, &dir, "v1.0", None).unwrap();
+        tag_create(&runner, &dir, "v2.0", Some("release".to_string())).unwrap();
+        let tags = tag_list(&runner, &dir).unwrap();
+        assert!(tags.contains(&"v1.0".to_string()));
+        assert!(tags.contains(&"v2.0".to_string()));
     }
 }

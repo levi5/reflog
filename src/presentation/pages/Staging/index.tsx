@@ -16,7 +16,7 @@ import { Status } from "../../components/Status"
 import { Tabs } from "../../components/Tabs"
 import { Tag } from "../../components/Tag"
 
-import { _Maybe, _Object } from "funcio"
+import { _Maybe } from "funcio"
 import { useRepo, useSearch, useSettingsContext } from "../../context"
 import { useResizable } from "../../hooks"
 import { useFileSelection } from "../../hooks/staging/use-file-selection"
@@ -43,10 +43,11 @@ export function Staging(_props: Props) {
     storageKey: "staging.diff",
   })
 
+  const statusFiles = repo.status?.files
   const files = useMemo<FileStatus[]>(
     () =>
       _Maybe
-        .of(_Object.getPathValue(["status", "files"], repo))
+        .of(statusFiles ?? [])
         .map((files) => files)
         .when(scope === "branches" || scope === "commits")
         .then((files: FileStatus[]) =>
@@ -54,10 +55,14 @@ export function Staging(_props: Props) {
         )
         .else((files: FileStatus[]) => files)
         .getOrElse([]) as FileStatus[],
-    [repo, query, scope],
+    [statusFiles, query, scope],
   )
   const orderedPaths = useMemo(() => files.map((file) => file.path), [files])
   const selection = useFileSelection(orderedPaths, repo.repo)
+  const fileSelection = useMemo(
+    () => ({ checked: selection.checked, onToggle: selection.toggle }),
+    [selection.checked, selection.toggle],
+  )
 
   const runBatch = useCallback(
     (work: (paths: string[]) => Promise<unknown>) => {
@@ -66,7 +71,12 @@ export function Staging(_props: Props) {
       selection.clear()
       void work(paths)
     },
-    [selection],
+    [selection.checked, selection.clear],
+  )
+
+  const handleSelectDiff = useCallback(
+    (filePath: string, staged: boolean) => repo.selectDiff(filePath, staged),
+    [repo.selectDiff],
   )
 
   const branches = useMemo(
@@ -174,8 +184,8 @@ export function Staging(_props: Props) {
               files={files}
               selectedFilePath={repo.selectedFile}
               detailed
-              onSelect={(filePath, staged) => repo.selectDiff(filePath, staged)}
-              selection={{ checked: selection.checked, onToggle: selection.toggle }}
+              onSelect={handleSelectDiff}
+              selection={fileSelection}
             />
           )}
           {tab === "branches" && (

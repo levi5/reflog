@@ -1,5 +1,5 @@
 import { ArrowRight, OctagonX, TriangleAlert } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Outlet, useLocation, useNavigate } from "react-router-dom"
 import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
@@ -73,6 +73,16 @@ export function AppLayout() {
     if (!repo.msg) return
     message.response(repo.msg)
   }, [repo.msg, message.response])
+
+  const prevConflictCount = useRef(repo.conflicts.length)
+  useEffect(() => {
+    const prev = prevConflictCount.current
+    prevConflictCount.current = repo.conflicts.length
+    if (prev === 0 || repo.conflicts.length === 0 || !repo.repo || isWelcome || location.pathname === "/merge") {
+      return
+    }
+    void navigate("/merge")
+  }, [repo.conflicts.length, repo.repo, isWelcome, location.pathname, navigate])
 
   useEffect(() => {
     let disposed = false

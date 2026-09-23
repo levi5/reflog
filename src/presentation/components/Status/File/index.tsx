@@ -1,6 +1,6 @@
 import classnames from "classnames"
 import { Circle, CircleCheck, TriangleAlert } from "lucide-react"
-import { memo } from "react"
+import { memo, useCallback } from "react"
 import type { StringKey } from "../../../../i18n"
 import type { FileStatus } from "../../../../types"
 import { useTranslation } from "../../../context"
@@ -52,39 +52,51 @@ const StatusFileItem = memo(function StatusFileItem({
   const { t } = useTranslation()
   const Icon = fileStatus.unmerged ? TriangleAlert : fileStatus.staged ? CircleCheck : Circle
   return (
-    <button
-      type="button"
-      className={classnames(styles.fcard, isSelected && styles.active)}
-      onClick={(event) => onSelect(fileStatus.path, fileStatus.staged, event.shiftKey)}
-    >
+    <div className={classnames(styles.fcard, isSelected && styles.active)}>
       {showCheck && (
         <input
           type="checkbox"
           className={styles.fcheck}
           checked={isChecked}
           aria-label={fileStatus.path}
-          onClick={(event) => event.stopPropagation()}
           onChange={(event) => {
             const native = event.nativeEvent as MouseEvent | undefined
             onToggle(fileStatus.path, native?.shiftKey ?? false)
           }}
         />
       )}
-      <span className={classnames(styles.fico, statusTone(fileStatus))}>
-        <Icon size={16} />
-      </span>
-      <span className={styles.fmeta}>
-        <span className={styles.fname} title={fileStatus.path}>
-          {fileStatus.path}
+      <button
+        type="button"
+        className={styles.fselect}
+        onClick={(event) => onSelect(fileStatus.path, fileStatus.staged, event.shiftKey)}
+        aria-pressed={isSelected}
+        aria-label={fileStatus.path}
+      >
+        <span className={classnames(styles.fico, statusTone(fileStatus))}>
+          <Icon size={16} />
         </span>
-        {detailed && <small>{statusLabel(t, fileStatus)}</small>}
-      </span>
-    </button>
+        <span className={styles.fmeta}>
+          <span className={styles.fname} title={fileStatus.path}>
+            {fileStatus.path}
+          </span>
+          {detailed && <small>{statusLabel(t, fileStatus)}</small>}
+        </span>
+      </button>
+    </div>
   )
 })
 
 export function StatusFileList({ files, selectedFilePath, detailed, onSelect, selection }: StatusFileListProps) {
   const { t } = useTranslation()
+  const handleSelect = useCallback(
+    (filePath: string, staged: boolean, range: boolean) =>
+      range && selection ? selection.onToggle(filePath, true) : onSelect(filePath, staged),
+    [onSelect, selection],
+  )
+  const handleToggle = useCallback(
+    (filePath: string, range: boolean) => selection?.onToggle(filePath, range),
+    [selection],
+  )
   return files.length === 0 ? (
     <EmptyState small message={t("noChanges")} />
   ) : (
@@ -96,10 +108,8 @@ export function StatusFileList({ files, selectedFilePath, detailed, onSelect, se
         isChecked={selection?.checked.has(fileStatus.path) ?? false}
         detailed={detailed}
         showCheck={selection !== undefined}
-        onSelect={(filePath, staged, range) =>
-          range && selection ? selection.onToggle(filePath, true) : onSelect(filePath, staged)
-        }
-        onToggle={(filePath, range) => selection?.onToggle(filePath, range)}
+        onSelect={handleSelect}
+        onToggle={handleToggle}
       />
     ))
   )

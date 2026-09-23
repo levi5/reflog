@@ -45,7 +45,7 @@ pub fn commit_files_of(
     let root = runner.repo_root(repo_path)?;
     let out = runner.run_limited(
         Some(&root),
-        &["diff-tree", "--no-commit-id", "--name-status", "-z", "--root", "--first-parent", "-r", "--", rev],
+        &["diff-tree", "--no-commit-id", "--name-status", "-z", "--root", "--first-parent", "-r", rev],
         MAX_FILE_LIST_OUTPUT_BYTES,
     )?;
     let mut files = vec![];
@@ -184,7 +184,7 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 (
-                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r -- abc1234",
+                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r abc1234",
                     "M\0src/index.ts\0A\0src/types.ts\0D\0old.txt\0",
                 ),
             ],
@@ -206,7 +206,7 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 (
-                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r -- abc1234",
+                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r abc1234",
                     "R100\0old\tname\0new\tname\0",
                 ),
             ],
@@ -227,5 +227,42 @@ mod tests {
             &[],
         );
         assert!(commit_diff_of(&runner, "/r", "merge123", Some("src/file.ts".to_string())).is_ok());
+    }
+
+    #[test]
+    fn lists_commit_files_in_real_repo() {
+        let temp = tempfile::tempdir().unwrap();
+        let dir = temp.path().to_string_lossy().to_string();
+        let run = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .current_dir(&dir)
+                .env("GIT_CONFIG_NOSYSTEM", "1")
+                .env("GIT_CONFIG_GLOBAL", "/dev/null")
+                .arg("-c")
+                .arg("user.name=demo")
+                .arg("-c")
+                .arg("user.email=demo@demo")
+                .arg("-c")
+                .arg("init.defaultBranch=main")
+                .arg("-c")
+                .arg("commit.gpgsign=false")
+                .args(args)
+                .output()
+                .expect("git binary missing");
+            assert!(
+                out.status.success(),
+                "git {} failed: {}",
+                args.join(" "),
+                String::from_utf8_lossy(&out.stderr)
+            );
+        };
+        run(&["init"]);
+        std::fs::write(temp.path().join("f.txt"), "1\n").unwrap();
+        run(&["add", "."]);
+        run(&["commit", "-m", "one"]);
+
+        let files = commit_files_of(&crate::runner::ProcessRunner, &dir, "HEAD").unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].path, "f.txt");
     }
 }

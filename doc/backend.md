@@ -435,8 +435,14 @@ mod tests {
    OIDs have a charset + length cap; repo paths reject NUL/newline
    (which would panic `Command::arg`); clone URLs reject `ext::`/`fd::`
 2. **No shell injection** - args passed as arrays to `Command`, never a shell string
-3. **`--` separators** - revisions, paths and config keys are passed after `--`
-   so values starting with `-` can't become flags
+3. **`--` separators where git supports them** - paths (`add`, `discard`,
+   `blame`, `submodule update`) and several name/flag positions
+   (`branch -d/-D/-m`, `tag -d`, lightweight `tag`, `remote add/remove`,
+   `merge`, `config --get/--set/--unset`, `clone`, `show`, `cherry-pick`,
+   `revert`) are passed after `--` so values starting with `-` can't
+   become flags. Commands whose grammar forbids `--` before the revision
+   (`checkout`, `reset`, annotated `tag -a`, `diff-tree`) rely on
+   validation instead (leading `-` rejected)
 4. **Config allowlist** - `config_get`/`config_set` only accept keys in
    `ALLOWED_CONFIG_KEYS` (identity, safe core/diff/merge options)
 5. **Console sandbox** (`playground.rs`) - `git_run` only allows listed verbs
