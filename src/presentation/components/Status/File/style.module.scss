@@ -12,6 +12,8 @@
   padding: 8px 10px;
   cursor: pointer;
   transition: background 0.13s ease, border-color 0.13s ease, transform 0.13s ease;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
 }
 .fcard:hover {
   background: var(--bg-raised);
@@ -33,6 +35,15 @@
 }
 .fico svg {
   display: block;
+}
+
+.fcheck {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent, #4f8ff7);
+  cursor: pointer;
 }
 .fico.ok {
   color: var(--green);

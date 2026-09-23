@@ -11,6 +11,8 @@ pub struct StatusResult {
     pub merging: bool,
     pub cherry_picking: bool,
     pub reverting: bool,
+    #[serde(default)]
+    pub rebasing: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]

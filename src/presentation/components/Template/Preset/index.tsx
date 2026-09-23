@@ -20,11 +20,7 @@ export function PresetList({ presets, onDeletePreset, onEditPreset }: PresetList
   const emptyState = null
   const { t } = useTranslation()
 
-  const renderItem = (
-    preset: CommitPreset,
-    _isSelected: boolean,
-    _actions: Array<{ onClick: () => void; icon?: React.ReactNode; disabled?: boolean; ariaLabel?: string }>,
-  ) => (
+  const renderItem = (preset: CommitPreset) => (
     <>
       <div className={styles.itemContent}>
         <div className={styles.presetInfo}>
@@ -40,10 +36,7 @@ export function PresetList({ presets, onDeletePreset, onEditPreset }: PresetList
           <button
             type="button"
             className={styles.actionBtn}
-            onClick={(e) => {
-              e.stopPropagation()
-              onEditPreset(preset)
-            }}
+            onClick={() => onEditPreset(preset)}
             aria-label={t("presetEdit")}
             title={t("presetEdit")}
           >
@@ -53,10 +46,7 @@ export function PresetList({ presets, onDeletePreset, onEditPreset }: PresetList
         <button
           type="button"
           className={classnames(styles.actionBtn, styles.danger)}
-          onClick={(e) => {
-            e.stopPropagation()
-            onDeletePreset(preset.id)
-          }}
+          onClick={() => onDeletePreset(preset.id)}
           aria-label={t("presetDelete")}
           title={t("presetDelete")}
         >
@@ -73,13 +63,6 @@ export function PresetList({ presets, onDeletePreset, onEditPreset }: PresetList
       currentPage={0}
       pageSize={PRESETS_PER_PAGE}
       onPageChange={() => {}}
-      onSelect={() => {}}
-      onAction={(id, action) => {
-        if (action === "delete") {
-          onDeletePreset(id)
-        }
-      }}
-      isRunning={false}
       getItemId={(preset) => preset.id}
       renderItem={renderItem}
       emptyState={emptyState}

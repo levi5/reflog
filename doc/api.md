@@ -82,6 +82,7 @@ interface StatusResult {
   merging: boolean
   cherryPicking: boolean
   reverting: boolean
+  rebasing: boolean
 }
 
 interface FileStatus {
@@ -845,6 +846,54 @@ accepted; dangerous flags (`--hard`, `--force`, `--output`, `--upload-pack`,
 ```ts
 invoke<string>('git_run', { repoPath: string, args: string[] })
 // Example: ['log', '--oneline', '-10']
+```
+
+---
+
+## Rebase
+
+Interactive rebase with a scripted sequence editor
+(`pick` / `squash` / `fixup` / `drop`; reorder by submitting `ops`
+in the desired order). `reword` / `edit` are intentionally unsupported:
+the backend is fully non-interactive (`GIT_EDITOR=true`).
+
+### `git_rebase_commits`
+
+Commits in `onto..HEAD` (newest first), for building the todo list.
+Fails with `base inválida para rebase: <onto>` when `onto` doesn't
+resolve to a commit.
+
+```ts
+invoke<CommitInfo[]>('git_rebase_commits', { repoPath: string, onto: string })
+```
+
+---
+
+### `git_rebase_start`
+
+Runs `rebase -i <onto>` with the given instructions.
+The op hashes must match the current `onto..HEAD` set exactly
+(stale UIs are rejected); at least one op must not be `drop`.
+
+```ts
+interface RebaseOp {
+  hash: string
+  action: 'pick' | 'squash' | 'fixup' | 'drop'
+}
+
+invoke<string>('git_rebase_start', { repoPath: string, onto: string, ops: RebaseOp[] })
+```
+
+On conflict the command fails and the repo is left mid-rebase
+(`status.rebasing === true`); resolve and call `git_rebase_continue`.
+
+---
+
+### `git_rebase_continue` / `git_rebase_abort`
+
+```ts
+invoke<string>('git_rebase_continue', { repoPath: string })
+invoke<string>('git_rebase_abort', { repoPath: string })
 ```
 
 ---

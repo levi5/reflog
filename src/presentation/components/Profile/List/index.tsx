@@ -21,28 +21,21 @@ export function ProfileList({ profiles, activeProfileId, onApplyProfile, onRemov
 
   const emptyState = <p className={styles.emptyText}>{t("noProfiles")}</p>
 
-  const renderItem = (
-    profile: GitProfile,
-    _isSelected: boolean,
-    _actions: Array<{ onClick: () => void; icon?: React.ReactNode; ariaLabel?: string }>,
-  ) => (
+  const renderItem = (profile: GitProfile) => (
     <>
-      <div className={styles.itemContent}>
+      <button type="button" className={styles.itemContent} onClick={() => onApplyProfile(profile.id)}>
         <code>
           {profile.emoji ? `${profile.emoji} ` : ""}
           {profile.name}
         </code>
         <span>{profile.email}</span>
         {activeProfileId === profile.id && <span className={styles.activeBadge}>{t("active")}</span>}
-      </div>
+      </button>
       <div className={styles.itemActions}>
         <button
           type="button"
           className={styles.actionBtn}
-          onClick={(e) => {
-            e.stopPropagation()
-            onApplyProfile(profile.id)
-          }}
+          onClick={() => onApplyProfile(profile.id)}
           title={t("useProfile")}
           aria-label={t("useProfile")}
         >
@@ -51,10 +44,7 @@ export function ProfileList({ profiles, activeProfileId, onApplyProfile, onRemov
         <button
           type="button"
           className={classnames(styles.actionBtn, styles.danger)}
-          onClick={(e) => {
-            e.stopPropagation()
-            onRemoveProfile(profile.id)
-          }}
+          onClick={() => onRemoveProfile(profile.id)}
           title={t("deleteProfile")}
           aria-label={t("deleteProfile")}
         >
@@ -71,15 +61,6 @@ export function ProfileList({ profiles, activeProfileId, onApplyProfile, onRemov
       currentPage={0}
       pageSize={PROFILES_PER_PAGE}
       onPageChange={() => {}}
-      onSelect={(id) => onApplyProfile(id)}
-      onAction={(id: string, action: string) => {
-        if (action === "run") {
-          onApplyProfile(id)
-        } else if (action === "delete") {
-          onRemoveProfile(id)
-        }
-      }}
-      isRunning={false}
       getItemId={(profile) => profile.id}
       renderItem={renderItem}
       emptyState={emptyState}

@@ -6,6 +6,7 @@ import type {
   ConflictBlock,
   ConflictFile,
   Identity,
+  RebaseOp,
   ReflogEntry,
   RemoteInfo,
   StashItem,
@@ -120,6 +121,12 @@ export const gitApi = {
   templateDelete: (repoPath: string, folder: string, name: string) =>
     invokeTyped<string>("git_template_delete", { repoPath, folder, name }),
   run: (repoPath: string, args: string[]) => invokeTyped<string>("git_run", { repoPath, args }),
+  rebaseCommits: (repoPath: string, onto: string) =>
+    invokeTyped<CommitInfo[]>("git_rebase_commits", { repoPath, onto }),
+  rebaseStart: (repoPath: string, onto: string, ops: RebaseOp[]) =>
+    invokeTyped<string>("git_rebase_start", { repoPath, onto, ops }),
+  rebaseContinue: (repoPath: string) => invokeTyped<string>("git_rebase_continue", { repoPath }),
+  rebaseAbort: (repoPath: string) => invokeTyped<string>("git_rebase_abort", { repoPath }),
   submodules: (repoPath: string) => invokeTyped<SubmoduleInfo[]>("git_submodule_list", { repoPath }),
   submoduleUpdate: (repoPath: string, submodulePath?: string) =>
     invokeTyped<string>("git_submodule_update", { repoPath, submodulePath }),

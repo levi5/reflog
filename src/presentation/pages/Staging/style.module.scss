@@ -21,6 +21,28 @@
     padding-bottom: 2px;
   }
 
+  .selBar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 10px;
+    margin: 6px 0;
+    border: 1px solid var(--faint);
+    border-radius: 8px;
+    background: var(--bg-raised);
+  }
+
+  .selCount {
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .selActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
 }
 
 .conflictSide {

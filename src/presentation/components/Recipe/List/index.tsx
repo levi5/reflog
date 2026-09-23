@@ -59,21 +59,18 @@ export function RecipeList({
 
   const renderItem = (recipe: AutomationRecipe) => (
     <>
-      <div className={styles.itemContent}>
+      <button type="button" className={styles.itemContent} onClick={() => onOpenRecipe(recipe.id)}>
         <span className={styles.recipeName}>{recipe.name}</span>
         <span className={styles.recipeMeta}>
           {recipe.steps.length} {t("steps").toLowerCase()}
         </span>
-      </div>
+      </button>
       <div className={styles.itemActions}>
         <button
           type="button"
           className={styles.actionBtn}
           disabled={isRunning || recipe.steps.length === 0}
-          onClick={(e) => {
-            e.stopPropagation()
-            onRunRecipe(recipe)
-          }}
+          onClick={() => onRunRecipe(recipe)}
           aria-label={t("runRecipe")}
           title={t("runRecipe")}
         >
@@ -82,10 +79,7 @@ export function RecipeList({
         <button
           type="button"
           className={classnames(styles.actionBtn, styles.danger)}
-          onClick={(e) => {
-            e.stopPropagation()
-            onDeleteRecipe(recipe.id)
-          }}
+          onClick={() => onDeleteRecipe(recipe.id)}
           aria-label={t("deleteRecipe")}
           title={t("deleteRecipe")}
         >
@@ -102,16 +96,6 @@ export function RecipeList({
       currentPage={currentPage}
       pageSize={RECIPES_PER_PAGE}
       onPageChange={onPageChange}
-      onSelect={onOpenRecipe}
-      onAction={(id, action) => {
-        if (action === "run") {
-          const recipe = recipes.find((r) => r.id === id)
-          if (recipe) onRunRecipe(recipe)
-        } else if (action === "delete") {
-          onDeleteRecipe(id)
-        }
-      }}
-      isRunning={isRunning}
       getItemId={(recipe) => recipe.id}
       renderItem={renderItem}
       emptyState={emptyState}

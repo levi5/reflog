@@ -2,6 +2,7 @@ import { _Either } from "funcio"
 import { useCallback } from "react"
 import { t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
+import type { RebaseOp } from "../../../types"
 import type { RepositoryActionDeps } from "./action-types"
 import { useGitAction } from "./useGitAction"
 
@@ -46,6 +47,24 @@ export function useGitActions(deps: RepositoryActionDeps) {
     [git, repo, gitAction],
   )
 
+  const rebaseStart = useCallback(
+    (onto: string, ops: RebaseOp[]) => {
+      if (!repo || !onto.trim() || ops.length === 0) return Promise.resolve()
+      return gitAction(() => git.rebaseStart(repo, onto.trim(), ops), "rebaseStarting", "rebaseCompleted")
+    },
+    [git, repo, gitAction],
+  )
+
+  const rebaseContinue = useCallback(
+    () => gitAction(() => git.rebaseContinue(repo), "rebaseContinuing", "rebaseCompleted"),
+    [git, repo, gitAction],
+  )
+
+  const rebaseAbort = useCallback(
+    () => gitAction(() => git.rebaseAbort(repo), "actionProcessing", "actionSuccess"),
+    [git, repo, gitAction],
+  )
+
   const resetBranch = useCallback(
     async (target: string, mode: "soft" | "mixed" | "hard" = "mixed") => {
       if (!repo || !target) return Promise.resolve()
@@ -87,5 +106,8 @@ export function useGitActions(deps: RepositoryActionDeps) {
     revertContinue,
     revertAbort,
     resetBranch,
+    rebaseStart,
+    rebaseContinue,
+    rebaseAbort,
   }
 }

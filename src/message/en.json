@@ -542,5 +542,19 @@
   "run": "Run",
   "delete": "Delete",
   "noItems": "No items",
-  "items": "Items"
+  "items": "Items",
+  "selectedFiles": "Selected files",
+  "selectedFilesCount": "{count} selected",
+  "stageSelected": "Stage",
+  "unstageSelected": "Unstage",
+  "discardSelected": "Discard",
+  "clearSelection": "Clear selection",
+  "discardSelectedConfirm": "Discard changes in these files? This cannot be undone.",
+  "rebaseOnto": "Rebase onto",
+  "rebaseStarting": "Starting rebase...",
+  "rebaseContinuing": "Continuing rebase...",
+  "rebaseCompleted": "Rebase completed.",
+  "rebaseNoCommits": "No commits in range.",
+  "rebaseLoad": "Load commits",
+  "rebaseContinue": "Continue rebase"
 }

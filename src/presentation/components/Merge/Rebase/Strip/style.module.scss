@@ -15,13 +15,6 @@
   flex-wrap: wrap;
 }
 
-.rebaseHint {
-  margin: 0;
-  padding: 0 12px 8px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
 .rebaseTitle {
   display: flex;
   align-items: center;
@@ -46,6 +39,68 @@
   flex-direction: column;
 }
 
+.rebaseBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 10px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--amber);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.08);
+  font-size: 12px;
+}
+
+.rebaseBannerActions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.rebaseOntoRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 4px;
+  flex-wrap: wrap;
+}
+
+.rebaseOntoLabel {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.rebaseOntoInput {
+  font: inherit;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--fg);
+  background: var(--bg-win);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 5px 8px;
+  min-width: 140px;
+}
+
+.rebaseError {
+  margin: 4px 12px 0;
+  color: var(--red);
+  font-size: 11.5px;
+}
+
+.rebaseFoot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 12px;
+}
+
+.rebaseMove {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .rebaseRow {
   display: flex;
   gap: 8px;
@@ -64,11 +119,6 @@
 .rebaseRow code {
   color: var(--muted);
   font-family: var(--mono);
-}
-
-.drag {
-  color: var(--faint);
-  display: inline-flex;
 }
 
 .rok {
@@ -110,18 +160,6 @@
   border: 1px solid transparent;
   background: rgba(78, 222, 163, 0.14);
   color: var(--green);
-}
-
-.toneEdit {
-  border-radius: 4px;
-  font-size: 10px;
-  font-family: var(--mono);
-  padding: 2px 6px;
-  min-width: 76px;
-  justify-content: space-between;
-  border: 1px solid transparent;
-  background: rgba(49, 49, 192, 0.25);
-  color: var(--violet);
 }
 
 .toneSquash {

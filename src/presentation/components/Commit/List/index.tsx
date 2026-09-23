@@ -58,55 +58,46 @@ function CommitItem({
 }: CommitItemProps) {
   const { t } = useTranslation()
   return (
-    // biome-ignore lint/a11y/useSemanticElements: commit row contains nested amend button; div+role avoids nested <button>
-    <div
-      className={classnames(styles.commit, isSelected && styles.selected)}
-      onClick={() => onSelect?.(row.commit)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onSelect?.(row.commit)
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      aria-pressed={isSelected}
-      aria-label={row.commit.message}
-    >
-      {showGraph && <Icon.Graph.Cell row={row} lanes={laneCount} className={styles.graph} />}
-      <div className={classnames(styles.info, !showGraph && styles.infoNoGraph)}>
-        <div className={styles.first}>
-          {parseRefs(row.commit.refs).map((ref) => (
-            <CommitRefBadge
-              key={`${ref.kind}-${ref.label}`}
-              refKind={ref.kind}
-              refLabel={ref.label}
-              currentBranchName={currentBranchName}
-            />
-          ))}
-          <b title={row.commit.message}>{row.commit.message}</b>
-          {showAmendButton && onAmend && (
-            <button
-              type="button"
-              className={styles.amendBtn}
-              onClick={(event) => {
-                event.stopPropagation()
-                onAmend(row.commit)
-              }}
-              title={t("amendCommit")}
-              aria-label={t("amendCommit")}
-            >
-              <Edit size={14} />
-            </button>
-          )}
+    <div className={classnames(styles.commit, isSelected && styles.selected)}>
+      <button
+        type="button"
+        className={styles.selectBtn}
+        onClick={() => onSelect?.(row.commit)}
+        aria-pressed={isSelected}
+        aria-label={row.commit.message}
+      >
+        {showGraph && <Icon.Graph.Cell row={row} lanes={laneCount} className={styles.graph} />}
+        <div className={classnames(styles.info, !showGraph && styles.infoNoGraph)}>
+          <div className={styles.first}>
+            {parseRefs(row.commit.refs).map((ref) => (
+              <CommitRefBadge
+                key={`${ref.kind}-${ref.label}`}
+                refKind={ref.kind}
+                refLabel={ref.label}
+                currentBranchName={currentBranchName}
+              />
+            ))}
+            <b title={row.commit.message}>{row.commit.message}</b>
+          </div>
+          <div className={styles.second}>
+            <code>{row.commit.short}</code>
+            <span>
+              {row.commit.author} · {row.commit.date}
+            </span>
+          </div>
         </div>
-        <div className={styles.second}>
-          <code>{row.commit.short}</code>
-          <span>
-            {row.commit.author} · {row.commit.date}
-          </span>
-        </div>
-      </div>
+      </button>
+      {showAmendButton && onAmend && (
+        <button
+          type="button"
+          className={styles.amendBtn}
+          onClick={() => onAmend(row.commit)}
+          title={t("amendCommit")}
+          aria-label={t("amendCommit")}
+        >
+          <Edit size={14} />
+        </button>
+      )}
     </div>
   )
 }

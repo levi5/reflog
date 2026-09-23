@@ -52,17 +52,13 @@ export function TemplateList({
 
   const emptyState = <p className={styles.emptyHint}>{t("templateEmpty")}</p>
 
-  const renderItem = (
-    doc: TemplateDoc,
-    _isSelected: boolean,
-    _actions: Array<{ onClick: () => void; icon?: React.ReactNode; disabled?: boolean; ariaLabel?: string }>,
-  ) => {
+  const renderItem = (doc: TemplateDoc) => {
     const isActive = prefs.templateId === doc.id
     const hasActions = doc.source === "repo" && Boolean(onDeleteTemplate)
 
     return (
       <>
-        <div className={styles.itemContent}>
+        <button type="button" className={styles.itemContent} onClick={() => onSelectDoc(doc)}>
           <div className={styles.templateIcon}>
             {doc.source === "builtin" ? <Sparkles size={15} /> : <FileCode size={15} />}
           </div>
@@ -78,16 +74,13 @@ export function TemplateList({
               <Check size={10} /> {t("templateActive")}
             </span>
           )}
-        </div>
+        </button>
         {hasActions && (
           <div className={styles.itemActions}>
             <button
               type="button"
               className={classnames(styles.actionBtn, styles.danger)}
-              onClick={(e) => {
-                e.stopPropagation()
-                onDeleteTemplate?.(doc)
-              }}
+              onClick={() => onDeleteTemplate?.(doc)}
               aria-label={t("templateDelete")}
             >
               <Trash2 size={15} />
@@ -105,17 +98,6 @@ export function TemplateList({
       currentPage={currentPage}
       pageSize={TEMPLATES_PER_PAGE}
       onPageChange={onPageChange}
-      onSelect={(id) => {
-        const doc = docs.find((d) => d.id === id)
-        if (doc) onSelectDoc(doc)
-      }}
-      onAction={(id, action) => {
-        if (action === "delete") {
-          const doc = docs.find((d) => d.id === id)
-          if (doc && onDeleteTemplate) onDeleteTemplate(doc)
-        }
-      }}
-      isRunning={false}
       getItemId={(doc) => doc.id}
       renderItem={renderItem}
       emptyState={emptyState}

@@ -5,6 +5,7 @@ import type {
   ConflictBlock,
   ConflictFile,
   Identity,
+  RebaseOp,
   ReflogEntry,
   RemoteInfo,
   StashItem,
@@ -44,6 +45,10 @@ export interface IGitApi {
   reset(repoPath: string, target: string, mode?: "soft" | "mixed" | "hard"): Promise<string>
   mergeOpts(repoPath: string, branch: string, squash: boolean, noFf: boolean): Promise<string>
   mergeAbort(repoPath: string): Promise<string>
+  rebaseCommits(repoPath: string, onto: string): Promise<CommitInfo[]>
+  rebaseStart(repoPath: string, onto: string, ops: RebaseOp[]): Promise<string>
+  rebaseContinue(repoPath: string): Promise<string>
+  rebaseAbort(repoPath: string): Promise<string>
   fetch(repoPath: string, prune?: boolean): Promise<string>
   pull(repoPath: string): Promise<string>
   push(repoPath: string): Promise<string>

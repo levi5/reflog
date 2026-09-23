@@ -135,6 +135,10 @@ pub fn run() {
             commands::meta::git_remote_url,
             commands::meta::git_gpg,
             commands::submodules::git_submodule_update,
+            commands::rebase::git_rebase_commits,
+            commands::rebase::git_rebase_start,
+            commands::rebase::git_rebase_continue,
+            commands::rebase::git_rebase_abort,
 
             commands::meta::git_clone,
         ])

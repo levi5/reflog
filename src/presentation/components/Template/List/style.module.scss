@@ -46,6 +46,12 @@
   background: transparent;
   flex: 1;
   min-width: 0;
+  font: inherit;
+  color: inherit;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
 .templateIcon {

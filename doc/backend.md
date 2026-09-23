@@ -171,6 +171,8 @@ Registered in `lib.rs` via `tauri::generate_handler![]`.
 
 #### Sync (`commands/sync.rs`)
 
+#### Sync (`commands/sync.rs`)
+
 | Command | Description |
 | --------- | ------------- |
 | `git_merge_opts` | Merge branch (plain / `--squash` / `--no-ff`) |
@@ -184,6 +186,21 @@ Registered in `lib.rs` via `tauri::generate_handler![]`.
 | `git_stash_drop` | Drop stash |
 | `git_stash_show` | Show stash contents |
 | `git_stash_apply` | Apply stash |
+
+#### Rebase (`commands/rebase.rs`)
+
+| Command | Description |
+| --------- | ------------- |
+| `git_rebase_commits` | List commits in `onto..HEAD` for the todo editor |
+| `git_rebase_start` | Run `rebase -i` with scripted `GIT_SEQUENCE_EDITOR` (pick/squash/fixup/drop) |
+| `git_rebase_continue` | Continue after resolving conflicts |
+| `git_rebase_abort` | Abort rebase |
+
+`rebase_start` validates that the submitted op hashes match the live
+`onto..HEAD` set, writes the todo + a `cat`-over-`$1` editor script to
+the system temp dir (Unix only, `0o700`), and cleans both up afterwards.
+`status` reports `rebasing: true` while `rebase-merge/` or `rebase-apply/`
+exists under the git dir.
 
 #### Refs (`commands/refs.rs`)
 
@@ -324,6 +341,7 @@ pub struct StatusResult {
     pub merging: bool,
     pub cherry_picking: bool, // serialized as cherryPicking
     pub reverting: bool,
+    pub rebasing: bool, // #[serde(default)] for back-compat
 }
 ```
 

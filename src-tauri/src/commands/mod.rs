@@ -2,6 +2,7 @@ pub mod files;
 pub mod history;
 pub mod meta;
 pub mod playground;
+pub mod rebase;
 pub mod refs;
 pub mod repo;
 pub mod staging;

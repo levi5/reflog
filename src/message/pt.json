@@ -542,5 +542,19 @@
   "run": "Executar",
   "delete": "Excluir",
   "noItems": "Sem itens",
-  "items": "Itens"
+  "items": "Itens",
+  "selectedFiles": "Arquivos selecionados",
+  "selectedFilesCount": "{count} selecionados",
+  "stageSelected": "Indexar",
+  "unstageSelected": "Desindexar",
+  "discardSelected": "Descartar",
+  "clearSelection": "Limpar seleção",
+  "discardSelectedConfirm": "Descartar mudanças nestes arquivos? Não há como desfazer.",
+  "rebaseOnto": "Rebasear sobre",
+  "rebaseStarting": "Iniciando rebase...",
+  "rebaseContinuing": "Continuando rebase...",
+  "rebaseCompleted": "Rebase concluído.",
+  "rebaseNoCommits": "Nenhum commit no intervalo.",
+  "rebaseLoad": "Carregar commits",
+  "rebaseContinue": "Continuar rebase"
 }

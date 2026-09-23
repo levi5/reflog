@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
 import { Merge } from "../../components/Merge"
@@ -7,9 +7,11 @@ import { Resizable } from "@/presentation/components/Resizable"
 
 import { applyChoiceToContent, matchesQuery, parseConflicts } from "../../../main/adapters"
 import { t } from "../../../i18n"
+import { gitApi } from "../../../infrastructure/git"
 import { useRepo, useSettingsContext } from "../../context"
 import type { AppOutletContext } from "../../layout/App"
 import type { Choice } from "../../../domain/entities/conflict/conflicts"
+import type { CommitInfo, RebaseOp } from "../../../types"
 
 export function MergePage() {
   const { lang } = useSettingsContext()
@@ -26,6 +28,47 @@ export function MergePage() {
   const select = (path: string) => {
     repo.selectConflictFile(path)
     setHunkIndex(0)
+  }
+  const currentBranch = repo.status?.branch ?? ""
+  const localBranches = repo.branches.filter((b) => !b.remote).map((b) => b.name)
+  const defaultOnto =
+    repo.branches.find((b) => b.name === currentBranch)?.upstream ??
+    (localBranches.includes("main")
+      ? "main"
+      : localBranches.includes("master")
+        ? "master"
+        : (localBranches.find((b) => b !== currentBranch) ?? "main"))
+  const [rebaseCommits, setRebaseCommits] = useState<CommitInfo[]>([])
+  const [rebaseLoading, setRebaseLoading] = useState(false)
+  const [rebaseError, setRebaseError] = useState<string | null>(null)
+
+  const loadRebaseCommits = useCallback(
+    async (onto: string) => {
+      if (!repo.repo || !onto.trim()) return
+      setRebaseLoading(true)
+      setRebaseError(null)
+      try {
+        setRebaseCommits(await gitApi.rebaseCommits(repo.repo, onto.trim()))
+      } catch (e) {
+        setRebaseCommits([])
+        setRebaseError(e instanceof Error ? e.message : String(e))
+      } finally {
+        setRebaseLoading(false)
+      }
+    },
+    [repo.repo],
+  )
+
+  useEffect(() => {
+    if (showRebase && repo.repo) {
+      void loadRebaseCommits(defaultOnto)
+    }
+  }, [showRebase, repo.repo, defaultOnto, loadRebaseCommits])
+
+  const applyRebase = (onto: string, ops: RebaseOp[]) => {
+    void repo.rebaseStart(onto, ops).then(() => {
+      if (repo.repo) void loadRebaseCommits(onto)
+    })
   }
 
   useEffect(() => {
@@ -80,7 +123,20 @@ export function MergePage() {
             />
           )}
           {showRebase && (
-            <Merge.Rebase.Strip branch={repo.status?.branch ?? ""} log={repo.log} onClose={toggleRebase} />
+            <Merge.Rebase.Strip
+              branch={repo.status?.branch ?? ""}
+              defaultOnto={defaultOnto}
+              commits={rebaseCommits}
+              loading={rebaseLoading}
+              error={rebaseError}
+              rebasing={repo.status?.rebasing ?? false}
+              busy={repo.busy}
+              onLoad={(onto) => void loadRebaseCommits(onto)}
+              onApply={applyRebase}
+              onContinue={() => void repo.rebaseContinue()}
+              onAbort={() => void repo.rebaseAbort()}
+              onClose={toggleRebase}
+            />
           )}
         </>
       }

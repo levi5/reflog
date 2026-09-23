@@ -1,5 +1,4 @@
-import type { KeyboardEvent } from "react"
-import { Play, Plus, Zap } from "lucide-react"
+import { Play, Plus, Trash2, Zap } from "lucide-react"
 
 import { List } from "@/presentation/components/List"
 
@@ -57,25 +56,9 @@ export function MonitorsList({
     </div>
   )
 
-  const handleItemKeyDown = (event: KeyboardEvent<HTMLButtonElement>, monitor: MonitorAutomation) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault()
-      onSelectMonitor(monitor)
-    }
-  }
-
-  const renderItem = (
-    monitor: MonitorAutomation,
-    _isSelected: boolean,
-    _actions: Array<{ onClick: () => void; disabled?: boolean; ariaLabel?: string }>,
-  ) => (
+  const renderItem = (monitor: MonitorAutomation, _isSelected: boolean) => (
     <>
-      <button
-        type="button"
-        className={styles.itemContent}
-        onClick={() => onSelectMonitor(monitor)}
-        onKeyDown={(e) => handleItemKeyDown(e, monitor)}
-      >
+      <button type="button" className={styles.itemContent} onClick={() => onSelectMonitor(monitor)}>
         <span className={styles.monitorColor} style={{ background: monitor.color }} />
         <span>
           <strong>{monitor.name || t("unnamed")}</strong>
@@ -89,13 +72,18 @@ export function MonitorsList({
           type="button"
           className={styles.actionBtn}
           disabled={isRunning || monitor.blocks.length === 0}
-          onClick={(e) => {
-            e.stopPropagation()
-            onRunMonitor(monitor)
-          }}
+          onClick={() => onRunMonitor(monitor)}
           aria-label={t("saveAndRun")}
         >
           <Play size={15} />
+        </button>
+        <button
+          type="button"
+          className={styles.actionBtn}
+          onClick={() => onDeleteMonitor(monitor.id)}
+          aria-label={t("delete")}
+        >
+          <Trash2 size={15} />
         </button>
       </div>
     </>
@@ -108,19 +96,6 @@ export function MonitorsList({
       currentPage={currentPage}
       pageSize={MONITORS_PER_PAGE}
       onPageChange={onPageChange}
-      onSelect={(id) => {
-        const monitor = monitors.find((m) => m.id === id)
-        if (monitor) onSelectMonitor(monitor)
-      }}
-      onAction={(id, action) => {
-        if (action === "run") {
-          const monitor = monitors.find((m) => m.id === id)
-          if (monitor) onRunMonitor(monitor)
-        } else if (action === "delete") {
-          onDeleteMonitor(id)
-        }
-      }}
-      isRunning={isRunning}
       getItemId={(monitor) => monitor.id}
       renderItem={renderItem}
       emptyState={emptyState}

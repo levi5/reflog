@@ -1,5 +1,5 @@
 import { Archive, Boxes, Cloud, FileDiff, GitBranch, Tag as TagIcon } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Navigate } from "react-router-dom"
 import { matchesQuery } from "../../../main/adapters"
 import { t } from "../../../i18n"
@@ -19,8 +19,10 @@ import { Tag } from "../../components/Tag"
 import { _Maybe, _Object } from "funcio"
 import { useRepo, useSearch, useSettingsContext } from "../../context"
 import { useResizable } from "../../hooks"
+import { useFileSelection } from "../../hooks/staging/use-file-selection"
 import type { FileStatus } from "@/types"
 import type { TabItem } from "../../../types/components"
+import { SelectionToolbar } from "./SelectionToolbar"
 
 import styles from "./style.module.scss"
 
@@ -54,6 +56,19 @@ export function Staging(_props: Props) {
         .getOrElse([]) as FileStatus[],
     [repo, query, scope],
   )
+  const orderedPaths = useMemo(() => files.map((file) => file.path), [files])
+  const selection = useFileSelection(orderedPaths, repo.repo)
+
+  const runBatch = useCallback(
+    (work: (paths: string[]) => Promise<unknown>) => {
+      const paths = [...selection.checked]
+      if (paths.length === 0) return
+      selection.clear()
+      void work(paths)
+    },
+    [selection],
+  )
+
   const branches = useMemo(
     () =>
       scope === "files" || scope === "commits"
@@ -144,6 +159,15 @@ export function Staging(_props: Props) {
               />
             </div>
             <SearchBox placeholder={t(lang, "searchPh")} />
+            {tab === "files" && (
+              <SelectionToolbar
+                count={selection.checked.size}
+                onStage={() => runBatch(repo.stageFiles)}
+                onUnstage={() => runBatch(repo.unstageFiles)}
+                onDiscard={() => runBatch(repo.discardFiles)}
+                onClear={selection.clear}
+              />
+            )}
           </Flex.Col>
           {tab === "files" && (
             <Status.File
@@ -151,6 +175,7 @@ export function Staging(_props: Props) {
               selectedFilePath={repo.selectedFile}
               detailed
               onSelect={(filePath, staged) => repo.selectDiff(filePath, staged)}
+              selection={{ checked: selection.checked, onToggle: selection.toggle }}
             />
           )}
           {tab === "branches" && (

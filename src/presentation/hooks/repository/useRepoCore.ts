@@ -229,6 +229,9 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     revertContinue: gitActions.revertContinue,
     revertAbort: gitActions.revertAbort,
     resetBranch: gitActions.resetBranch,
+    rebaseStart: gitActions.rebaseStart,
+    rebaseContinue: gitActions.rebaseContinue,
+    rebaseAbort: gitActions.rebaseAbort,
     loadCommitFiles,
     loadCommitDiff,
 

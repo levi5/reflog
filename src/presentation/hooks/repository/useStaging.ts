@@ -118,8 +118,11 @@ export function useStaging(deps: StagingDeps) {
     }
   }, [repo, setMsg])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: clear a previously selected file when changing repositories
+  const repoRef = useRef(repo)
+
   useEffect(() => {
+    if (repoRef.current === repo) return
+    repoRef.current = repo
     diffRequestRef.current += 1
     setSelectedFile("")
     setDiff("")
@@ -194,7 +197,6 @@ export function useStaging(deps: StagingDeps) {
   const discardFile = async (file: string) => {
     if (!repo || !file) return Promise.resolve()
     if (!(await requestConfirm(t(lang, "discard"), t(lang, "discardConfirm")))) return Promise.resolve()
-    // Discard only changes in the working tree and retain a patch for undo.
     const captured = await _Either.try.async(() => gitApi.diff(repo, file, false))
     const undoPatch = captured.isRight() ? String(captured.value ?? "") : ""
     return runAction(
@@ -229,6 +231,51 @@ export function useStaging(deps: StagingDeps) {
       successMessage: t(lang, "stageSuccess"),
     })
 
+  const stageFiles = (files: string[]) => {
+    if (!repo || files.length === 0) return Promise.resolve()
+    return runAction(() => gitApi.add(repo, files), reloadDiff, {
+      loadingMessage: t(lang, "staging"),
+      successMessage: t(lang, "stageSuccess"),
+    })
+  }
+
+  const unstageFiles = (files: string[]) => {
+    if (!repo || files.length === 0) return Promise.resolve()
+    return runAction(
+      async () => {
+        for (const file of files) {
+          await gitApi.unstage(repo, file)
+        }
+        return ""
+      },
+      reloadDiff,
+      {
+        loadingMessage: t(lang, "unstaging"),
+        successMessage: t(lang, "unstageSuccess"),
+      },
+    )
+  }
+
+  const discardFiles = async (files: string[]) => {
+    if (!repo || files.length === 0) return Promise.resolve()
+    if (!(await requestConfirm(t(lang, "discard"), t(lang, "discardSelectedConfirm")))) {
+      return Promise.resolve()
+    }
+    return runAction(
+      async () => {
+        for (const file of files) {
+          await gitApi.discard(repo, file)
+        }
+        return ""
+      },
+      reloadDiff,
+      {
+        loadingMessage: t(lang, "discarding"),
+        successMessage: t(lang, "discarded"),
+      },
+    )
+  }
+
   const reloadDiff = () => {
     if (selectedFile) void loadDiff(selectedFile, diffStaged)
   }
@@ -260,7 +307,6 @@ export function useStaging(deps: StagingDeps) {
   const discardHunk = async (patch: string) => {
     if (!repo || !patch.trim()) return Promise.resolve()
     if (!(await requestConfirm(t(lang, "discard"), t(lang, "discardConfirm")))) return Promise.resolve()
-    // Reapplying the original patch restores the discarded hunk.
     return runAction(() => gitApi.applyPatch(repo, patch, false, true), reloadDiff, {
       loadingMessage: t(lang, "discardHunkLoading"),
       successMessage: t(lang, "discardHunkSuccess"),
@@ -328,6 +374,9 @@ export function useStaging(deps: StagingDeps) {
     stageSelected,
     unstageSelected,
     stageAll,
+    stageFiles,
+    unstageFiles,
+    discardFiles,
     editingFile: editor.editingFile,
     editContent: editor.editContent,
     editDraft: editor.editDraft,

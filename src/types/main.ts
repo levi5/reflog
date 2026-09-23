@@ -15,6 +15,7 @@ export interface StatusResult {
   merging: boolean
   cherryPicking: boolean
   reverting: boolean
+  rebasing: boolean
 }
 
 export interface BranchInfo {
@@ -102,6 +103,13 @@ export interface ConflictFile {
 }
 
 export type Lang = "pt" | "en"
+
+export type RebaseOpAction = "pick" | "squash" | "fixup" | "drop"
+
+export interface RebaseOp {
+  hash: string
+  action: RebaseOpAction
+}
 
 export type Theme = "dark" | "light" | "glass-dark" | "glass-light"
 

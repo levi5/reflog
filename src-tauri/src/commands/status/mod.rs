@@ -62,6 +62,8 @@ pub fn status_of(
     let merging = runner.path_exists(&git_state_path(runner, &root, "MERGE_HEAD"));
     let cherry = runner.path_exists(&git_state_path(runner, &root, "CHERRY_PICK_HEAD"));
     let revert = runner.path_exists(&git_state_path(runner, &root, "REVERT_HEAD"));
+    let rebasing = runner.path_exists(&git_state_path(runner, &root, "rebase-merge"))
+        || runner.path_exists(&git_state_path(runner, &root, "rebase-apply"));
 
     Ok(StatusResult {
         root,
@@ -72,6 +74,7 @@ pub fn status_of(
         merging,
         cherry_picking: cherry,
         reverting: revert,
+        rebasing,
     })
 }
 
@@ -119,7 +122,6 @@ mod tests {
         assert_eq!(v.files[1].unmerged, true);
         assert_eq!(v.files[2].staged, false);
     }
-
     #[test]
     fn keeps_initial_branch_for_unborn_repository() {
         let runner = MockRunner::new(
@@ -128,10 +130,36 @@ mod tests {
                 ("rev-parse --git-path MERGE_HEAD", "/r/.git/MERGE_HEAD"),
                 ("rev-parse --git-path CHERRY_PICK_HEAD", "/r/.git/CHERRY_PICK_HEAD"),
                 ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
+                ("rev-parse --git-path rebase-merge", "/r/.git/rebase-merge"),
+                ("rev-parse --git-path rebase-apply", "/r/.git/rebase-apply"),
                 ("status --porcelain=v1 -z -b -uall", "## No commits yet on main\0"),
             ],
             &[],
         );
         assert_eq!(status_of(&runner, "/r").unwrap().branch, "main");
+    }
+
+    #[test]
+    fn detects_rebase_in_progress() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("rev-parse --abbrev-ref HEAD", "main"),
+                ("rev-parse --git-path MERGE_HEAD", "/r/.git/MERGE_HEAD"),
+                ("rev-parse --git-path CHERRY_PICK_HEAD", "/r/.git/CHERRY_PICK_HEAD"),
+                ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
+                ("rev-parse --git-path rebase-merge", "/r/.git/rebase-merge"),
+                ("rev-parse --git-path rebase-apply", "/r/.git/rebase-apply"),
+                (
+                    "status --porcelain=v1 -z -b -uall",
+                    "## main...origin/main\0",
+                ),
+            ],
+            &[],
+        )
+        .with_existing(&["/r/.git/rebase-merge"]);
+        let status = status_of(&runner, "/r").unwrap();
+        assert!(status.rebasing);
+        assert!(!status.merging);
     }
 }
