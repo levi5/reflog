@@ -135,6 +135,8 @@ impl ProcessRunner {
 
         if stdin_input.is_some() {
             cmd.stdin(std::process::Stdio::piped());
+        } else {
+            cmd.stdin(std::process::Stdio::null());
         }
         cmd.stdout(std::process::Stdio::piped());
         cmd.stderr(std::process::Stdio::piped());
@@ -178,8 +180,8 @@ impl ProcessRunner {
                     if idle_duration >= exec_timeout || total_duration >= max_absolute_timeout {
                         let _ = child.kill();
                         let _ = child.wait();
-                        drop(stdout_reader);
-                        drop(stderr_reader);
+                        let _ = stdout_reader.join();
+                        let _ = stderr_reader.join();
                         return Err("git excedeu o tempo limite".to_string());
                     }
                 }
@@ -314,7 +316,7 @@ mod tests {
     fn times_out_on_unresponsive_command() {
         let result = ProcessRunner.execute(
             None,
-            &["check-ignore", "--stdin"],
+            &["-c", "alias.sleep=!sleep 5", "sleep"],
             None,
             None,
             Duration::from_millis(250),

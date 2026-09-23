@@ -63,20 +63,27 @@ export function useResizable({ axis, initial, min, max, storageKey, invert }: Op
       if (e.button !== 0) return
       e.currentTarget.setPointerCapture?.(e.pointerId)
       const startPos = axis === "x" ? e.clientX : e.clientY
+      const startSize = size
       const dir = invert ? -1 : 1
-      let current = size
+      let current = startSize
+      let disposed = false
       const move = (ev: PointerEvent) => {
+        if (disposed) return
         const pos = axis === "x" ? ev.clientX : ev.clientY
-        current = clampSize(size + (pos - startPos) * dir)
+        current = clampSize(startSize + (pos - startPos) * dir)
         setSize(current)
       }
       const up = () => {
+        if (disposed) return
+        disposed = true
         debouncedPersistSize(storageKey, current)
         window.removeEventListener("pointermove", move)
         window.removeEventListener("pointerup", up)
+        window.removeEventListener("pointercancel", up)
       }
       window.addEventListener("pointermove", move)
       window.addEventListener("pointerup", up)
+      window.addEventListener("pointercancel", up)
     },
     [axis, clampSize, invert, size, storageKey],
   )

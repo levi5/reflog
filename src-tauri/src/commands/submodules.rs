@@ -7,17 +7,30 @@ use tauri::State;
 pub fn parse_submodule_status(out: &str) -> Vec<(String, String, String)> {
     let mut rows = vec![];
     for line in out.lines() {
-        if line.len() < 42 {
+        let bytes = line.as_bytes();
+        if bytes.len() < 42 {
             continue;
         }
-        let state = line[0..1].to_string();
-        let hash = line[1..41].trim().to_string();
-        let rest = line[41..].trim();
-        let path = rest.split_whitespace().next().unwrap_or("").to_string();
+        let (Some(state), Some(hash), Some(rest)) = (
+            bytes.get(0..1),
+            bytes.get(1..41),
+            bytes.get(41..),
+        ) else {
+            continue;
+        };
+        let (Ok(state), Ok(hash), Ok(rest)) = (
+            std::str::from_utf8(state),
+            std::str::from_utf8(hash),
+            std::str::from_utf8(rest),
+        ) else {
+            continue;
+        };
+        let hash = hash.trim().to_string();
+        let path = rest.trim().split_whitespace().next().unwrap_or("").to_string();
         if hash.is_empty() || path.is_empty() {
             continue;
         }
-        rows.push((state, hash, path));
+        rows.push((state.to_string(), hash, path));
     }
     rows
 }
@@ -90,9 +103,11 @@ pub fn submodule_update(
     let root = runner.repo_root(repo_path)?;
     match submodule_path {
         Some(p) if !p.trim().is_empty() => {
+            crate::commands::validation::validate_repo_relative_path(p.trim())?;
+            let owned = p.trim().to_string();
             runner.run_with_timeout(
                 Some(&root),
-                &["submodule", "update", "--init", "--recursive", "--progress", "--", &p],
+                &["submodule", "update", "--init", "--recursive", "--progress", "--", &owned],
                 NETWORK_TIMEOUT,
             )
         }

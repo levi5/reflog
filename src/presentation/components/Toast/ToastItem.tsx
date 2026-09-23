@@ -1,5 +1,6 @@
 import classnames from "classnames"
 import { AlertCircle, CheckCircle2, Info, Loader2, MessageSquare, X } from "lucide-react"
+import { useTranslation } from "../../context"
 import type { MessageItem as MessageItemType, MessageType } from "../../context"
 import styles from "./styles.module.scss"
 
@@ -32,9 +33,11 @@ function ToastIcon({ type }: { type: MessageType }) {
 
 export function ToastItemView({ message, onDismiss }: ToastItemProps) {
   const { id, type, title, text, action } = message
+  const { t } = useTranslation()
+  const role = type === "error" ? "alert" : "status"
 
   return (
-    <div className={classnames(styles.toastItem, styles[type])} role="alert" aria-live="polite">
+    <div className={classnames(styles.toastItem, styles[type])} role={role} aria-live="polite">
       <div className={styles.iconWrapper}>
         <ToastIcon type={type} />
       </div>
@@ -54,7 +57,7 @@ export function ToastItemView({ message, onDismiss }: ToastItemProps) {
           </button>
         )}
       </div>
-      <button type="button" className={styles.closeButton} onClick={() => onDismiss(id)} aria-label="Close message">
+      <button type="button" className={styles.closeButton} onClick={() => onDismiss(id)} aria-label={t("close")}>
         <X size={14} />
       </button>
     </div>

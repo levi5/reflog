@@ -2,6 +2,7 @@ import classnames from "classnames"
 import { X } from "lucide-react"
 import { type ReactNode, type RefObject, useId, useLayoutEffect, useRef } from "react"
 import { createPortal } from "react-dom"
+import { useTranslation } from "../../context"
 import styles from "./style.module.scss"
 
 interface Props {
@@ -32,6 +33,7 @@ export function Modal({
   const closeRef = useRef<HTMLButtonElement>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const { t } = useTranslation()
 
   useLayoutEffect(() => {
     if (!open) return
@@ -41,7 +43,7 @@ export function Modal({
     const target =
       initialFocus?.current ??
       boxRef.current?.querySelector<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"]), [tabIndex]:not([tabIndex="-1"])',
       ) ??
       closeRef.current
     target?.focus()
@@ -49,6 +51,21 @@ export function Modal({
       if (e.key === "Escape") {
         e.preventDefault()
         onCloseRef.current()
+      }
+      if (e.key === "Tab" && boxRef.current) {
+        const focusables = boxRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"]), [tabIndex]:not([tabIndex="-1"])',
+        )
+        if (focusables.length === 0) return
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
       }
     }
     document.addEventListener("keydown", onKey)
@@ -80,7 +97,7 @@ export function Modal({
       >
         <div className={styles.head}>
           <h4 id={titleId}>{title}</h4>
-          <button ref={closeRef} type="button" className="mini-btn" onClick={onClose} aria-label="close">
+          <button ref={closeRef} type="button" className="mini-btn" onClick={onClose} aria-label={t("close")}>
             <X size={13} />
           </button>
         </div>

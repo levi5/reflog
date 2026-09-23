@@ -1,8 +1,21 @@
+pub fn validate_repo_path(path: &str) -> Result<(), String> {
+    if path.is_empty()
+        || path.contains('\0')
+        || path.contains('\n')
+        || path.len() > 4096
+    {
+        return Err("caminho do repositório inválido".to_string());
+    }
+    Ok(())
+}
+
 pub fn validate_repo_relative_path(path: &str) -> Result<(), String> {
     if path.is_empty()
         || path.starts_with('/')
         || path.contains("..")
         || path.contains('\0')
+        || path.contains('\n')
+        || path.len() > 4096
     {
         return Err("caminho relativo inválido".to_string());
     }
@@ -12,9 +25,23 @@ pub fn validate_repo_relative_path(path: &str) -> Result<(), String> {
 pub fn validate_ref_name(name: &str) -> Result<(), String> {
     if name.is_empty()
         || name.starts_with('-')
+        || name.starts_with('.')
         || name.contains(' ')
         || name.contains('\0')
         || name.contains('\n')
+        || name.contains("..")
+        || name.contains('~')
+        || name.contains('^')
+        || name.contains(':')
+        || name.contains('?')
+        || name.contains('*')
+        || name.contains('[')
+        || name.contains('@')
+        || name.contains('\\')
+        || name.ends_with('.')
+        || name.ends_with(".lock")
+        || name.contains("//")
+        || name.len() > 256
     {
         return Err("nome de ref inválido".to_string());
     }
@@ -26,7 +53,11 @@ pub fn validate_commit_oid(oid: &str) -> Result<(), String> {
         || oid.starts_with('-')
         || oid.contains(' ')
         || oid.contains('\0')
+        || oid.contains('\n')
         || oid.len() > 64
+        || !oid
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.' || c == '/' || c == '~' || c == '^')
     {
         return Err("OID de commit inválido".to_string());
     }
@@ -51,6 +82,15 @@ pub fn validate_clone_url(url: &str) -> Result<(), String> {
         || url.contains('\0')
         || url.contains('\n')
         || url.len() > 2048
+    {
+        return Err("URL de clone inválida".to_string());
+    }
+    let lower = url.to_ascii_lowercase();
+    if lower.starts_with("ext::")
+        || lower.starts_with("fd::")
+        || lower.starts_with("ext ")
+        || url.starts_with(';')
+        || url.starts_with('|')
     {
         return Err("URL de clone inválida".to_string());
     }
@@ -94,7 +134,7 @@ pub fn validate_config_key(key: &str) -> Result<(), String> {
 }
 
 pub fn validate_config_value(value: &str) -> Result<(), String> {
-    if value.contains('\0') || value.contains('\n') {
+    if value.contains('\0') || value.contains('\n') || value.starts_with('-') {
         return Err("valor de configuração inválido".to_string());
     }
     Ok(())

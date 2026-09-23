@@ -1,13 +1,21 @@
 # API Reference (Tauri Commands)
 
 All functions are invoked via `@tauri-apps/api/core` `invoke()`.
+Argument names must match the Rust parameter names exactly.
 
 ```ts
 import { invoke } from '@tauri-apps/api/core'
 
 // Example
-const status = await invoke<GitStatus>('git_status', { repoPath: '/path/to/repo' })
+const status = await invoke<StatusResult>('git_status', { repoPath: '/path/to/repo' })
 ```
+
+> The typed wrapper for every command below lives in `src/infrastructure/git/`
+> (see the `IGitApi` interface in `src/infrastructure/git/types.ts`).
+> Most commands run on a background thread via `run_blocking`
+> (`spawn_blocking`); the exceptions are `get_file_content`,
+> `save_file_content`, `get_conflicted_files`, `parse_conflicts`,
+> `git_template_*` and `take_cli_path`, which execute synchronously.
 
 ---
 
@@ -47,6 +55,17 @@ invoke<string>('init_repo', { path: string })
 
 ---
 
+### `take_cli_path`
+
+Returns the repository path passed on the command line
+(`reflog <path>`), if any, and clears it. Takes no arguments.
+
+```ts
+invoke<string | null>('take_cli_path', {})
+```
+
+---
+
 ## Status
 
 ### `git_status`
@@ -54,7 +73,7 @@ invoke<string>('init_repo', { path: string })
 Full working tree status.
 
 ```ts
-interface GitStatus {
+interface StatusResult {
   root: string
   branch: string
   ahead: number
@@ -73,7 +92,7 @@ interface FileStatus {
   unmerged: boolean
 }
 
-invoke<GitStatus>('git_status', { repoPath: string })
+invoke<StatusResult>('git_status', { repoPath: string })
 ```
 
 ---
@@ -85,38 +104,48 @@ invoke<GitStatus>('git_status', { repoPath: string })
 Lists all branches (local and remote).
 
 ```ts
-interface Branch {
+interface BranchInfo {
   name: string
-  isCurrent: boolean
-  isRemote: boolean
+  current: boolean
+  remote: boolean
+  ahead: number
+  behind: number
   upstream?: string
-  commitHash: string
-  commitMessage: string
 }
 
-invoke<Branch[]>('git_branches', { repo: string })
+invoke<BranchInfo[]>('git_branches', { repoPath: string })
 ```
 
 ---
 
 ## History - Log
 
-### `git_log`
+### `git_count`
 
-Paginated commit history.
+Total number of commits reachable from all refs.
 
 ```ts
-interface Commit {
+invoke<number>('git_count', { repoPath: string })
+```
+
+---
+
+### `git_log`
+
+Paginated commit history. `limit` defaults to 50 and is clamped to 1000.
+
+```ts
+interface CommitInfo {
   hash: string
   short: string
-  message: string
   author: string
-  parents: string[]
   date: string
+  message: string
+  parents: string[]
   refs: string[] // branch names, tags
 }
 
-invoke<Commit[]>('git_log', { repoPath: string, limit?: number, skip?: number })
+invoke<CommitInfo[]>('git_log', { repoPath: string, limit?: number, skip?: number })
 ```
 
 ---
@@ -124,27 +153,29 @@ invoke<Commit[]>('git_log', { repoPath: string, limit?: number, skip?: number })
 ### `git_graph`
 
 Commits used by the graph visualization.
+Same shape as `git_log`; `limit` defaults to 100 (clamped to 1000).
 
 ```ts
-invoke<Commit[]>('git_graph', { repoPath: string, limit?: number, skip?: number })
+invoke<CommitInfo[]>('git_graph', { repoPath: string, limit?: number, skip?: number })
 ```
 
 ---
 
 ### `git_reflog`
 
-Reference log (HEAD movements).
+Reference log (HEAD movements). `limit` defaults to 50 (clamped to 1000).
 
 ```ts
 interface ReflogEntry {
   hash: string
-  shortHash: string
-  action: string // 'commit', 'checkout', 'reset', 'merge', etc.
-  message: string
+  short: string
+  selector: string // e.g. 'HEAD@{0}'
+  action: string
+  author: string
   date: string
 }
 
-invoke<ReflogEntry[]>('git_reflog', { repo: string, limit?: number })
+invoke<ReflogEntry[]>('git_reflog', { repoPath: string, limit?: number, skip?: number })
 ```
 
 ---
@@ -156,20 +187,20 @@ invoke<ReflogEntry[]>('git_reflog', { repo: string, limit?: number })
 Files changed in a commit.
 
 ```ts
-interface CommitFile {
-  path: string
+interface CommitFileChange {
   status: string // A, M, D, R100, C100, etc.
-  oldPath?: string // for renames
+  path: string
+  oldPath?: string // for renames/copies
 }
 
-invoke<CommitFile[]>('git_commit_files', { repoPath: string, rev: string })
+invoke<CommitFileChange[]>('git_commit_files', { repoPath: string, rev: string })
 ```
 
 ---
 
 ### `git_commit_diff`
 
-Raw unified diff for a commit or one file in that commit.
+Raw unified diff for a whole commit, or for one file in that commit.
 
 ```ts
 invoke<string>('git_commit_diff', { repoPath: string, rev: string, file?: string })
@@ -189,48 +220,30 @@ invoke<string>('git_diff', { repoPath: string, file: string, staged: boolean })
 
 ### `git_show`
 
-Content of a file at a specific commit.
+`--stat` summary of a commit.
 
 ```ts
-invoke<string>('git_show', { repo: string, revision: string, path: string })
-// revision: 'HEAD', 'abc123', 'HEAD~1', 'branch:name'
+invoke<string>('git_show', { repoPath: string, rev: string })
 ```
 
 ---
 
 ### `git_blame`
 
-Line-by-line annotation.
+`blame --line-porcelain` output for a file, as raw text.
 
 ```ts
-interface BlameLine {
-  lineNumber: number
-  content: string
-  commitHash: string
-  author: string
-  authorEmail: string
-  date: string
-  summary: string
-}
-
-invoke<BlameLine[]>('git_blame', { repo: string, path: string, startLine?: number, endLine?: number })
+invoke<string>('git_blame', { repoPath: string, file: string })
 ```
 
 ---
 
 ### `git_ls_files`
 
-Lists tracked files.
+Lists tracked files (paths only).
 
 ```ts
-interface LsFile {
-  path: string
-  mode: string
-  stage: number
-  hash: string
-}
-
-invoke<LsFile[]>('git_ls_files', { repo: string, cached?: boolean })
+invoke<string[]>('git_ls_files', { repoPath: string })
 ```
 
 ---
@@ -239,11 +252,10 @@ invoke<LsFile[]>('git_ls_files', { repo: string, cached?: boolean })
 
 ### `git_add`
 
-Stage files.
+Stage files. An empty array stages everything (`add -A`).
 
 ```ts
-invoke<void>('git_add', { repo: string, files: string[] })
-// files: ['file.txt', 'dir/'] or ['.'] for all
+invoke<string>('git_add', { repoPath: string, files: string[] })
 ```
 
 ---
@@ -253,11 +265,11 @@ invoke<void>('git_add', { repo: string, files: string[] })
 Creates a commit.
 
 ```ts
-invoke<void>('git_commit', {
-  repo: string,
+invoke<string>('git_commit', {
+  repoPath: string,
   message: string,
-  amend?: boolean,
-  author?: { name: string; email: string }
+  signoff: boolean,
+  sign: boolean
 })
 ```
 
@@ -265,13 +277,14 @@ invoke<void>('git_commit', {
 
 ### `git_amend_commit`
 
-Amends the last commit.
+Amends the last commit. Same arguments as `git_commit`.
 
 ```ts
-invoke<void>('git_amend_commit', {
-  repo: string,
+invoke<string>('git_amend_commit', {
+  repoPath: string,
   message: string,
-  noEdit?: boolean
+  signoff: boolean,
+  sign: boolean
 })
 ```
 
@@ -279,28 +292,20 @@ invoke<void>('git_amend_commit', {
 
 ### `git_checkout`
 
-Checkout branch, commit, or file.
+Checkout a branch. Set `create` to create it (`checkout -b`).
 
 ```ts
-interface CheckoutOptions {
-  repo: string
-  target: string        // branch name, commit hash, or 'HEAD'
-  paths?: string[]      // if empty, checkout branch/commit
-  createBranch?: boolean // -b
-  force?: boolean        // -f
-}
-
-invoke<void>('git_checkout', options: CheckoutOptions)
+invoke<string>('git_checkout', { repoPath: string, branch: string, create: boolean })
 ```
 
 ---
 
 ### `git_cherry_pick`
 
-Cherry-pick commit(s).
+Cherry-pick a commit.
 
 ```ts
-invoke<void>('git_cherry_pick', { repo: string, commit: string })
+invoke<string>('git_cherry_pick', { repoPath: string, hash: string })
 ```
 
 ### `git_cherry_pick_continue`
@@ -308,7 +313,7 @@ invoke<void>('git_cherry_pick', { repo: string, commit: string })
 Continues after resolving conflicts.
 
 ```ts
-invoke<void>('git_cherry_pick_continue', { repo: string })
+invoke<string>('git_cherry_pick_continue', { repoPath: string })
 ```
 
 ### `git_cherry_pick_abort`
@@ -316,79 +321,75 @@ invoke<void>('git_cherry_pick_continue', { repo: string })
 Aborts cherry-pick.
 
 ```ts
-invoke<void>('git_cherry_pick_abort', { repo: string })
+invoke<string>('git_cherry_pick_abort', { repoPath: string })
 ```
 
 ---
 
 ### `git_revert`
 
-Reverts a commit.
+Reverts a commit (`--no-edit`).
 
 ```ts
-invoke<void>('git_revert', {
-  repo: string,
-  commit: string,
-  noCommit?: boolean // -n
-})
+invoke<string>('git_revert', { repoPath: string, hash: string })
 ```
 
 ### `git_revert_continue` / `git_revert_abort`
 
 ```ts
-invoke<void>('git_revert_continue', { repo: string })
-invoke<void>('git_revert_abort', { repo: string })
+invoke<string>('git_revert_continue', { repoPath: string })
+invoke<string>('git_revert_abort', { repoPath: string })
 ```
 
 ---
 
 ### `git_reset`
 
-Reset (soft/mixed/hard).
+Reset to a target (`--soft`, `--mixed` or `--hard`).
 
 ```ts
-interface ResetOptions {
-  repo: string
-  mode: 'soft' | 'mixed' | 'hard'
-  target?: string // commit hash, default HEAD
-  paths?: string[] // for mixed: unstage specific files
-}
-
-invoke<void>('git_reset', options: ResetOptions)
+invoke<string>('git_reset', {
+  repoPath: string,
+  target: string,
+  mode: string // 'soft' | 'mixed' | 'hard'
+})
 ```
 
 ---
 
 ### `git_unstage`
 
-Unstage files (equivalent to `reset HEAD -- <files>`).
+Unstage one file (equivalent to `reset HEAD -- <file>`).
 
 ```ts
-invoke<void>('git_unstage', { repo: string, files: string[] })
+invoke<string>('git_unstage', { repoPath: string, file: string })
 ```
 
 ---
 
 ### `git_discard`
 
-Discards changes in working tree.
+Discards changes in one working-tree file
+(`restore` with fallback to `checkout -- <file>`).
 
 ```ts
-invoke<void>('git_discard', { repo: string, files: string[] })
-// files: ['file.txt'] or ['.'] for all
+invoke<string>('git_discard', { repoPath: string, file: string })
 ```
 
 ---
 
 ### `git_apply_patch`
 
-Applies a patch.
+Applies a patch from a string via stdin
+(`apply --unidiff-zero -`, plus `--cached` / `--reverse` when set).
+Patches larger than 5 MiB are rejected.
 
 ```ts
-invoke<void>('git_apply_patch', {
-  repo: string,
+invoke<string>('git_apply_patch', {
+  repoPath: string,
   patch: string,
-  check?: boolean // --check only
+  cached: boolean,
+  reverse: boolean
 })
 ```
 
@@ -396,57 +397,50 @@ invoke<void>('git_apply_patch', {
 
 ## Sync
 
-### `git_push`
+### `git_merge_opts`
 
-Push to remote.
+Merge a branch into the current one.
+Exactly one of `squash` / `noFf` may be set.
 
 ```ts
-interface PushOptions {
-  repo: string
-  remote?: string      // default: 'origin'
-  branch?: string      // default: current branch
-  force?: boolean
-  forceWithLease?: boolean
-  tags?: boolean
-  setUpstream?: boolean
-}
+invoke<string>('git_merge_opts', {
+  repoPath: string,
+  branch: string,
+  squash: boolean,
+  noFf: boolean
+})
+```
 
-invoke<void>('git_push', options: PushOptions)
+---
+
+### `git_push`
+
+Push to the upstream. If the branch has no upstream yet,
+it retries once with `push -u origin <branch>`.
+
+```ts
+invoke<string>('git_push', { repoPath: string })
 ```
 
 ---
 
 ### `git_pull`
 
-Pull from remote.
+Pull from the upstream. If no upstream is configured,
+it sets `origin/<branch>` as upstream and retries once.
 
 ```ts
-interface PullOptions {
-  repo: string
-  remote?: string
-  branch?: string
-  rebase?: boolean
-  noRebase?: boolean
-}
-
-invoke<void>('git_pull', options: PullOptions)
+invoke<string>('git_pull', { repoPath: string })
 ```
 
 ---
 
 ### `git_fetch`
 
-Fetch remotes.
+Fetch all remotes (`fetch --all`, plus `--prune` when set).
 
 ```ts
-interface FetchOptions {
-  repo: string
-  remote?: string        // default: all
-  prune?: boolean
-  tags?: boolean
-}
-
-invoke<void>('git_fetch', options: FetchOptions)
+invoke<string>('git_fetch', { repoPath: string, prune: boolean })
 ```
 
 ---
@@ -456,34 +450,28 @@ invoke<void>('git_fetch', options: FetchOptions)
 Aborts in-progress merge.
 
 ```ts
-invoke<void>('git_merge_abort', { repo: string })
+invoke<string>('git_merge_abort', { repoPath: string })
 ```
 
 ---
 
 ### `git_stash`
 
-Creates a stash.
+Creates a stash (always with `--include-untracked`).
+Pass an empty/missing message for no message.
 
 ```ts
-interface StashOptions {
-  repo: string
-  message?: string
-  includeUntracked?: boolean // -u
-  keepIndex?: boolean        // --keep-index
-}
-
-invoke<void>('git_stash', options: StashOptions)
+invoke<string>('git_stash', { repoPath: string, message?: string })
 ```
 
 ---
 
 ### `git_stash_pop`
 
-Pop stash (apply and remove).
+Pop stash (apply and remove the latest entry).
 
 ```ts
-invoke<void>('git_stash_pop', { repo: string, index?: number })
+invoke<string>('git_stash_pop', { repoPath: string })
 ```
 
 ---
@@ -493,49 +481,46 @@ invoke<void>('git_stash_pop', { repo: string, index?: number })
 Lists stashes.
 
 ```ts
-interface StashEntry {
+interface StashItem {
   index: number
-  message: string
-  branch: string
   hash: string
+  selector: string // e.g. 'stash@{0}'
+  message: string
+  author: string
   date: string
 }
 
-invoke<StashEntry[]>('git_stash_list', { repo: string })
-```
-
----
-
-### `git_stash_drop`
-
-Removes a stash.
-
-```ts
-invoke<void>('git_stash_drop', { repo: string, index: number })
+invoke<StashItem[]>('git_stash_list', { repoPath: string })
 ```
 
 ---
 
 ### `git_stash_show`
 
-Shows stash contents.
+Shows the diff of a stash entry (`stash show -p`).
 
 ```ts
-interface StashDiff {
-  files: FileDiff[]
-}
+invoke<string>('git_stash_show', { repoPath: string, index: number })
+```
 
-invoke<StashDiff>('git_stash_show', { repo: string, index: number })
+---
+
+### `git_stash_drop`
+
+Removes a stash entry.
+
+```ts
+invoke<string>('git_stash_drop', { repoPath: string, index: number })
 ```
 
 ---
 
 ### `git_stash_apply`
 
-Applies stash without removing.
+Applies a stash entry without removing it.
 
 ```ts
-invoke<void>('git_stash_apply', { repo: string, index: number })
+invoke<string>('git_stash_apply', { repoPath: string, index: number })
 ```
 
 ---
@@ -544,13 +529,13 @@ invoke<void>('git_stash_apply', { repo: string, index: number })
 
 ### `git_branch_delete`
 
-Deletes a branch.
+Deletes a branch (`-d`, or `-D` when `force` is set).
 
 ```ts
-invoke<void>('git_branch_delete', {
-  repo: string,
+invoke<string>('git_branch_delete', {
+  repoPath: string,
   name: string,
-  force?: boolean
+  force: boolean
 })
 ```
 
@@ -558,13 +543,13 @@ invoke<void>('git_branch_delete', {
 
 ### `git_branch_rename`
 
-Renames a branch.
+Renames a branch (`branch -m`).
 
 ```ts
-invoke<void>('git_branch_rename', {
-  repo: string,
-  oldName: string,
-  newName: string
+invoke<string>('git_branch_rename', {
+  repoPath: string,
+  old: string,
+  new: string
 })
 ```
 
@@ -574,37 +559,25 @@ invoke<void>('git_branch_rename', {
 
 ### `git_tag_list`
 
-Lists tags.
+Lists tag names (sorted by creation date, newest first).
 
 ```ts
-interface Tag {
-  name: string
-  hash: string
-  message?: string
-  tagger?: Signature
-  date?: string
-}
-
-invoke<Tag[]>('git_tag_list', { repo: string, pattern?: string })
+invoke<string[]>('git_tag_list', { repoPath: string })
 ```
 
 ---
 
 ### `git_tag_create`
 
-Creates a tag.
+Creates a lightweight tag, or an annotated tag (`-a -m`)
+when a non-empty `message` is given.
 
 ```ts
-interface TagCreateOptions {
-  repo: string
-  name: string
-  target?: string      // commit hash, default HEAD
-  message?: string     // annotated tag
-  force?: boolean
-  sign?: boolean       // -s
-}
-
-invoke<void>('git_tag_create', options: TagCreateOptions)
+invoke<string>('git_tag_create', {
+  repoPath: string,
+  name: string,
+  message?: string
+})
 ```
 
 ---
@@ -614,7 +587,7 @@ invoke<void>('git_tag_create', options: TagCreateOptions)
 Deletes a tag.
 
 ```ts
-invoke<void>('git_tag_delete', { repo: string, name: string })
+invoke<string>('git_tag_delete', { repoPath: string, name: string })
 ```
 
 ---
@@ -623,17 +596,15 @@ invoke<void>('git_tag_delete', { repo: string, name: string })
 
 ### `git_remote_list`
 
-Lists remotes.
+Lists remotes (fetch URLs, deduplicated by name).
 
 ```ts
-interface Remote {
+interface RemoteInfo {
   name: string
   url: string
-  fetchUrl?: string
-  pushUrl?: string
 }
 
-invoke<Remote[]>('git_remote_list', { repo: string })
+invoke<RemoteInfo[]>('git_remote_list', { repoPath: string })
 ```
 
 ---
@@ -643,7 +614,7 @@ invoke<Remote[]>('git_remote_list', { repo: string })
 Adds a remote.
 
 ```ts
-invoke<void>('git_remote_add', { repo: string, name: string, url: string })
+invoke<string>('git_remote_add', { repoPath: string, name: string, url: string })
 ```
 
 ---
@@ -653,7 +624,7 @@ invoke<void>('git_remote_add', { repo: string, name: string, url: string })
 Removes a remote.
 
 ```ts
-invoke<void>('git_remote_remove', { repo: string, name: string })
+invoke<string>('git_remote_remove', { repoPath: string, name: string })
 ```
 
 ---
@@ -662,24 +633,27 @@ invoke<void>('git_remote_remove', { repo: string, name: string })
 
 ### `git_config_get`
 
-Gets a config value.
+Gets a config value. Only allowlisted keys are accepted
+(see `ALLOWED_CONFIG_KEYS` in `commands/validation.rs`).
+Set `global` to read from `~/.gitconfig` instead of the repo.
 
 ```ts
-invoke<string>('git_config_get', { repo: string, key: string, scope?: 'local' | 'global' | 'system' })
+invoke<string>('git_config_get', { repoPath: string, key: string, global: boolean })
 ```
 
 ---
 
 ### `git_config_set`
 
-Sets a config value.
+Sets a config value (allowlisted keys only).
+An empty value unsets the key.
 
 ```ts
-invoke<void>('git_config_set', {
-  repo: string,
+invoke<string>('git_config_set', {
+  repoPath: string,
   key: string,
   value: string,
-  scope?: 'local' | 'global'
+  global: boolean
 })
 ```
 
@@ -687,7 +661,7 @@ invoke<void>('git_config_set', {
 
 ### `git_identity`
 
-User identity (name, email).
+User identity (name, email), repo scope with global fallback.
 
 ```ts
 interface Identity {
@@ -695,14 +669,14 @@ interface Identity {
   email: string
 }
 
-invoke<Identity>('git_identity', { repo: string })
+invoke<Identity>('git_identity', { repoPath: string })
 ```
 
 ---
 
 ### `git_version`
 
-Installed Git version.
+Installed Git version (e.g. `git version 2.43.0`).
 
 ```ts
 invoke<string>('git_version', {})
@@ -712,45 +686,32 @@ invoke<string>('git_version', {})
 
 ### `git_remote_url`
 
-Remote URL.
+URL of the `origin` remote (`""` when not configured).
 
 ```ts
-invoke<string>('git_remote_url', { repo: string, remote?: string })
+invoke<string>('git_remote_url', { repoPath: string })
 ```
 
 ---
 
 ### `git_gpg`
 
-GPG operations.
+Short GPG status of `HEAD` (`log -1 --pretty=%G?`):
+`G` (valid), `U` (unknown key), `N` (not signed), etc.
 
 ```ts
-interface GpgKey {
-  keyId: string
-  userId: string
-  created: string
-  expires?: string
-}
-
-invoke<GpgKey[]>('git_gpg', { repo: string, action: 'list' | 'sign' | 'verify', data?: string })
+invoke<string>('git_gpg', { repoPath: string })
 ```
 
 ---
 
 ### `git_clone`
 
-Clones a repository.
+Clones a repository (`clone --progress -- <url> <path>`).
+URLs using the `ext::` / `fd::` schemes are rejected.
 
 ```ts
-interface CloneOptions {
-  url: string
-  path: string
-  branch?: string
-  depth?: number
-  recursive?: boolean
-}
-
-invoke<void>('git_clone', options: CloneOptions)
+invoke<string>('git_clone', { url: string, path: string })
 ```
 
 ---
@@ -759,30 +720,22 @@ invoke<void>('git_clone', options: CloneOptions)
 
 ### `get_file_content`
 
-Reads a file from working tree.
+Reads a file from the working tree.
+The path must be repo-relative (no `..`, no absolute paths)
+and is canonicalized to stay inside the repository.
 
 ```ts
-invoke<string>('get_file_content', { repo: string, path: string })
+invoke<string>('get_file_content', { repoPath: string, file: string })
 ```
 
 ---
 
 ### `save_file_content`
 
-Saves a file to working tree.
+Saves a file to the working tree (same path rules as above).
 
 ```ts
-invoke<void>('save_file_content', { repo: string, path: string, content: string })
-```
-
----
-
-### `write_text_file`
-
-Writes a file (creates directories if needed).
-
-```ts
-invoke<void>('write_text_file', { path: string, content: string })
+invoke<void>('save_file_content', { repoPath: string, file: string, content: string })
 ```
 
 ---
@@ -791,83 +744,58 @@ invoke<void>('write_text_file', { path: string, content: string })
 
 ### `get_conflicted_files`
 
-Lists files with conflicts.
+Lists files with unresolved conflicts (`diff --diff-filter=U`),
+each with its content and parsed conflict hunks.
 
 ```ts
-interface ConflictedFile {
-  path: string
-  ours: string
-  theirs: string
-  base?: string
+interface ConflictBlock {
+  id: number
+  startLine: number
+  midLine?: number
+  baseStart?: number
+  baseEnd?: number
+  endLine: number
+  currentLabel: string
+  incomingLabel: string
+  current: string[]
+  base: string[]
+  incoming: string[]
+  isDiff3: boolean
 }
 
-invoke<ConflictedFile[]>('get_conflicted_files', { repo: string })
+interface ConflictFile {
+  path: string
+  absPath: string
+  content: string
+  conflicts: ConflictBlock[]
+}
+
+invoke<ConflictFile[]>('get_conflicted_files', { repoPath: string })
 ```
 
 ---
 
 ### `parse_conflicts`
 
-Parses conflict markers in a file.
+Parses conflict markers in a text (pure function, no repo needed).
 
 ```ts
-interface ConflictHunk {
-  startLine: number
-  endLine: number
-  ours: string[]
-  theirs: string[]
-  base?: string[]
-}
-
-invoke<ConflictHunk[]>('parse_conflicts', { repo: string, path: string })
+invoke<ConflictBlock[]>('parse_conflicts', { content: string })
 ```
 
 ---
 
 ## Templates
 
-### `git_template_list`
-
-Lists commit templates.
-
-```ts
-interface CommitTemplate {
-  name: string
-  content: string
-  isDefault: boolean
-}
-
-invoke<CommitTemplate[]>('git_template_list', { repo: string })
-```
-
----
-
-### `git_template_read`
-
-Reads a template.
+Commit templates stored as files under
+`.reflog/templates/<folder>/` in the repository.
+`list` returns template names; `read`/`write` transfer content.
 
 ```ts
-invoke<string>('git_template_read', { repo: string, name: string })
-```
-
----
-
-### `git_template_write`
-
-Writes a template.
-
-```ts
-invoke<void>('git_template_write', { repo: string, name: string, content: string })
-```
-
----
-
-### `git_template_delete`
-
-Deletes a template.
-
-```ts
-invoke<void>('git_template_delete', { repo: string, name: string })
+invoke<string[]>('git_template_list', { repoPath: string, folder: string })
+invoke<string>('git_template_read', { repoPath: string, folder: string, name: string })
+invoke<string>('git_template_write', { repoPath: string, folder: string, name: string, content: string })
+invoke<string>('git_template_delete', { repoPath: string, folder: string, name: string })
 ```
 
 ---
@@ -876,34 +804,31 @@ invoke<void>('git_template_delete', { repo: string, name: string })
 
 ### `git_submodule_list`
 
-Lists submodules.
+Lists submodules with status flag (`' '`, `-`, `+`, `U`),
+commit hash, path, name, URL and branch.
 
 ```ts
-interface Submodule {
+interface SubmoduleInfo {
   name: string
   path: string
   url: string
-  branch?: string
-  commit: string
-  status: 'uninitialized' | 'modified' | 'clean'
+  branch: string
+  hash: string
+  state: string
 }
 
-invoke<Submodule[]>('git_submodule_list', { repo: string })
+invoke<SubmoduleInfo[]>('git_submodule_list', { repoPath: string })
 ```
 
 ---
 
 ### `git_submodule_update`
 
-Updates submodules.
+Updates submodules (`update --init --recursive`).
+Pass `submodulePath` to update a single submodule (repo-relative path).
 
 ```ts
-invoke<void>('git_submodule_update', {
-  repo: string,
-  init?: boolean,
-  recursive?: boolean,
-  remote?: boolean
-})
+invoke<string>('git_submodule_update', { repoPath: string, submodulePath?: string })
 ```
 
 ---
@@ -912,44 +837,19 @@ invoke<void>('git_submodule_update', {
 
 ### `git_run`
 
-Executes arbitrary Git command (debug).
+Executes an allowlisted Git command for the console/debug UI.
+Only verbs in `ALLOWED` (`log`, `status`, `branch`, `diff`, …) are
+accepted; dangerous flags (`--hard`, `--force`, `--output`, `--upload-pack`,
+`-f`, `-c`, …) and shell metacharacters are rejected.
 
 ```ts
-invoke<string>('git_run', { repo: string, args: string[] })
+invoke<string>('git_run', { repoPath: string, args: string[] })
 // Example: ['log', '--oneline', '-10']
 ```
 
 ---
 
-## Common Types (TypeScript)
-
-```ts
-// src/types/tauri.ts
-export interface TauriError {
-  message: string
-  code?: string
-}
-
-export interface PaginatedResponse<T> {
-  items: T[]
-  total: number
-  hasMore: boolean
-}
-
-// Helper for invocation with error handling
-export async function invokeSafe<T>(command: string, args?: Record<string, unknown>): Promise<T> {
-  try {
-    return await invoke<T>(command, args)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Tauri command '${command}' failed: ${message}`)
-  }
-}
-```
-
----
-
-## Common Error Codes
+## Common Error Cases
 
 | Error | Cause |
 | ------- | ------- |
@@ -958,5 +858,8 @@ export async function invokeSafe<T>(command: string, args?: Record<string, unkno
 | `uncommitted changes` | Operation requires clean working tree |
 | `merge conflict` | Unresolved conflict |
 | `nothing to commit` | Staging area empty |
-| `permission denied` | File/SSH permissions |
-| `authentication failed` | Invalid Git credentials |
+| `caminho relativo inválido` | File path failed validation |
+| `nome de ref inválido` | Branch/tag name failed validation |
+| `chave de configuração não permitida` | Config key not in allowlist |
+| `saída do git excede o limite permitido` | Output exceeded the byte limit |
+| `git excedeu o tempo limite` | Command exceeded the timeout |

@@ -14,10 +14,12 @@ interface UseMatchNavigatorOptions {
 export function useMatchNavigator({ matchedHashes, layout, viewport }: UseMatchNavigatorOptions) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [trackedHashes, setTrackedHashes] = useState(matchedHashes)
-  if (trackedHashes !== matchedHashes) {
-    setTrackedHashes(matchedHashes)
-    setActiveIndex(0)
-  }
+  useEffect(() => {
+    if (trackedHashes !== matchedHashes) {
+      setTrackedHashes(matchedHashes)
+      setActiveIndex(0)
+    }
+  }, [matchedHashes, trackedHashes])
   const matchCount = matchedHashes.length
 
   const goNext = useCallback(() => {

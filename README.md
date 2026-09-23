@@ -12,7 +12,7 @@ A modern desktop Git client built with **Tauri 2**, **React 19**, and **Rust** �
 ![Tauri](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-2021-f74c00?style=flat-square&logo=rust&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-7-3178c6?style=flat-square&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-6-646cff?style=flat-square&logo=vite&logoColor=white)
 ![Biome](https://img.shields.io/badge/Formatter-Biome-60a5fa?style=flat-square&logo=biome&logoColor=white)
 
@@ -40,7 +40,7 @@ A modern desktop Git client built with **Tauri 2**, **React 19**, and **Rust** �
 | Tech | Version | Purpose |
 | ------ | --------- | --------- |
 | ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white) | 19 | UI library |
-| ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white) | 5 | Type safety |
+| ![TypeScript](https://img.shields.io/badge/TypeScript-7-3178c6?logo=typescript&logoColor=white) | 7 | Type safety |
 | ![Vite](https://img.shields.io/badge/Vite-6-646cff?logo=vite&logoColor=white) | 6 | Build tool & dev server |
 | ![React Router](https://img.shields.io/badge/React_Router-7-ca4245?logo=reactrouter&logoColor=white) | 7 | Routing |
 | ![Sass](https://img.shields.io/badge/Sass-1-cc6699?logo=sass&logoColor=white) | 1 | Styling |
@@ -99,6 +99,16 @@ reflog/
 
 ## ⚡ Quick Start
 
+### Prerequisites
+
+| Tool | Version | Notes |
+| ---- | ------- | ----- |
+| Node.js | 24 (see `.nvmrc`) | `nvm use` — Vitest and the build require a current Node |
+| pnpm | 10.16.1 | `corepack enable` or `npm i -g pnpm` |
+| Rust | stable | via [rustup](https://rustup.rs) |
+| Git | 2.x | Must be on `PATH` — the backend shells out to it |
+| Tauri system deps | per OS | See [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) (WebKitGTK on Linux, etc.) |
+
 ```bash
 # Install dependencies
 pnpm install
@@ -134,7 +144,7 @@ reflog .
 | `pnpm tauri build` | Build native binaries |
 | `pnpm lint` | Run Biome linter |
 | `pnpm lint:fix` | Auto-fix lint issues |
-| `pnpm test` | Run Vitest unit tests |
+| `pnpm test` | Run Vitest unit tests (requires Node 24) |
 
 ---
 
@@ -152,8 +162,8 @@ reflog .
 - **Trait-based Rust backend** — `GitRunner` trait for testability (mock runner in tests)
 - **Type-safe IPC** — Full TypeScript definitions for all Tauri commands
 - **Blocking operations handled correctly** — `spawn_blocking` for Git commands
-- **Security-first** — No shell injection, path validation, scoped FS access
-- **Performance** — LTO, stripped binaries, lazy-loaded routes, virtualized lists
+- **Security-first** — No shell (argv arrays), `--` separators, input validators, config allowlist, output caps, timeouts
+- **Performance** — LTO, stripped binaries, lazy-loaded routes, paginated lists
 
 ---
 

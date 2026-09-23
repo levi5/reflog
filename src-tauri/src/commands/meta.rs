@@ -40,10 +40,10 @@ fn get_key(
     global: bool,
 ) -> String {
     let scoped = if global || repo_path.trim().is_empty() {
-        runner.run(None, &["config", "--global", "--get", key])
+        runner.run(None, &["config", "--global", "--get", "--", key])
     } else {
         match runner.repo_root(repo_path) {
-            Ok(root) => runner.run(Some(&root), &["config", "--get", key]),
+            Ok(root) => runner.run(Some(&root), &["config", "--get", "--", key]),
             Err(_) => return String::new(),
         }
     };
@@ -56,6 +56,7 @@ pub fn config_get(
     key: &str,
     global: bool,
 ) -> Result<String, String> {
+    validate_config_key(key)?;
     Ok(get_key(runner, repo_path, key, global))
 }
 
@@ -73,10 +74,10 @@ pub fn config_set(
         return unset_key(runner, repo_path, key, scoped_global);
     }
     if scoped_global {
-        return runner.run(None, &["config", "--global", key, value]);
+        return runner.run(None, &["config", "--global", "--", key, value]);
     }
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["config", key, value])
+    runner.run(Some(&root), &["config", "--", key, value])
 }
 
 fn unset_key(
@@ -87,12 +88,12 @@ fn unset_key(
 ) -> Result<String, String> {
     if global {
         return runner
-            .run(None, &["config", "--global", "--unset", key])
+            .run(None, &["config", "--global", "--unset", "--", key])
             .map(|_| String::new());
     }
     let root = runner.repo_root(repo_path)?;
     runner
-        .run(Some(&root), &["config", "--unset", key])
+        .run(Some(&root), &["config", "--unset", "--", key])
         .map(|_| String::new())
 }
 

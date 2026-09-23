@@ -83,9 +83,9 @@ pub fn checkout(
     validate_ref_name(branch)?;
     let root = runner.repo_root(repo_path)?;
     if create {
-        return runner.run(Some(&root), &["checkout", "-b", branch]);
+        return runner.run(Some(&root), &["checkout", "-b", "--", branch]);
     }
-    runner.run(Some(&root), &["checkout", branch])
+    runner.run(Some(&root), &["checkout", "--", branch])
 }
 
 pub fn unstage(
@@ -139,7 +139,7 @@ pub fn apply_patch(
 pub fn cherry_pick(runner: &dyn GitRunner, repo_path: &str, hash: &str) -> Result<String, String> {
     validate_commit_oid(hash)?;
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["cherry-pick", hash])
+    runner.run(Some(&root), &["cherry-pick", "--", hash])
 }
 
 pub fn cherry_pick_continue(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
@@ -155,7 +155,7 @@ pub fn cherry_pick_abort(runner: &dyn GitRunner, repo_path: &str) -> Result<Stri
 pub fn revert(runner: &dyn GitRunner, repo_path: &str, hash: &str) -> Result<String, String> {
     validate_commit_oid(hash)?;
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["revert", "--no-edit", hash])
+    runner.run(Some(&root), &["revert", "--no-edit", "--", hash])
 }
 
 pub fn revert_continue(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
@@ -177,7 +177,7 @@ pub fn reset(runner: &dyn GitRunner, repo_path: &str, target: &str, mode: &str) 
         _ => return Err("modo de reset inválido".to_string()),
     };
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["reset", flag, target])
+    runner.run(Some(&root), &["reset", flag, "--", target])
 }
 
 
@@ -337,8 +337,8 @@ mod tests {
         let runner = MockRunner::new(
             &[
                 ("rev-parse --show-toplevel", "/r"),
-                ("checkout fix/c", "Switched to branch 'fix/c'"),
-                ("checkout -b feature/new", "Switched to a new branch 'feature/new'"),
+                ("checkout -- fix/c", "Switched to branch 'fix/c'"),
+                ("checkout -b -- feature/new", "Switched to a new branch 'feature/new'"),
             ],
             &[],
         );

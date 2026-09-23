@@ -56,9 +56,9 @@ pub fn tag_create(
     let root = runner.repo_root(repo_path)?;
     match message {
         Some(m) if !m.trim().is_empty() => {
-            runner.run(Some(&root), &["tag", "-a", name, "-m", &m])
+            runner.run(Some(&root), &["tag", "-a", "--", name, "-m", &m])
         }
-        _ => runner.run(Some(&root), &["tag", name]),
+        _ => runner.run(Some(&root), &["tag", "--", name]),
     }
 }
 
@@ -107,7 +107,7 @@ pub fn remote_add(
         return Err("nome ou URL do remoto vazio".to_string());
     }
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["remote", "add", name, url])
+    runner.run(Some(&root), &["remote", "add", "--", name, url])
 }
 
 pub fn remote_remove(
@@ -117,7 +117,7 @@ pub fn remote_remove(
 ) -> Result<String, String> {
     validate_remote_name(name)?;
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["remote", "remove", name])
+    runner.run(Some(&root), &["remote", "remove", "--", name])
 }
 
 #[tauri::command]

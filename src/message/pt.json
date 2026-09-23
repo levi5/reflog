@@ -538,5 +538,9 @@
   "filesChanged": "Arquivos Alterados",
   "noStashes": "Nenhum stash encontrado.",
   "noSubmodules": "Nenhum submódulo encontrado.",
-  "saveStash": "Salvar Stash"
+  "saveStash": "Salvar Stash",
+  "run": "Executar",
+  "delete": "Excluir",
+  "noItems": "Sem itens",
+  "items": "Itens"
 }

@@ -1,4 +1,5 @@
 import { save } from "@tauri-apps/plugin-dialog"
+import { writeTextFile } from "@tauri-apps/plugin-fs"
 import type { AutomationRecipe } from "../../../domain/entities/automations/automations"
 import { readAutomationImport } from "../../../data/use-cases/automations/automation-import-use-case"
 import { t } from "../../../i18n"
@@ -32,10 +33,7 @@ export function useAutomationTransfer({
         filters: [{ name: "TOML", extensions: ["toml"] }],
       })
       if (!targetPath) return
-      await save(tomlContent, {
-        defaultPath: targetPath,
-        filters: [{ name: "TOML", extensions: ["toml"] }],
-      })
+      await writeTextFile(targetPath, tomlContent)
       setFeedbackMessage("")
     } catch {
       setFeedbackMessage(t(lang, "exportError"))

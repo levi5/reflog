@@ -1,5 +1,6 @@
 import classnames from "classnames"
 import { Pagination } from "../../Pagination"
+import { useTranslation } from "../../../context"
 import type { ReactNode, KeyboardEvent } from "react"
 import styles from "./style.module.scss"
 
@@ -48,21 +49,22 @@ export function VirtualList<T>({
   const start = currentPage * pageSize
   const visibleItems = items.slice(start, start + pageSize)
   const totalPages = Math.ceil(items.length / pageSize)
+  const { t } = useTranslation()
 
   const buildActions = (itemId: string): ListAction[] => {
     if (!onAction) return []
     return [
       {
-        label: "Run",
+        label: t("run"),
         onClick: () => onAction(itemId, "run"),
         disabled: isRunning,
-        ariaLabel: "Run",
+        ariaLabel: t("run"),
       },
       {
-        label: "Delete",
+        label: t("delete"),
         onClick: () => onAction(itemId, "delete"),
         variant: "danger",
-        ariaLabel: "Delete",
+        ariaLabel: t("delete"),
       },
     ]
   }
@@ -82,20 +84,21 @@ export function VirtualList<T>({
       {items.length === 0 ? (
         (emptyState ?? (
           <div className={styles.emptyState}>
-            <p>No items</p>
+            <p>{t("noItems")}</p>
           </div>
         ))
       ) : (
         <>
-          <ul className={styles.listBody} aria-label="Items">
-            {visibleItems.map((item, index) => {
+          <ul className={styles.listBody} aria-label={t("items")}>
+            {visibleItems.map((item) => {
               const itemId = getItemId(item)
               const isSelected = itemId === selectedId
               return (
                 <li
                   key={itemId}
                   className={classnames(styles.listItem, itemClassName, isSelected && styles.selected)}
-                  tabIndex={index}
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: paginated list rows are keyboard-selectable
+                  tabIndex={0}
                   onClick={() => handleItemClick(itemId)}
                   onKeyDown={(e) => handleItemKeyDown(e, itemId)}
                 >

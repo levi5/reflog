@@ -31,6 +31,7 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
   const formattedRef = useRef("")
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
+  const lastExternalValueRef = useRef(value)
   const branchName = branch ?? ""
   const repo = repoPath ?? ""
   const { docs, identity } = useTemplateDocs(repo)
@@ -60,6 +61,15 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
   useEffect(() => {
     if (value !== formatted) onChangeRef.current(formatted)
   }, [formatted, value])
+
+  useEffect(() => {
+    if (value !== lastExternalValueRef.current) {
+      lastExternalValueRef.current = value
+      if (value !== formattedRef.current) {
+        setFields(value.trim() ? parseConventional(value) : { ...EMPTY_FIELDS })
+      }
+    }
+  }, [value])
 
   useEffect(() => {
     if (value === "") {

@@ -3,6 +3,17 @@ use crate::runner::GitRunner;
 use crate::AppState;
 use tauri::State;
 
+const MAX_LOG_LIMIT: usize = 1000;
+const MAX_LOG_OUTPUT_BYTES: usize = 2 * 1024 * 1024;
+
+fn clamp_limit(limit: Option<usize>, default: usize) -> usize {
+    limit.unwrap_or(default).min(MAX_LOG_LIMIT)
+}
+
+fn clamp_skip(skip: Option<usize>) -> usize {
+    skip.unwrap_or(0).min(100_000)
+}
+
 pub fn log_of(
     runner: &dyn GitRunner,
     repo_path: &str,
@@ -10,7 +21,7 @@ pub fn log_of(
     skip: Option<usize>,
 ) -> Result<Vec<CommitInfo>, String> {
     let root = runner.repo_root(repo_path)?;
-    let n = limit.unwrap_or(50).to_string();
+    let n = clamp_limit(limit, 50).to_string();
     let max_count = format!("--max-count={n}");
     let mut args: Vec<String> = vec![
         "log".to_string(),
@@ -19,13 +30,12 @@ pub fn log_of(
         "--pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s".to_string(),
         "--date=short".to_string(),
     ];
-    if let Some(s) = skip {
-        if s > 0 {
-            args.push(format!("--skip={s}"));
-        }
+    let s = clamp_skip(skip);
+    if s > 0 {
+        args.push(format!("--skip={s}"));
     }
     let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-    let out = runner.run(Some(&root), &args_ref)?;
+    let out = runner.run_limited(Some(&root), &args_ref, MAX_LOG_OUTPUT_BYTES)?;
     let mut commits = vec![];
     for line in out.lines() {
         let p: Vec<&str> = line.split('\u{1f}').collect();
@@ -52,7 +62,7 @@ pub fn graph_of(
     skip: Option<usize>,
 ) -> Result<Vec<CommitInfo>, String> {
     let root = runner.repo_root(repo_path)?;
-    let n = limit.unwrap_or(100).to_string();
+    let n = clamp_limit(limit, 100).to_string();
     let max_count = format!("--max-count={n}");
     let mut args: Vec<String> = vec![
         "log".to_string(),
@@ -63,13 +73,12 @@ pub fn graph_of(
         "--pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s%x1f%P%x1f%D".to_string(),
         "--date=short".to_string(),
     ];
-    if let Some(s) = skip {
-        if s > 0 {
-            args.push(format!("--skip={s}"));
-        }
+    let s = clamp_skip(skip);
+    if s > 0 {
+        args.push(format!("--skip={s}"));
     }
     let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
-    let out = runner.run(Some(&root), &args_ref)?;
+    let out = runner.run_limited(Some(&root), &args_ref, MAX_LOG_OUTPUT_BYTES)?;
     let mut commits = vec![];
     for line in out.lines() {
         let p: Vec<&str> = line.split('\u{1f}').collect();
@@ -105,20 +114,20 @@ pub fn reflog_of(
     skip: Option<usize>,
 ) -> Result<Vec<ReflogEntry>, String> {
     let root = runner.repo_root(repo_path)?;
-    let n = limit.unwrap_or(50).to_string();
+    let n = clamp_limit(limit, 50).to_string();
     let max_count = format!("--max-count={n}");
-    let skip_arg = skip.unwrap_or(0).to_string();
-    let skip_flag = format!("--skip={skip_arg}");
+    let skip_n = clamp_skip(skip).to_string();
+    let skip_flag = format!("--skip={skip_n}");
     let mut cmd: Vec<&str> = vec![
         "log",
         "-g",
         &max_count,
         "--format=%H\x1f%h\x1f%gd\x1f%gs\x1f%an\x1f%cs",
     ];
-    if skip.unwrap_or(0) > 0 {
+    if clamp_skip(skip) > 0 {
         cmd.push(&skip_flag);
     }
-    let out = runner.run(Some(&root), &cmd)?;
+    let out = runner.run_limited(Some(&root), &cmd, MAX_LOG_OUTPUT_BYTES)?;
     let mut entries = vec![];
     for line in out.lines() {
         let p: Vec<&str> = line.split('\u{1f}').collect();

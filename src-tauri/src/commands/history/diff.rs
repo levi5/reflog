@@ -1,11 +1,13 @@
 use crate::runner::GitRunner;
 use crate::domain::CommitFileChange;
+use crate::commands::validation::{validate_commit_oid, validate_repo_relative_path};
 
 use crate::AppState;
 use tauri::State;
 
 const MAX_DIFF_OUTPUT_BYTES: usize = 2 * 1024 * 1024;
 const MAX_FILE_LIST_OUTPUT_BYTES: usize = 512 * 1024;
+const MAX_BLAME_OUTPUT_BYTES: usize = 2 * 1024 * 1024;
 
 pub fn diff_of(
     runner: &dyn GitRunner,
@@ -13,6 +15,7 @@ pub fn diff_of(
     file: &str,
     staged: bool,
 ) -> Result<String, String> {
+    validate_repo_relative_path(file)?;
     let root = runner.repo_root(repo_path)?;
     let mut args = vec!["diff"];
     if staged {
@@ -28,8 +31,9 @@ pub fn show_of(
     repo_path: &str,
     rev: &str,
 ) -> Result<String, String> {
+    validate_commit_oid(rev)?;
     let root = runner.repo_root(repo_path)?;
-    runner.run_limited(Some(&root), &["show", "--stat", rev], MAX_FILE_LIST_OUTPUT_BYTES)
+    runner.run_limited(Some(&root), &["show", "--stat", "--", rev], MAX_FILE_LIST_OUTPUT_BYTES)
 }
 
 pub fn commit_files_of(
@@ -37,10 +41,11 @@ pub fn commit_files_of(
     repo_path: &str,
     rev: &str,
 ) -> Result<Vec<CommitFileChange>, String> {
+    validate_commit_oid(rev)?;
     let root = runner.repo_root(repo_path)?;
     let out = runner.run_limited(
         Some(&root),
-        &["diff-tree", "--no-commit-id", "--name-status", "-z", "--root", "--first-parent", "-r", rev],
+        &["diff-tree", "--no-commit-id", "--name-status", "-z", "--root", "--first-parent", "-r", "--", rev],
         MAX_FILE_LIST_OUTPUT_BYTES,
     )?;
     let mut files = vec![];
@@ -66,13 +71,15 @@ pub fn commit_diff_of(
     rev: &str,
     file: Option<String>,
 ) -> Result<String, String> {
+    validate_commit_oid(rev)?;
     let root = runner.repo_root(repo_path)?;
     match file {
         Some(f) if !f.trim().is_empty() => {
-            runner.run_limited(Some(&root), &["show", "--first-parent", rev, "--", &f], MAX_DIFF_OUTPUT_BYTES)
+            validate_repo_relative_path(f.trim())?;
+            runner.run_limited(Some(&root), &["show", "--first-parent", "--", rev, "--", f.trim()], MAX_DIFF_OUTPUT_BYTES)
         }
         _ => {
-            runner.run_limited(Some(&root), &["show", "--first-parent", rev], MAX_DIFF_OUTPUT_BYTES)
+            runner.run_limited(Some(&root), &["show", "--first-parent", "--", rev], MAX_DIFF_OUTPUT_BYTES)
         }
     }
 }
@@ -83,10 +90,12 @@ pub fn blame_of(
     repo_path: &str,
     file: &str,
 ) -> Result<String, String> {
+    validate_repo_relative_path(file)?;
     let root = runner.repo_root(repo_path)?;
-    runner.run(
+    runner.run_limited(
         Some(&root),
         &["blame", "--line-porcelain", "--", file],
+        MAX_BLAME_OUTPUT_BYTES,
     )
 }
 
@@ -95,7 +104,7 @@ pub fn ls_files_of(
     repo_path: &str,
 ) -> Result<Vec<String>, String> {
     let root = runner.repo_root(repo_path)?;
-    let out = runner.run(Some(&root), &["ls-files"])?;
+    let out = runner.run_limited(Some(&root), &["ls-files"], MAX_FILE_LIST_OUTPUT_BYTES)?;
     Ok(out
         .lines()
         .map(|l| l.trim().to_string())
@@ -175,7 +184,7 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 (
-                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r abc1234",
+                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r -- abc1234",
                     "M\0src/index.ts\0A\0src/types.ts\0D\0old.txt\0",
                 ),
             ],
@@ -197,7 +206,7 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 (
-                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r abc1234",
+                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r -- abc1234",
                     "R100\0old\tname\0new\tname\0",
                 ),
             ],
@@ -213,7 +222,7 @@ mod tests {
         let runner = MockRunner::new(
             &[
                 ("rev-parse --show-toplevel", "/r"),
-                ("show --first-parent merge123 -- src/file.ts", "diff --git a/src/file.ts b/src/file.ts"),
+                ("show --first-parent -- merge123 -- src/file.ts", "diff --git a/src/file.ts b/src/file.ts"),
             ],
             &[],
         );

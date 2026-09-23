@@ -33,9 +33,20 @@ pub fn parse(porcelain: &str) -> Porcelain {
         if line.len() < 4 {
             continue;
         }
-        let x = line[0..1].to_string();
-        let y = line[1..2].to_string();
-        let p = line[3..].to_string();
+        let bytes = line.as_bytes();
+        let (Some(x), Some(y), Some(p)) = (bytes.get(0..1), bytes.get(1..2), bytes.get(3..)) else {
+            continue;
+        };
+        let (Ok(x), Ok(y), Ok(p)) = (
+            std::str::from_utf8(x),
+            std::str::from_utf8(y),
+            std::str::from_utf8(p),
+        ) else {
+            continue;
+        };
+        let x = x.to_string();
+        let y = y.to_string();
+        let p = p.to_string();
         if x == "R" || x == "C" || y == "R" || y == "C" {
             let _ = entries.next();
         }

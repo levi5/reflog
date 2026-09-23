@@ -11,19 +11,21 @@ The backend is a Rust application using Tauri 2, responsible for executing Git c
 ```txt
 src-tauri/src/
 ├── commands/            # Tauri Commands (IPC API)
-│   ├── files/           # File operations
-│   ├── history/         # History, log, diff, graph
-│   ├── meta/            # Config, version, clone, remotes
-│   ├── refs/            # Branches, tags, remotes
-│   ├── staging/         # Stage, commit, checkout, reset
-│   ├── status/          # Git status
-│   ├── sync/            # Push, pull, fetch, stash, merge
-│   ├── templates/       # Commit templates
-│   ├── repo.rs          # Repo detection, root
+│   ├── files/           # File operations (content, conflicted)
+│   ├── history/         # History: branches, log, diff
+│   ├── meta.rs          # Config, version, clone, identity, gpg
+│   ├── refs.rs          # Branches, tags, remotes
+│   ├── staging.rs       # Stage, commit, checkout, cherry-pick, revert, reset
+│   ├── status/          # Git status (porcelain parsing)
+│   ├── sync.rs          # Merge, push, pull, fetch, stash
+│   ├── templates.rs     # Commit templates
+│   ├── repo.rs          # Repo detection, root, init, CLI path
 │   ├── submodules.rs    # Submodules
-│   └── playground.rs    # Debug/experimental
-├── domain/              # Rust Domain (entities, traits)
-├── runner.rs            # GitRunner trait + ProcessRunner
+│   ├── playground.rs    # Console (allowlisted git commands)
+│   ├── validation.rs    # Input validators (refs, oids, paths, URLs)
+│   └── mod.rs           # run_blocking helper
+├── domain/              # Rust Domain (entities, conflict parsing, errors)
+├── runner.rs            # GitRunner trait + ProcessRunner (+ timeouts/limits)
 └── lib.rs               # Entry point, setup, command registry
 ```
 
@@ -42,8 +44,32 @@ Abstraction for Git command execution, allowing mocking in tests.
 ```rust
 pub trait GitRunner: Send + Sync {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String>;
-    fn run_stdin(&self, repo: Option<&str>, args: &[&str], input: &str) -> Result<String, String>;
-    fn run_env(&self, repo: Option<&str>, args: &[&str], env: &[(&str, &str)]) -> Result<String, String>;
+    fn run_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        timeout: Duration,
+    ) -> Result<String, String>;
+    fn run_env_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        timeout: Duration,
+    ) -> Result<String, String>;
+    fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String>;
+    fn run_stdin(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        input: &str,
+    ) -> Result<String, String>;
+    fn run_env(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+    ) -> Result<String, String>;
     fn read_file(&self, path: &Path) -> Result<String, String>;
     fn write_file(&self, path: &Path, content: &str) -> Result<(), String>;
     fn path_exists(&self, path: &Path) -> bool;
@@ -52,6 +78,11 @@ pub trait GitRunner: Send + Sync {
     fn repo_root(&self, repo_path: &str) -> Result<String, String>;
     fn is_repo(&self, path: &str) -> bool;
 }
+
+// Timeouts and output caps
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
+pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(300);
+pub const OUTPUT_LIMIT_ERROR: &str = "saída do git excede o limite permitido";
 ```
 
 ### Implementations
@@ -66,11 +97,19 @@ fn base_command(repo: Option<&str>) -> Command {
     let mut cmd = Command::new("git");
     if let Some(dir) = repo { cmd.arg("-C").arg(dir); }
     cmd.env("GIT_TERMINAL_PROMPT", "0");  // No interactive prompts
+    cmd.env("GIT_SSH_COMMAND", "ssh -o BatchMode=yes"); // No password prompts (unless overridden)
     cmd.env("GIT_PAGER", "cat");          // Direct output
     cmd.env("GIT_EDITOR", "true");        // Don't open editor
     cmd
 }
 ```
+
+`stdin` is piped only when input is provided, otherwise set to null,
+so commands never block waiting on inherited stdin.
+`ProcessRunner::execute` streams stdout/stderr on reader threads with an
+idle timeout (`DEFAULT_TIMEOUT`, 60 s; `NETWORK_TIMEOUT`, 300 s, for
+network commands) and an absolute cap, plus optional per-command output
+limits via `run_limited` (e.g. 2 MiB for diffs).
 
 ## AppState (`lib.rs`)
 
@@ -96,6 +135,8 @@ Registered in `lib.rs` via `tauri::generate_handler![]`.
 |---------|-------------|
 | `check_repo` | Verifies if path is a Git repo |
 | `repo_root` | Returns repository root |
+| `init_repo` | Initializes Git in a directory |
+| `take_cli_path` | Returns (once) the repo path passed as CLI arg |
 
 #### Status (`commands/status/`)
 
@@ -132,9 +173,10 @@ Registered in `lib.rs` via `tauri::generate_handler![]`.
 
 | Command | Description |
 | --------- | ------------- |
-| `git_push` | Push to remote |
-| `git_pull` | Pull from remote |
-| `git_fetch` | Fetch remotes |
+| `git_merge_opts` | Merge branch (plain / `--squash` / `--no-ff`) |
+| `git_push` | Push (retries once with `-u origin` if no upstream) |
+| `git_pull` | Pull (sets upstream to `origin/<branch>` and retries if missing) |
+| `git_fetch` | Fetch all remotes (optional `--prune`) |
 | `git_merge_abort` | Abort merge |
 | `git_stash` | Create stash |
 | `git_stash_pop` | Pop stash |
@@ -172,7 +214,7 @@ Registered in `lib.rs` via `tauri::generate_handler![]`.
 
 | Module | Commands |
 |--------|----------|
-| `content` | `get_file_content`, `save_file_content`, `write_text_file` |
+| `content` | `get_file_content`, `save_file_content` |
 | `conflicted` | `get_conflicted_files`, `parse_conflicts` |
 
 #### Templates (`commands/templates.rs`)
@@ -200,29 +242,43 @@ Registered in `lib.rs` via `tauri::generate_handler![]`.
 ## Command Implementation Pattern
 
 ```rust
-// commands/staging.rs
+// commands/sync.rs
 use crate::runner::GitRunner;
+use crate::commands::validation::validate_ref_name;
+use crate::AppState;
 use tauri::State;
 
+pub fn merge_opts(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    branch: &str,
+    squash: bool,
+    no_ff: bool,
+) -> Result<String, String> {
+    validate_ref_name(branch)?;
+    let root = runner.repo_root(repo_path)?;
+    if squash {
+        return runner.run(Some(&root), &["merge", "--squash", "--", branch]);
+    }
+    // ...
+}
+
 #[tauri::command]
-pub async fn git_commit(
-    repo: String,
-    message: String,
-    amend: Option<bool>,
+pub async fn git_merge_opts(
     state: State<'_, AppState>,
-) -> Result<(), String> {
-    run_blocking(move || {
-        let runner = &state.runner;
-        let args = if amend.unwrap_or(false) {
-            vec!["commit", "--amend", "-m", &message]
-        } else {
-            vec!["commit", "-m", &message]
-        };
-        runner.run(Some(&repo), &args)?;
-        Ok(())
-    }).await
+    repo_path: String,
+    branch: String,
+    squash: bool,
+    no_ff: bool,
+) -> Result<String, String> {
+    let runner = state.runner.clone();
+    run_blocking(move || merge_opts(runner.as_ref(), &repo_path, &branch, squash, no_ff)).await
 }
 ```
+
+Pure logic lives in plain `pub fn`s taking `&dyn GitRunner`
+(testable with `MockRunner`); the `#[tauri::command]` wrapper only
+clones `AppState` and delegates via `run_blocking`.
 
 ### Helper `run_blocking`
 
@@ -242,22 +298,32 @@ Executes blocking operations (Git) in a separate thread pool.
 
 ## Serialization
 
-Uses `serde` for complex structs returned to frontend:
+Uses `serde` for structs returned to the frontend
+(see `domain/entities.rs`):
 
 ```rust
-#[derive(Serialize, Deserialize)]
-pub struct GitStatus {
-    pub staged: Vec<FileStatus>,
-    pub unstaged: Vec<FileStatus>,
-    pub untracked: Vec<String>,
-    pub conflicted: Vec<String>,
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CommitInfo {
+    pub hash: String,
+    pub short: String,
+    pub author: String,
+    pub date: String,
+    pub message: String,
+    pub parents: Vec<String>,
+    pub refs: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct FileStatus {
-    pub path: String,
-    pub index_status: char,
-    pub worktree_status: char,
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct StatusResult {
+    pub root: String,
+    pub branch: String,
+    pub ahead: usize,
+    pub behind: usize,
+    pub files: Vec<FileStatus>,
+    pub merging: bool,
+    pub cherry_picking: bool, // serialized as cherryPicking
+    pub reverting: bool,
 }
 ```
 
@@ -275,16 +341,21 @@ pub struct FileStatus {
 ```json
 {
   "build": {
-    "beforeBuildCommand": "pnpm build",
-    "beforeDevCommand": "pnpm dev",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
+    "beforeDevCommand": "pnpm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm run build",
+    "frontendDist": "../dist"
   },
-  "plugins": {
-    "fs": { "scope": { "allow": ["$APPDATA/*", "$HOME/*"] } }
+  "app": {
+    "security": {
+      "csp": "default-src 'self' data: blob:; ..."
+    }
   }
 }
 ```
+
+Plus a `cli` plugin section declaring the optional `path` argument
+(`reflog <path>` opens that repository), and a strict Content-Security-Policy.
 
 ## Build Profile (`Cargo.toml`)
 
@@ -302,15 +373,17 @@ Optimized for smaller binary and performance.
 ## Tests
 
 ```bash
-# Unit tests
+# Unit tests (all backend tests, incl. MockRunner tests)
 cargo test
 
-# Integration tests (requires Tauri)
-cargo test --test integration
-
-# Mock runner tests
-cargo test runner::mock
+# Run a single test / module
+cargo test <name>
 ```
+
+Tests live next to the code (`#[cfg(test)] mod tests`) and use
+`runner::mock::MockRunner` (in-memory command outputs) plus `tempfile`
+for filesystem cases. One test spins up real Git repositories in the
+system temp dir to exercise submodules end to end.
 
 ### Mock Runner Example
 
@@ -332,21 +405,38 @@ mod tests {
 
 ## Logging and Debug
 
-- `RUST_LOG=debug` - Detailed logs
-- `tauri::async_runtime::spawn_blocking` - For debugging blocking commands
-- `playground::git_run` - Arbitrary command for debug
+- `playground::git_run` - allowlisted arbitrary command for the in-app console
+- Git failures surface `stderr` text as the command error
+  (see `failure_message` in `runner.rs`)
+- Tauri devtools: run `pnpm tauri dev` and use the webview inspector
 
 ## Security
 
-1. **Path validation** - Repository path sanitization
-2. **No shell injection** - Args passed as array, not string
-3. **FS scope** - Limited via `tauri.conf.json`
-4. **No terminal prompt** - `GIT_TERMINAL_PROMPT=0`
-5. **No interactive editor** - `GIT_EDITOR=true`
+1. **Input validation** (`commands/validation.rs`) - ref names reject
+   `.. ~ ^ : ? * [ @{ \`, leading `-`/`.`, trailing `.`/`.lock`;
+   OIDs have a charset + length cap; repo paths reject NUL/newline
+   (which would panic `Command::arg`); clone URLs reject `ext::`/`fd::`
+2. **No shell injection** - args passed as arrays to `Command`, never a shell string
+3. **`--` separators** - revisions, paths and config keys are passed after `--`
+   so values starting with `-` can't become flags
+4. **Config allowlist** - `config_get`/`config_set` only accept keys in
+   `ALLOWED_CONFIG_KEYS` (identity, safe core/diff/merge options)
+5. **Console sandbox** (`playground.rs`) - `git_run` only allows listed verbs
+   and rejects dangerous flags (`--hard`, `--force`, `-f`, `--output`,
+   `--upload-pack`, `-c`, …) plus shell metacharacters
+6. **FS confinement** - file commands canonicalize paths and require them
+   to stay inside the repository root
+7. **No hangs** - `GIT_TERMINAL_PROMPT=0`, `GIT_SSH_COMMAND="ssh -o BatchMode=yes"`,
+   `GIT_EDITOR=true`, stdin nulled when unused, idle/absolute timeouts
+8. **Output caps** - `run_limited` truncates-enforces byte limits
+   (log/graph/reflog, diffs, file lists) so huge repos can't OOM the app
+9. **FS scope** - file access goes through the backend runner, not direct renderer FS
 
 ## Performance
 
-- **Connection pooling** - `AppState` reuse
-- **Batch commands** - Group calls when possible
+- **Shared state** - `AppState` holds one `Arc<dyn GitRunner>` reused by all commands
+- **Non-blocking IPC** - Git runs on the `spawn_blocking` pool via `run_blocking`
+  (file/template commands are the exception: they run synchronously)
+- **Output limits** - `run_limited` with per-command byte caps; `log`/`graph`/`reflog`
+  clamp `limit` (max 1000) and `skip`
 - **Caching** - Frontend handles caching, backend stateless
-- **Streaming** - For large outputs (log, diff), consider chunked response

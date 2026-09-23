@@ -55,7 +55,7 @@ export async function repoLoader({ params }: { params: Record<string, string | u
     return { repoPath: root || repoPath, view }
   } catch (e) {
     if (e instanceof Response) throw e
-    return { repoPath, view }
+    throw new Response(`Falha ao verificar repositório: ${repoPath}`, { status: 500 })
   }
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import classnames from "classnames"
 import { _try } from "funcio"
@@ -55,9 +55,7 @@ export function Graph(_props: Props) {
     const { signoff, sign } = amendApi.fields
 
     const box = await _try.async(async () => {
-      await repo.runAction(async () => {
-        await repo.amendCommit?.(repo.repo, msg, signoff, sign)
-      })
+      await repo.amendCommit?.(repo.repo, msg, signoff, sign)
 
       pushHistory(msg)
       setAmendCommit(null)
@@ -107,14 +105,16 @@ export function Graph(_props: Props) {
     repo.loadReflog,
   ])
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     const method = viewMode === "log" ? "loadMoreLog" : "loadMoreGraph"
 
     _try.sync(() => repo[method]())
-  }
+  }, [viewMode, repo])
 
   const handleLoadMoreRef = useRef(handleLoadMore)
-  handleLoadMoreRef.current = handleLoadMore
+  useEffect(() => {
+    handleLoadMoreRef.current = handleLoadMore
+  }, [handleLoadMore])
 
   const filteredCommits = useMemo(() => {
     const availableCommits = viewMode === "log" ? repo.log : repo.graph
@@ -188,7 +188,7 @@ export function Graph(_props: Props) {
       sidebar={
         <>
           <div className={styles.sideHead}>
-            <strong>{t(lang, "branches").toUpperCase()}</strong>
+            <strong style={{ textTransform: "uppercase" }}>{t(lang, "branches")}</strong>
           </div>
           <SearchBox placeholder={t(lang, "searchPh")} />
           <Branch.Panel

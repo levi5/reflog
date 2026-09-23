@@ -1,6 +1,6 @@
 import classnames from "classnames"
 import { Edit } from "lucide-react"
-import { useMemo } from "react"
+import { memo, useMemo } from "react"
 import type { GraphRow } from "../../../../domain/entities/graph/commit-graph"
 import { layoutCommitGraph as layoutGraph, parseRefs } from "../../../../main/adapters"
 import { useTranslation } from "../../../context"
@@ -58,9 +58,21 @@ function CommitItem({
 }: CommitItemProps) {
   const { t } = useTranslation()
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: clickable commit list row
-    // biome-ignore lint/a11y/useKeyWithClickEvents: clickable commit list row
-    <div className={classnames(styles.commit, isSelected && styles.selected)} onClick={() => onSelect?.(row.commit)}>
+    // biome-ignore lint/a11y/useSemanticElements: commit row contains nested amend button; div+role avoids nested <button>
+    <div
+      className={classnames(styles.commit, isSelected && styles.selected)}
+      onClick={() => onSelect?.(row.commit)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect?.(row.commit)
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      aria-label={row.commit.message}
+    >
       {showGraph && <Icon.Graph.Cell row={row} lanes={laneCount} className={styles.graph} />}
       <div className={classnames(styles.info, !showGraph && styles.infoNoGraph)}>
         <div className={styles.first}>
@@ -99,6 +111,8 @@ function CommitItem({
   )
 }
 
+const MemoCommitItem = memo(CommitItem)
+
 export function CommitList({
   commits,
   currentBranchName,
@@ -117,7 +131,7 @@ export function CommitList({
   return (
     <>
       {commitLayout.rows.map((row, rowIndex) => (
-        <CommitItem
+        <MemoCommitItem
           key={row.commit.hash}
           row={row}
           laneCount={commitLayout.lanes}

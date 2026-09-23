@@ -1,5 +1,5 @@
 import { _Either } from "funcio"
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
 export type MessageType = "error" | "success" | "response" | "info" | "loading"
 
@@ -67,12 +67,28 @@ function resolveMessageText<T>(resolver: string | ((input: T) => string) | undef
 
 export function MessageProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<MessageItem[]>([])
+  const timersRef = useRef(new Map<string, number>())
+
+  useEffect(() => {
+    const timers = timersRef.current
+    return () => {
+      for (const timer of timers.values()) window.clearTimeout(timer)
+      timers.clear()
+    }
+  }, [])
 
   const dismiss = useCallback((id: string) => {
+    const timer = timersRef.current.get(id)
+    if (timer !== undefined) {
+      window.clearTimeout(timer)
+      timersRef.current.delete(id)
+    }
     setMessages((prev) => prev.filter((item) => item.id !== id))
   }, [])
 
   const clear = useCallback(() => {
+    for (const timer of timersRef.current.values()) window.clearTimeout(timer)
+    timersRef.current.clear()
     setMessages([])
   }, [])
 
@@ -93,7 +109,11 @@ export function MessageProvider({ children }: { children: ReactNode }) {
       setMessages((prev) => [...prev, newItem])
 
       if (duration > 0) {
-        window.setTimeout(() => dismiss(id), duration)
+        const timer = window.setTimeout(() => {
+          timersRef.current.delete(id)
+          dismiss(id)
+        }, duration)
+        timersRef.current.set(id, timer)
       }
 
       return id

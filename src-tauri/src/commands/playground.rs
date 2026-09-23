@@ -9,9 +9,15 @@ const ALLOWED: &[&str] = &[
 ];
 
 const DENIED: &[&str] = &[
-    "--hard", "--force", "--upload-pack", "--receive-pack", "--exec",
-    "--output", "-c", "credential", "-i", "--interactive",
+    "--hard", "--force", "--force-with-lease", "--upload-pack", "--receive-pack", "--exec",
+    "--output", "-c", "credential", "-i", "--interactive", "--config", "-C",
 ];
+
+const DENIED_PREFIXES: &[&str] = &[
+    "--output", "--upload-pack", "--receive-pack", "--exec", "--config",
+];
+
+const DENIED_EXACT: &[&str] = &["-f", "-c", "-i", "-C"];
 
 const SUBMODULE_ALLOWED: &[&str] =
     &["status", "summary", "sync", "update", "init", "foreach"];
@@ -67,7 +73,11 @@ fn split_shell_words(s: &str) -> Option<Vec<String>> {
 }
 
 fn safe_token(token: &str) -> bool {
-    if token.is_empty() || DENIED.contains(&token) {
+    if token.is_empty()
+        || DENIED.contains(&token)
+        || DENIED_EXACT.contains(&token)
+        || DENIED_PREFIXES.iter().any(|p| token == *p || token.starts_with(&format!("{p}=")))
+    {
         return false;
     }
     let stripped = token.strip_prefix('-').unwrap_or(token);
@@ -143,6 +153,7 @@ pub fn run_git(
     repo_path: &str,
     args: &[String],
 ) -> Result<String, String> {
+    crate::commands::validation::validate_repo_path(repo_path)?;
     if args.is_empty() {
         return Err("comando vazio".to_string());
     }
@@ -151,12 +162,15 @@ pub fn run_git(
     }
     for a in args {
         if a.contains('\n')
+            || a.contains('\0')
             || a.contains(';')
             || a.contains('|')
             || a.contains('&')
             || a.contains('`')
             || a.contains('$')
             || DENIED.contains(&a.as_str())
+            || DENIED_EXACT.contains(&a.as_str())
+            || DENIED_PREFIXES.iter().any(|p| a == *p || a.starts_with(&format!("{p}=")))
         {
             return Err(format!("argumento não permitido: {a}"));
         }

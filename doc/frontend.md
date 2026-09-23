@@ -11,7 +11,7 @@ The frontend is a React 19 + TypeScript application built with Vite, following C
 ```txt
 src/
 ├── presentation/        # Presentation Layer (UI)
-│   ├── components/      # Reusable components
+│   ├── components/      # Reusable components (Commit, Diff, Modal, …)
 │   ├── pages/           # Pages (routes)
 │   ├── layout/          # Application layouts
 │   ├── context/         # React Context providers
@@ -19,11 +19,18 @@ src/
 ├── domain/              # Domain Layer
 │   └── entities/        # Business entities (TypeScript)
 ├── infrastructure/      # Infrastructure Layer
-│   └── tauri/           # Tauri command wrappers
+│   ├── git/             # Typed Tauri command wrappers (IGitApi)
+│   ├── storage/         # Versioned localStorage helpers
+│   └── templates/       # Template IO helpers
+├── data/                # Use-cases + protocols
+├── main/                # Adapters + factories (dependency wiring)
 ├── shared/              # Shared code
 │   ├── utils/           # Utilities
 │   ├── constants/       # Constants
-│   └── types/           # Shared types
+│   └── schemas/         # Zod schemas
+├── message/             # i18n strings (en.json, pt.json)
+├── types/               # Shared TypeScript types (mirrors backend entities)
+├── i18n.ts              # t(lang, key), formatMessage, locale helpers
 └── routes.tsx           # Route configuration
 ```
 
@@ -59,13 +66,20 @@ const router = createHashRouter([
 | ------- | ------ | ------------- |
 | `/` | Welcome | Initial dashboard, recent repositories |
 | `/staging` | Staging | Staging area, commit, diff |
-| `/graph` | Graph | History visualization (DAG) |
+| `/graph` | Graph | History visualization (log/graph/reflog) |
 | `/merge` | Merge | Conflict resolution |
 | `/blame` | Blame | Line annotations (git blame) |
 | `/visualize` | Visualize | Advanced visualizations |
-| `/automation` | AutomationHub | Automations, templates, recipes |
+| `/automation`, `/automation/:section` | AutomationHub | Automations, templates, recipes, monitors |
+| `/repo/*` | RepoDeepLink | Deep link: validates path, redirects to view |
 | `/docs` | Docs | Integrated documentation |
 | `/settings` | Settings | App settings |
+
+`/monitors` and `/templates` redirect to `/automation?section=…`.
+Unknown paths render `RouteNotFound`; loader/route errors render
+`RouteErrorElement`. Deep-link validation lives in `repoLoader`
+(`src/routes.tsx`), which returns 400 for empty paths and 404 for
+non-repositories.
 
 ## Key Components
 
@@ -80,65 +94,66 @@ const router = createHashRouter([
 
 #### Git/Repository
 
-- `Repository/` - Selector, list, repository actions
-- `Branch/` - Branch picker, create, delete, rename
-- `Commit/` - Commit list, details, message editor
-- `Diff/` - Diff viewer (unified, side-by-side)
+- `Status/` - File status rows (staged/unstaged/conflicted)
+- `Branch/` - Branch panel (create, checkout, delete, rename)
+- `Commit/` - Commit list, detail, message form
+- `Diff/` - Diff viewer + preview (syntax highlighted)
 - `Merge/` - Conflict resolver, merge tool
-- `Staging/` - Stage/unstage, file status
+- `Tag/`, `Console/`, `Graph/` - Tags, git console, DAG cells
+- `Recent/` - Recent repositories
 
 #### Base UI
 
 - `Button/` - Variants (primary, secondary, ghost, danger)
-- `Dialog/` - Accessible modals
+- `Modal/` - Accessible modals (focus trap, Esc, backdrop close)
 - `Drawer/` - Side panels
 - `Tabs/` - Tabs
 - `Select/` - Custom dropdowns
 - `Toast/` - Notifications
-- `Modal/` - Complex modals
+- `Pagination/`, `Skeleton/`, `Resizable/` - Paging, loading skeletons, split layouts
+- `Switch/`, `Filter/`, `Search/`, `Command/` - Toggles, filters, search box, palette
 
 #### Specialized
 
-- `Editor/` - Code editor (conflicts, commit msg)
-- `Graph/` - Commit DAG rendering
-- `Diff/` - Syntax highlighted diff
-- `Command/` - Command palette (Cmd+K)
-- `Search/` - Global search
+- `Editor/` - File/conflict editors
+- `Monitor/`, `Recipe/`, `Automations/`, `Block/` - Automation hub UI
+- `Profile/`, `ErrorBoundary/`, `ErrorFallback/`, `FatalError/` - Profiles + error UI
+- `Bar/`, `SideBar/`, `Header/`, `Window/`, `Brand/`, `Icons/`, `Activity/`, `Event/`, `Empty/` - Chrome + misc
 
 ## Global State (Context)
 
 ### Main Providers (`src/presentation/context/`)
 
-```tsx
-// Example structure
-<RepositoryProvider>
-  <ConfigProvider>
-    <UIProvider>
-      <NotificationProvider>
-        <App />
-      </NotificationProvider>
-    </UIProvider>
-  </ConfigProvider>
-</RepositoryProvider>
-```
+Providers are composed in `AppLayout` / `routes.tsx`
+(`RepoProvider` wraps the whole app):
 
-- **RepositoryContext** - Current repo, repo list, actions
-- **ConfigContext** - User settings, preferences
-- **UIContext** - UI state (sidebar open, theme, loading)
-- **NotificationContext** - Toasts, global alerts
+- **RepoProvider** (`repository/`) - Current repo, status, branches, log/graph pages, git actions
+- **MessageProvider** (`message/`) - Toasts (`notify/error/success/response/loading`, auto-dismiss timers)
+- **TranslationProvider** (`translation/`) - `lang`, `t(key)`, `format*` helpers (pt/en)
+- **SettingsProvider** (`settings/`) - User settings (wraps translation)
+- **ThemeProvider / AccentProvider** (`theme/`, `accent/`) - Theme + accent color
+- **CommitConfigProvider** (`commit/`) - Commit prefs, presets, history
+- **ProfileProvider** (`profile/`) - Git identity profiles
+- **SearchProvider** (`filter/`) - Global search query/scope
+- **UiProvider** (`ui/`), **StartupProvider** (`startup/`) - UI state, startup/reopen logic
 
 ## Custom Hooks (`src/presentation/hooks/`)
 
 | Hook | Responsibility |
 | ------ | ---------------- |
-| `useRepository` | Current repo access, actions |
-| `useGitStatus` | File status (staged/unstaged) |
-| `useGitLog` | Paginated commit history |
-| `useGitDiff` | File/commit diff |
-| `useGitBranches` | Branch list and actions |
-| `useMerge` | Merge/conflict state |
-| `useStaging` | Staging operations |
-| `useKeybindings` | Global shortcuts |
+| `useRepository` / `useRepoCore` | Composed repo state + all git operations (`runAction` wrapper with loading/success/error toasts) |
+| `useRepositoryData` | Loads status/branches/tags/remotes/log/graph pages |
+| `useStaging` / `useStagingState` | Staging area operations |
+| `useMerge` / `useMergeState` | Merge/conflict state |
+| `useBranchOps`, `useTagOps`, `useRemoteOps`, `useStashOps`, `useSubmodules` | Branch/tag/remote/stash/submodule actions |
+| `useGitAction` / `useGitActions` | `runAction` adapters with i18n messages |
+| `usePaginated` | Paginated IPC loading (log/graph pages) |
+| `useCommitTemplate` | Conventional-commit builder (fields <-> formatted message) |
+| `useTemplateManager`, `useTemplateDocs` | Template CRUD + docs |
+| `useMatchNavigator`, `useResizable`, `useIntersectionObserver`, `useAutoRefresh`, `useDismiss`, `useWindowDrag` | UI utilities |
+| `useConsoleSession`, `consoleHistory`, `consoleKeyboard` | In-app git console |
+| `useAutomations`, `useAutomationStore`, `useRecipeEditor`, `useAutomationTransfer`, `conditionRunner` | Automations/recipes/monitors |
+| `useProfiles` | Git identity profiles |
 
 ## Domain Entities (`src/domain/entities/`)
 
@@ -146,65 +161,62 @@ TypeScript interfaces representing business models:
 
 ```txt
 entities/
-├── automations/   # Templates, recipes, hooks
+├── automations/   # Recipes, monitors, TOML codec
 ├── blame/         # Blame annotations
-├── code/          # Code blocks, snippets
-├── commit/        # Commit, signature, parents
+├── code/          # Syntax highlighting (lowlight)
+├── commit/        # Commit templates, Conventional Commits, markdown
 ├── conflict/      # Conflict markers, hunks
-├── diff/          # Diff, hunks, lines
-├── git/           # Repo, remote, config
-├── graph/         # Graph nodes, edges
-├── merge/         # Merge state, strategies
-├── profile/       # User profile, identity
-├── semver/        # Version parsing
-└── stash/         # Stash entries
+├── diff/          # Diff parsing
+├── git/           # Console parsing
+├── graph/         # Graph layout (lanes, DAG)
+├── merge/         # Merge stats
+├── profile/       # User profiles, identity
+└── semver/        # Version parsing
 ```
 
-Example (`commit/index.ts`):
+Backend-shaped types (`CommitInfo`, `StatusResult`, `BranchInfo`,
+`StashItem`, …) are mirrored in `src/types/` (see `src/types/main.ts`),
+matching the Rust `domain/entities.rs` field for field.
+
+Example (`src/types/main.ts`):
 
 ```ts
-export interface Commit {
+export interface CommitInfo {
   hash: string
-  shortHash: string
+  short: string
+  author: string
+  date: string
   message: string
-  author: Signature
-  committer: Signature
   parents: string[]
-  date: Date
   refs: string[]
-}
-
-export interface Signature {
-  name: string
-  email: string
-  date: Date
 }
 ```
 
 ## Backend Integration (Tauri)
 
-### Tauri API (`src/infrastructure/tauri/`)
+### Tauri API (`src/infrastructure/git/`)
 
-Typed wrappers for backend commands:
+Typed wrappers for backend commands, described by `IGitApi`
+(`src/infrastructure/git/types.ts`):
 
 ```ts
-// src/infrastructure/tauri/git.ts
+// src/infrastructure/git/index.ts
 import { invoke } from '@tauri-apps/api/core'
 
-export const gitStatus = (repo: string) =>
-  invoke<GitStatus>('git_status', { repo })
+export const gitStatus = (repoPath: string) =>
+  invoke<StatusResult>('git_status', { repoPath })
 
-export const gitCommit = (repo: string, message: string, amend?: boolean) =>
-  invoke<void>('git_commit', { repo, message, amend })
+export const gitCommit = (repoPath: string, message: string, signoff = false, sign = false) =>
+  invoke<string>('git_commit', { repoPath, message, signoff, sign })
 ```
 
 ### Usage Pattern
 
 ```tsx
-// In hooks or components
+// Hooks consume IGitApi (injected, default: gitApi singleton)
 const handleCommit = async (message: string) => {
-  await gitCommit(repo, message)
-  // Invalidate queries or refresh state as needed
+  await runAction(() => git.commit(repo, message))
+  // runAction shows loading/success/error toasts and refreshes repo data
 }
 ```
 
@@ -215,24 +227,32 @@ const handleCommit = async (message: string) => {
 - **Design Tokens** - Colors, spacing, typography in `src/styles/`
 - **Theme** - Light/dark mode support via CSS custom properties
 
-## Internationalization (`src/i18n.ts`)
+## Internationalization (`src/i18n.ts` + `src/message/`)
 
-Simple i18n system with TypeScript:
+Typed i18n system (pt/en) with string tables in `src/message/*.json`:
 
 ```ts
 // src/i18n.ts
-export const t = (key: string, params?: Record<string, string>) =>
-  translations[locale]?.[key]?.replace(...)
+import pt from './message/pt.json'
+export type StringKey = keyof typeof pt
+export function t(lang: Lang, key: StringKey): string
+export function formatMessage(lang, key, vars?): string // {name} / %s placeholders
+
+// Inside components (lang from context):
+const { t } = useTranslation() // t(key: StringKey): string
 ```
 
 ## Testing
 
-- **Vitest** - Unit/integration tests
-- **React Testing Library** - Component testing
+- **Vitest** - Unit tests (`*.test.ts`, run with Node 24 — see `.nvmrc`)
 
 ```bash
-pnpm test           # Run tests
+pnpm test           # Run tests (vitest run)
 ```
+
+Covered today: automation codecs, partial patches, command-palette fuzzy
+matching, shared utils. No component (React Testing Library) or E2E
+setup — hooks/context/components have no tests yet.
 
 ## Build and Deploy
 
@@ -259,7 +279,9 @@ pnpm tauri build    # Native bundle (AppImage, .dmg, .msi)
 
 1. **Lazy load routes** - `React.lazy` + `Suspense`
 2. **Memoize computations** - `useMemo`, `useCallback`
-3. **Virtualize lists** - For large lists (commits, files)
-4. **Error boundaries** - Per feature/page
-5. **Accessibility** - ARIA, keyboard nav, focus management
-6. **Type safety** - `strict: true`, `noUncheckedIndexedAccess`
+3. **Paginate large lists** - `VirtualList` paginates (slice per page);
+   true windowing is still open (see `Status/File` with thousands of files)
+4. **Error boundaries** - Per feature/page (`RouteErrorElement`, `ErrorFallback`)
+5. **Accessibility** - ARIA roles, keyboard nav, focus trap in modals
+6. **Type safety** - `strict: true`, `noUnusedLocals`, `noUnusedParameters`,
+   `noFallthroughCasesInSwitch` (see `tsconfig.json`)

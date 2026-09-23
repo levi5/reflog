@@ -24,6 +24,17 @@ const MIN_WIDTH = COMMIT_DETAIL_MIN_WIDTH
 const MAX_WIDTH = COMMIT_DETAIL_MAX_WIDTH
 const SHORT_HASH_LENGTH = HASH_SHORT_LENGTH
 const EMPTY_PARENT_LABEL = "—"
+const MAX_DIFF_CACHE_ENTRIES = 50
+
+function setDiffCache(cache: Map<string, string>, key: string, value: string): void {
+  if (cache.has(key)) cache.delete(key)
+  cache.set(key, value)
+  while (cache.size > MAX_DIFF_CACHE_ENTRIES) {
+    const oldest = cache.keys().next().value
+    if (oldest === undefined) break
+    cache.delete(oldest)
+  }
+}
 
 export type CommitDetailProps = {
   commit: CommitInfo | null
@@ -175,7 +186,7 @@ export function CommitDetail({
     setLoadingDiff(true)
     void loadDiff(commit.hash, next)
       .then((diff) => {
-        diffCacheRef.current.set(key, diff)
+        setDiffCache(diffCacheRef.current, key, diff)
         if (request === diffRequestRef.current) setDiffText(diff)
       })
       .catch((error: unknown) => {

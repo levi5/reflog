@@ -107,7 +107,6 @@ pub fn run() {
             commands::staging::git_revert_abort,
             commands::staging::git_reset,
 
-            commands::sync::git_stash_apply,
             commands::staging::git_unstage,
             commands::staging::git_discard,
             commands::staging::git_apply_patch,

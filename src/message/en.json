@@ -538,5 +538,9 @@
   "filesChanged": "Files Changed",
   "noStashes": "No stashes found.",
   "noSubmodules": "No submodules found.",
-  "saveStash": "Save Stash"
+  "saveStash": "Save Stash",
+  "run": "Run",
+  "delete": "Delete",
+  "noItems": "No items",
+  "items": "Items"
 }
