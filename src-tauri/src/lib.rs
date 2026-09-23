@@ -17,16 +17,32 @@ pub struct AppState {
 pub struct CliPath(pub Mutex<Option<String>>);
 
 fn resolve_cli_path(value: &str) -> String {
-    let path = PathBuf::from(value);
-    if path.is_absolute() {
-        path.to_string_lossy().into_owned()
+    let trimmed = value.trim();
+    // Aceita `reflog .` / `reflog ./sub` / caminhos relativos ao cwd do terminal
+    let path = PathBuf::from(if trimmed.is_empty() { "." } else { trimmed });
+    let joined = if path.is_absolute() {
+        path
     } else {
-        std::env::current_dir()
-            .unwrap_or_default()
-            .join(path)
-            .to_string_lossy()
-            .into_owned()
+        std::env::current_dir().unwrap_or_default().join(path)
+    };
+    // Normaliza `.`/`..` e resolve symlinks quando possível para que
+    // `check_repo`/`repo_root` e os recentes usem sempre o mesmo formato.
+    if let Ok(canonical) = std::fs::canonicalize(&joined) {
+        return canonical.to_string_lossy().into_owned();
     }
+    // Fallback sem IO: limpa segmentos `.`/`..` manualmente
+    let mut out = PathBuf::new();
+    for comp in joined.components() {
+        use std::path::Component;
+        match comp {
+            Component::CurDir => {},
+            Component::ParentDir => {
+                out.pop();
+            },
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out.to_string_lossy().into_owned()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -87,11 +87,16 @@ export function AppLayout() {
   useEffect(() => {
     let disposed = false
     let unlisten: (() => void) | undefined
-    const openCliPath = (path: string) => {
-      if (path.trim()) void repo.handleOpen(path)
+    const openCliPath = async (path: string) => {
+      if (!path.trim()) return
+      const ok = await repo.handleOpen(path)
+      if (ok && !disposed) {
+        // Sai da tela de boas-vindas e vai direto para o repo (ex.: `reflog .`)
+        navigate("/staging", { replace: true })
+      }
     }
 
-    void listen<string>("cli-open-path", ({ payload }) => openCliPath(payload))
+    void listen<string>("cli-open-path", ({ payload }) => void openCliPath(payload))
       .then((stop) => {
         if (disposed) stop()
         else unlisten = stop
@@ -99,7 +104,7 @@ export function AppLayout() {
       .catch(() => undefined)
     void invoke<string | null>("take_cli_path")
       .then((path) => {
-        if (!disposed && path) openCliPath(path)
+        if (!disposed && path) void openCliPath(path)
       })
       .catch(() => undefined)
 
@@ -107,7 +112,7 @@ export function AppLayout() {
       disposed = true
       unlisten?.()
     }
-  }, [repo.handleOpen])
+  }, [repo.handleOpen, navigate])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
