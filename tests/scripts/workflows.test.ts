@@ -55,7 +55,25 @@ describe("release workflow", () => {
     expect(release).toContain("platform: ubuntu-22.04")
     expect(release).toContain("platform: windows-latest")
     expect(release).toContain('bundles: "--bundles deb,rpm,appimage"')
-    expect(release).toContain('bundles: "--bundles nsis,msi"')
+    expect(release).toContain('bundles: "--bundles nsis"')
+  })
+
+  it("only adds msi when the version is final", () => {
+    expect(release).toContain('msi: "true"')
+    expect(release).toContain("pick bundles")
+    expect(release).toContain("steps.version.outputs.prerelease")
+    expect(release).toContain("args: $")
+    expect(release).toContain("steps.bundles.outputs.value")
+  })
+
+  it("never loses the bundles, even when the release upload fails", () => {
+    expect(release).toContain("uploadWorkflowArtifacts: true")
+    expect(release).toContain("upload-artifact@v4")
+    expect(release).toContain("if: always()")
+  })
+
+  it("extracts the appimage tooling instead of relying on fuse", () => {
+    expect(release).toContain("APPIMAGE_EXTRACT_AND_RUN")
   })
 
   it("delegates the version guard to the shared script", () => {
@@ -72,7 +90,6 @@ describe("release workflow", () => {
   it("names the assets with the version and publishes them as workflow artifacts", () => {
     expect(release).toContain("releaseAssetNamePattern:")
     expect(release).toContain("[name]_[version]_[platform]_[arch][setup].[ext]")
-    expect(release).toContain("uploadWorkflowArtifacts: true")
     expect(release).toContain("retryAttempts: 2")
   })
 

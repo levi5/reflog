@@ -42,6 +42,8 @@ jobs:
 
   build:
     needs: verify
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -49,7 +51,8 @@ jobs:
           - platform: ubuntu-22.04
             bundles: "--bundles deb,rpm,appimage"
           - platform: windows-latest
-            bundles: "--bundles nsis,msi"
+            bundles: "--bundles nsis"
+            msi: "true"
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
@@ -71,6 +74,16 @@ jobs:
       - name: check version and tag
         id: version
         run: node scripts/check-version.mjs --github-output
+      - name: pick bundles
+        id: bundles
+        shell: bash
+        run: |
+          value="${{ matrix.bundles }}"
+          if [ "${{ matrix.msi }}" = "true" ] && [ "${{ steps.version.outputs.prerelease }}" = "false" ]; then
+            value="$value,msi"
+          fi
+          echo "value=$value" >> "$GITHUB_OUTPUT"
+          echo "bundles: $value" >> "$GITHUB_STEP_SUMMARY"
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -78,9 +91,21 @@ jobs:
           tagName: v__VERSION__
           releaseName: "Reflog v__VERSION__"
           releaseBody: |
-            AppImage, .deb and .rpm for Linux; .msi and -setup.exe for Windows.
+            AppImage, .deb and .rpm for Linux; -setup.exe for Windows (MSI is built only for final versions, WiX requires a numeric version).
           prerelease: ${{ steps.version.outputs.prerelease }}
-          args: ${{ matrix.bundles }}
+          args: ${{ steps.bundles.outputs.value }}
           releaseAssetNamePattern: "[name]_[version]_[platform]_[arch][setup].[ext]"
           uploadWorkflowArtifacts: true
           retryAttempts: 2
+      - name: list produced bundles
+        if: always()
+        shell: bash
+        run: ls -laR src-tauri/target/release/bundle || true
+      - name: upload bundles as run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundles-${{ matrix.platform }}
+          path: src-tauri/target/release/bundle/
+          if-no-files-found: warn
+          retention-days: 14

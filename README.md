@@ -163,7 +163,16 @@ The Windows `.msi` cannot be produced on Linux — WiX runs on Windows only. Bui
 | Workflow | Trigger | What it does |
 | -------- | ------- | ------------ |
 | `.github/workflows/ci.yml` | push / PR | Biome, Vitest, `tsc --noEmit`, `cargo test`, version check |
-| `.github/workflows/release.yml` | tag `v*` | same checks, then AppImage + `.deb` + `.rpm` (ubuntu-22.04) and `.msi` + `-setup.exe` (windows-latest), attached to the GitHub Release |
+| `.github/workflows/release.yml` | tag `v*` | same checks, then AppImage + `.deb` + `.rpm` (ubuntu-22.04) and `-setup.exe` (windows-latest), attached to the GitHub Release |
+
+During the beta line Windows ships the NSIS installer only (`Reflog_<version>_windows_x64-setup.exe`).
+The MSI bundler goes through WiX v3, whose `ProductVersion` is numeric-only, so it rejects
+`0.1.0-beta.2` and would abort the whole build. The workflow adds `msi` back automatically once
+the version has no prerelease suffix (`promote`), so the first stable release gets both installers.
+
+If a bundler fails, the binaries that did get produced are still uploaded to the run page under
+Artifacts (`bundles-ubuntu-22.04` / `bundles-windows-latest`) — the release upload is not the only
+copy, so nothing is lost while debugging.
 
 ### Versions (the app is in beta)
 

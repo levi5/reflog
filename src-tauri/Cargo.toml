@@ -1,6 +1,6 @@
 [package]
 name = "reflog"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 description = "Reflog - Git client with conflict resolver"
 authors = ["you"]
 edition = "2021"
