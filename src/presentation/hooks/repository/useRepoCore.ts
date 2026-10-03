@@ -14,6 +14,7 @@ import { useGitActions } from "./useGitActions"
 import { useRecents } from "./useRecents"
 import { useRemoteOps } from "./useRemoteOps"
 import { useRepoOpener } from "./useRepoOpener"
+import { useRepoScope } from "./useRepoScope"
 import { useTagOps } from "./useTagOps"
 
 export type View =
@@ -82,6 +83,8 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     messageService,
     git,
   })
+
+  const scope = useRepoScope(repo, git)
 
   const runAction: RunAction = useCallback(
     async (work, after, options) => {
@@ -175,6 +178,9 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     setRepoInput,
     repo,
     recents,
+    repoChain: scope.chain,
+    parentRepo: scope.parent,
+    isSubmodule: scope.isSubmodule,
     openRecent: useCallback((path: string) => handleOpen(path), [handleOpen]),
     clearRecents,
     removeRecent,

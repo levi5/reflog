@@ -130,6 +130,7 @@ export const gitApi = {
   submodules: (repoPath: string) => invokeTyped<SubmoduleInfo[]>("git_submodule_list", { repoPath }),
   submoduleUpdate: (repoPath: string, submodulePath?: string) =>
     invokeTyped<string>("git_submodule_update", { repoPath, submodulePath }),
+  superprojectChain: (repoPath: string) => invokeTyped<string[]>("git_superproject_chain", { repoPath }),
 }
 
 export type GitApi = typeof gitApi

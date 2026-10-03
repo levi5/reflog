@@ -122,6 +122,23 @@ pub fn submodule_update(
 }
 
 
+pub fn superproject_chain(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<String>, String> {
+    let superproject_args = ["rev-parse", "--show-superproject-working-tree"];
+    let root = runner.repo_root(repo_path)?;
+    let mut chain = vec![root.clone()];
+    let mut cursor = root;
+    while let Ok(parent) = runner.run(Some(&cursor), &superproject_args) {
+        let parent = parent.trim().to_string();
+        if parent.is_empty() || chain.contains(&parent) {
+            break;
+        }
+        chain.push(parent.clone());
+        cursor = parent;
+    }
+    chain.reverse();
+    Ok(chain)
+}
+
 #[tauri::command]
 pub async fn git_submodule_list(
     state: State<'_, AppState>,
@@ -139,6 +156,15 @@ pub async fn git_submodule_update(
 ) -> Result<String, String> {
     let runner = state.runner.clone();
     crate::commands::run_blocking(move || submodule_update(runner.as_ref(), &repo_path, submodule_path)).await
+}
+
+#[tauri::command]
+pub async fn git_superproject_chain(
+    state: State<'_, AppState>,
+    repo_path: String,
+) -> Result<Vec<String>, String> {
+    let runner = state.runner.clone();
+    crate::commands::run_blocking(move || superproject_chain(runner.as_ref(), &repo_path)).await
 }
 
 #[cfg(test)]
@@ -195,6 +221,29 @@ mod tests {
         assert_eq!(list[0].url, "https://x/y.git");
         assert_eq!(list[0].branch, "main");
         assert_eq!(list[0].state, " ");
+    }
+
+    #[test]
+    fn chain_is_only_the_root_when_not_a_submodule() {
+        let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
+
+        assert_eq!(superproject_chain(&runner, "/r").unwrap(), vec!["/r"]);
+    }
+
+    #[test]
+    fn chain_starts_at_the_outermost_superproject() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("rev-parse --show-superproject-working-tree", "/super"),
+            ],
+            &[],
+        );
+
+        assert_eq!(
+            superproject_chain(&runner, "/r").unwrap(),
+            vec!["/super", "/r"]
+        );
     }
 
     mod demo {
@@ -261,6 +310,56 @@ mod tests {
 
         fn s(v: &[&str]) -> Vec<String> {
             v.iter().map(|s| s.to_string()).collect()
+        }
+
+        fn canonical(path: &str) -> String {
+            std::fs::canonicalize(path)
+                .unwrap()
+                .to_string_lossy()
+                .to_string()
+        }
+
+        #[test]
+        fn demo_submodule_chain_on_real_repos() {
+            let (sup, _lib) = fixture();
+            let sub = canonical(&std::path::Path::new(&sup).join("libs/lib").to_string_lossy());
+            let runner = ProcessRunner;
+
+            assert_eq!(
+                superproject_chain(&runner, &sub).unwrap(),
+                vec![canonical(&sup), sub.clone()]
+            );
+            assert_eq!(superproject_chain(&runner, &sup).unwrap(), vec![canonical(&sup)]);
+        }
+
+        #[test]
+        fn demo_nested_submodule_chain_on_real_repos() {
+            let (sup, _lib) = fixture();
+            let sub_dir = std::path::Path::new(&sup).join("libs/lib");
+            let sub_s = sub_dir.to_string_lossy().to_string();
+            let base = std::path::Path::new(&sup)
+                .parent()
+                .unwrap()
+                .join("nested-lib");
+            let base_s = base.to_string_lossy().to_string();
+            std::fs::create_dir_all(&base).unwrap();
+            git(&base_s, &["init"]);
+            std::fs::write(base.join("nested.txt"), "deep\n").unwrap();
+            git(&base_s, &["add", "."]);
+            git(&base_s, &["commit", "-m", "nested init"]);
+            git(&sub_s, &["submodule", "add", &base_s, "vendor/nested"]);
+            git(&sub_s, &["commit", "-m", "add nested"]);
+            let runner = ProcessRunner;
+
+            let deep = canonical(
+                &std::path::Path::new(&sup)
+                    .join("libs/lib/vendor/nested")
+                    .to_string_lossy(),
+            );
+            assert_eq!(
+                superproject_chain(&runner, &deep).unwrap(),
+                vec![canonical(&sup), canonical(&sub_s), deep]
+            );
         }
 
         #[test]

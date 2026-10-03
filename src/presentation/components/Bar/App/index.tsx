@@ -1,13 +1,24 @@
+import classnames from "classnames"
 import { useState, useCallback } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import type { Location, NavigateFunction } from "react-router-dom"
-import { Bolt, BookOpen, FolderGit2, FolderOpen, GitBranch, RefreshCw, Settings as SettingsIcon } from "lucide-react"
+import {
+  Bolt,
+  BookOpen,
+  ChevronDown,
+  FolderGit2,
+  FolderOpen,
+  GitBranch,
+  Layers,
+  RefreshCw,
+  Settings as SettingsIcon,
+} from "lucide-react"
 
-import { useRepo } from "../../../context"
-import { useProfiles } from "../../../hooks"
-import { useTranslation } from "../../../context"
-import { useWindowDrag } from "../../../hooks"
+import { useRepo, useTranslation } from "../../../context"
+import { useAltShortcut, useProfiles, useWindowDrag } from "../../../hooks"
+import { repoBaseName } from "../../../../main/adapters"
 import { Select } from "../../Select"
+import { Repo } from "../../Repo"
 import { SideBar } from "../../SideBar"
 import { AppBrand } from "../../Brand"
 import { BusyBar } from "../Busy"
@@ -59,6 +70,8 @@ function useHomeNavigation(onCloseRepo: () => void, navigate: NavigateFunction) 
   }, [onCloseRepo, navigate])
 }
 
+const REPO_SWITCH_KEY = "r"
+
 function AppBar() {
   const repo = useRepo()
   const { lang } = useTranslation()
@@ -69,9 +82,10 @@ function AppBar() {
   })
   const navigate = useNavigate()
   const location = useLocation()
-  const { t } = useTranslation()
+  const { t, format } = useTranslation()
   const windowDrag = useWindowDrag()
   const [quickActionsOpen, setQuickActionsOpen] = useState(false)
+  const [repoSwitchOpen, setRepoSwitchOpen] = useState(false)
 
   const isHome = location.pathname === "/"
 
@@ -80,6 +94,13 @@ function AppBar() {
   const toggleSettings = useNavToggle("/settings", location, navigate)
 
   const branchOptions = useBranchOptions(repo.status?.branch ?? "", repo.localBranches)
+
+  const toggleRepoSwitch = useCallback(() => setRepoSwitchOpen((prev) => !prev), [])
+  useAltShortcut(REPO_SWITCH_KEY, toggleRepoSwitch)
+
+  const repoTooltip = repo.isSubmodule
+    ? `${format("scopeSubmoduleOf", { parent: repo.parentRepo })}\n${repo.repo}`
+    : repo.repo
 
   return (
     <>
@@ -92,10 +113,24 @@ function AppBar() {
       >
         <AppBrand />
         <HomeButton isActive={isHome} onNavigateHome={handleNavigateHome} />
-        <span className={styles.repoPill} title={repo.repoName}>
-          <FolderGit2 size={14} className={styles.repoIcon} />
+        <button
+          type="button"
+          className={classnames(styles.repoPill, repo.isSubmodule && styles.submodulePill)}
+          onClick={toggleRepoSwitch}
+          title={`${repoTooltip}\n${t("repoSwitcherToggle")} (Alt+R)`}
+          aria-label={t("repoSwitcherToggle")}
+          aria-expanded={repoSwitchOpen}
+          disabled={!repo.repo}
+        >
+          {repo.isSubmodule ? (
+            <Layers size={14} className={styles.repoIcon} />
+          ) : (
+            <FolderGit2 size={14} className={styles.repoIcon} />
+          )}
           <span className={styles.repoName}>{repo.repoName}</span>
-        </span>
+          {repo.isSubmodule && <span className={styles.repoParent}>↑ {repoBaseName(repo.parentRepo)}</span>}
+          <ChevronDown size={12} className={styles.repoChevron} />
+        </button>
         <Select
           className={styles.branchSelect}
           icon={<GitBranch size={13} className={styles.branchIcon} />}
@@ -165,6 +200,7 @@ function AppBar() {
         <BusyBar visible={repo.busy} />
       </div>
       <SideBar.QuickActions isOpen={quickActionsOpen} onClose={() => setQuickActionsOpen(false)} />
+      <Repo.Switch isOpen={repoSwitchOpen} onClose={() => setRepoSwitchOpen(false)} />
     </>
   )
 }

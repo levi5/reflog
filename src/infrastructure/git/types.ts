@@ -70,6 +70,7 @@ export interface IGitApi {
   templateDelete(repoPath: string, folder: string, name: string): Promise<string>
   submodules(repoPath: string): Promise<SubmoduleInfo[]>
   submoduleUpdate(repoPath: string, submodulePath?: string): Promise<string>
+  superprojectChain(repoPath: string): Promise<string[]>
   stash(repoPath: string, message?: string): Promise<string>
   stashPop(repoPath: string): Promise<string>
   stashList(repoPath: string): Promise<StashItem[]>

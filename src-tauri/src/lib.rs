@@ -147,6 +147,7 @@ pub fn run() {
             commands::templates::git_template_delete,
             commands::playground::git_run,
             commands::submodules::git_submodule_list,
+            commands::submodules::git_superproject_chain,
             commands::meta::git_version,
             commands::meta::git_remote_url,
             commands::meta::git_gpg,

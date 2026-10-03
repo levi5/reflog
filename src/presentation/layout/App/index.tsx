@@ -15,7 +15,7 @@ import { Windows } from "../../components/Window"
 
 import { SearchProvider, useMessage, useRepo, useSettingsContext } from "../../context"
 import { t } from "../../../i18n"
-import { useProfiles } from "../../hooks"
+import { useAltShortcut, useProfiles } from "../../hooks"
 import { VIEW_LABELS, VIEW_TABS } from "../../../shared/constants"
 import type { TabItem } from "../../../types/components"
 import type { View } from "../../hooks"
@@ -114,16 +114,7 @@ export function AppLayout() {
     }
   }, [repo.handleOpen, navigate])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === "p") {
-        e.preventDefault()
-        void profiles.cycle()
-      }
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [profiles.cycle])
+  useAltShortcut("p", profiles.cycle)
 
   return (
     <SearchProvider>

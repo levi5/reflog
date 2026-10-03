@@ -249,6 +249,7 @@ exists under the git dir.
 |---------|-------------|
 | `git_submodule_list` | List submodules |
 | `git_submodule_update` | Update submodules |
+| `git_superproject_chain` | Resolve the superproject chain of a repository |
 
 #### Playground (`commands/playground.rs`)
 

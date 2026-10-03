@@ -556,5 +556,17 @@
   "rebaseCompleted": "Rebase completed.",
   "rebaseNoCommits": "No commits in range.",
   "rebaseLoad": "Load commits",
-  "rebaseContinue": "Continue rebase"
+  "rebaseContinue": "Continue rebase",
+  "repoSwitcherToggle": "Switch folder",
+  "repoSwitcherOpen": "Open",
+  "repoSwitcherParentHint": "Opening the superproject swaps the current Git folder for the parent repository.",
+  "repoSwitcherEmptyHint": "This repository has no submodules or related folders.",
+  "searchRepoSwitcher": "Search folder or submodule...",
+  "noRepoTargets": "Nothing to open here.",
+  "scopeSuperproject": "Superproject",
+  "scopeAncestors": "Superprojects",
+  "scopeDirectParent": "direct parent",
+  "scopeSiblings": "Sibling submodules",
+  "scopeSubmodules": "Submodules",
+  "scopeSubmoduleOf": "Submodule of {parent}"
 }

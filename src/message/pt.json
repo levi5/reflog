@@ -556,5 +556,17 @@
   "rebaseCompleted": "Rebase concluído.",
   "rebaseNoCommits": "Nenhum commit no intervalo.",
   "rebaseLoad": "Carregar commits",
-  "rebaseContinue": "Continuar rebase"
+  "rebaseContinue": "Continuar rebase",
+  "repoSwitcherToggle": "Trocar de pasta",
+  "repoSwitcherOpen": "Abrir",
+  "repoSwitcherParentHint": "Abrir o superprojeto troca a pasta Git atual pelo repositório pai.",
+  "repoSwitcherEmptyHint": "Este repositório não tem submódulos nem relacionados.",
+  "searchRepoSwitcher": "Buscar pasta ou submódulo...",
+  "noRepoTargets": "Nada para abrir aqui.",
+  "scopeSuperproject": "Superprojeto",
+  "scopeAncestors": "Superprojetos",
+  "scopeDirectParent": "pai direto",
+  "scopeSiblings": "Submódulos irmãos",
+  "scopeSubmodules": "Submódulos",
+  "scopeSubmoduleOf": "Submódulo de {parent}"
 }

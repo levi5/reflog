@@ -834,6 +834,19 @@ invoke<string>('git_submodule_update', { repoPath: string, submodulePath?: strin
 
 ---
 
+### `git_superproject_chain`
+
+Resolves the repository chain from the outermost superproject down to
+`repoPath`. A plain repository resolves to a single entry; a submodule
+resolves to `superproject, …, parent, repo`.
+
+```ts
+invoke<string[]>('git_superproject_chain', { repoPath: string })
+// Example: ['/work/super', '/work/super/libs/lib']
+```
+
+---
+
 ## Playground
 
 ### `git_run`

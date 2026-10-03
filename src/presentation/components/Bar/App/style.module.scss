@@ -38,10 +38,46 @@
   flex-shrink: 1;
   min-width: 0;
   max-width: 180px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+
+  &:hover:not(:disabled), &:focus-visible {
+    background: var(--bg-hover);
+    border-color: var(--grape);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+}
+
+.repoPill.submodulePill {
+  border-color: var(--grape-dim);
+  background: var(--grape-dim);
 }
 
 .repoIcon {
   flex-shrink: 0;
+}
+
+.repoParent {
+  flex-shrink: 0;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: var(--bg-deep);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.repoChevron {
+  flex-shrink: 0;
+  color: var(--faint);
 }
 
 .repoName {
