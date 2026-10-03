@@ -1,10 +1,7 @@
 import { renderToString } from "react-dom/server"
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { TranslationProvider } from "../../../src/presentation/context/translation/translation-context"
-import {
-  ScopeBreadcrumb,
-  ScopeGroupSection,
-} from "../../../src/presentation/components/Repo/Switch"
+import { ScopeBreadcrumb, ScopeGroupSection } from "../../../src/presentation/components/Repo/Switch"
 import { buildScopeGroups } from "../../../src/presentation/components/Repo/Switch/scope-targets"
 import type { SubmoduleInfo } from "../../../src/types"
 
@@ -31,9 +28,7 @@ describe("RepoSwitcher presentation", () => {
   })
 
   it("shows the direct parent when inside a submodule", () => {
-    const html = render(
-      <ScopeBreadcrumb repo="/work/super/libs/lib" chain={["/work/super", "/work/super/libs/lib"]} />,
-    )
+    const html = render(<ScopeBreadcrumb repo="/work/super/libs/lib" chain={["/work/super", "/work/super/libs/lib"]} />)
     expect(html).toContain("/work/super")
   })
 
@@ -70,9 +65,7 @@ describe("RepoSwitcher presentation", () => {
       recents: [],
     })
 
-    const html = render(
-      <ScopeGroupSection group={children} activeId="" onSelect={noop} onOpen={noop} />,
-    )
+    const html = render(<ScopeGroupSection group={children} activeId="" onSelect={noop} onOpen={noop} />)
 
     expect(html).toContain("Submódulos")
     expect(html).toContain('title="/work/super/libs/lib"')
@@ -90,9 +83,7 @@ describe("RepoSwitcher presentation", () => {
     })
     const targetId = group.targets[0].id
 
-    const html = render(
-      <ScopeGroupSection group={group} activeId={targetId} onSelect={noop} onOpen={noop} />,
-    )
+    const html = render(<ScopeGroupSection group={group} activeId={targetId} onSelect={noop} onOpen={noop} />)
 
     expect(html).toContain("selected")
   })

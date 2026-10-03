@@ -1,7 +1,7 @@
 {
   "name": "reflog",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "packageManager": "pnpm@10.16.1",
   "type": "module",
   "license": "MIT",
@@ -23,8 +23,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run",
-    "lint": "biome check src",
-    "lint:fix": "biome check --write src"
+    "lint": "biome check src tests scripts",
+    "lint:fix": "biome check --write src tests scripts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

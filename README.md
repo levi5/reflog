@@ -134,6 +134,72 @@ reflog .
 
 ---
 
+## 📦 Build and Release
+
+### System dependencies (Linux)
+
+```bash
+# Ubuntu / Debian / Linux Mint
+sudo apt install -y libwebkit2gtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev patchelf rpm
+```
+
+`rpm` is only needed for the RPM bundle, `patchelf` only for AppImage.
+
+### Local build
+
+```bash
+pnpm tauri build --bundles deb,appimage        # add ,rpm if you installed rpm
+```
+
+Artifacts land in `src-tauri/target/release/bundle/` (`.deb`, `.AppImage`, `.rpm`) and the
+raw binary in `src-tauri/target/release/reflog`. `targets: "all"` in `tauri.conf.json` also
+tries RPM and AppImage, so it fails without the packages above.
+
+The Windows `.msi` cannot be produced on Linux — WiX runs on Windows only. Build it with CI
+(`gh run download <run-id>`) or on a Windows machine with `pnpm tauri build`.
+
+### CI
+
+| Workflow | Trigger | What it does |
+| -------- | ------- | ------------ |
+| `.github/workflows/ci.yml` | push / PR | Biome, Vitest, `tsc --noEmit`, `cargo test`, version check |
+| `.github/workflows/release.yml` | tag `v*` | same checks, then AppImage + `.deb` + `.rpm` (ubuntu-22.04) and `.msi` + `-setup.exe` (windows-latest), attached to the GitHub Release |
+
+### Versions (the app is in beta)
+
+Reflog is pre-1.0 and ships as **prereleases**: the version carries a semver prerelease tag
+(`0.1.0-beta.1`) and the GitHub Release is flagged as *Pre-release*, so a beta never becomes
+the "Latest" release by accident. The same version lives in `package.json`,
+`src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`; CI refuses to build if they drift or
+if the tag does not match.
+
+```bash
+node scripts/check-version.mjs            # validate + print version and suggested bumps
+```
+
+| Current | Next beta | Promote to | Next stable |
+| ------- | --------- | ---------- | ----------- |
+| `0.1.0-beta.1` | `0.1.0-beta.2` | `0.1.0` | `0.1.1` (patch) / `0.2.0` (minor) |
+| `0.1.0` | `0.1.0-beta.1` | — | `0.1.1` / `0.2.0` |
+
+```bash
+# 1. set the next version in package.json, src-tauri/Cargo.toml and src-tauri/tauri.conf.json
+# 2. validate and commit
+node scripts/check-version.mjs
+
+# 3. tag with the exact version (CI fails on any mismatch)
+git tag v0.1.0-beta.1 && git push origin master --tags
+
+# download the artifacts of that run
+gh run download
+```
+
+The release job needs `contents: write`; if it fails with `Resource not accessible by
+integration`, enable *Read and write permissions* under Settings → Actions → Workflow
+permissions. Releases are unsigned, so Windows SmartScreen warns on first run.
+
+---
+
 ## 🧪 Commands
 
 | Command | Description |

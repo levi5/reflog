@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import {
-  CANVAS_ORIGIN_OFFSET,
   CANVAS_PADDING,
   ROW_HEIGHT,
   computeCanvasGeometry,
