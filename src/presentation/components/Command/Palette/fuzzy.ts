@@ -1,4 +1,3 @@
-/** Subsequence fuzzy match (case-insensitive). Empty query matches everything. */
 export function fuzzyMatch(query: string, text: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true

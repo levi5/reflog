@@ -73,7 +73,6 @@ export function GitLensList({
     "--gitlens-font": `${fontSize}px`,
   } as CSSProperties
 
-  // Infinite scroll — carrega mais ao chegar perto do fim (estilo GitLens).
   useEffect(() => {
     const el = scrollRef.current
     if (!el || !hasMore || !onLoadMore) return
@@ -90,7 +89,6 @@ export function GitLensList({
     return () => el.removeEventListener("scroll", onScroll)
   }, [hasMore, isLoading, onLoadMore])
 
-  // Ctrl+scroll aplica zoom na lista sem quebrar a rolagem nativa.
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -104,13 +102,11 @@ export function GitLensList({
     return () => el.removeEventListener("wheel", onWheelNative)
   }, [onZoomIn, onZoomOut])
 
-  // Navegação de busca — centraliza o match ativo como no GitLens.
   useEffect(() => {
     if (!activeMatchHash) return
     document.getElementById(`gitlens-row-${activeMatchHash}`)?.scrollIntoView({ block: "nearest" })
   }, [activeMatchHash])
 
-  // Checkout — revela a linha de destino após o travel.
   useEffect(() => {
     if (!headTravel) return
     document.getElementById(`gitlens-row-${headTravel.toHash}`)?.scrollIntoView({ block: "nearest" })

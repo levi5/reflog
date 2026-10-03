@@ -91,7 +91,6 @@ export function AppLayout() {
       if (!path.trim()) return
       const ok = await repo.handleOpen(path)
       if (ok && !disposed) {
-        // Sai da tela de boas-vindas e vai direto para o repo (ex.: `reflog .`)
         navigate("/staging", { replace: true })
       }
     }

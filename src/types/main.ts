@@ -117,9 +117,7 @@ export type AccentId = "grape" | "blue" | "teal" | "green" | "amber" | "red" | "
 
 export interface AccentOption {
   id: AccentId
-  /** Hex usado nos temas escuros (dark / glass-dark) */
   dark: string
-  /** Hex usado nos temas claros (light / glass-light), mais escuro por contraste */
   light: string
 }
 

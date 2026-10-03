@@ -44,7 +44,6 @@ export class DiffParserUseCase implements IDiffParserUseCase {
     let prevEmitted = false
     body.forEach((line, index) => {
       if (line.startsWith("\\")) {
-        // "\ No newline at end of file": só faz sentido após uma linha mantida
         if (prevEmitted) {
           out.push(line)
         } else {
@@ -56,13 +55,11 @@ export class DiffParserUseCase implements IDiffParserUseCase {
       const isAdd = line.startsWith("+")
       if ((isDel || isAdd) && !selected.has(index)) {
         if (isDel) {
-          // remoção não selecionada vira contexto
           out.push(` ${line.slice(1)}`)
           oldCount += 1
           newCount += 1
           prevEmitted = true
         } else {
-          // adição não selecionada é descartada do patch
           prevEmitted = false
         }
         return

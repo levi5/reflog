@@ -2,7 +2,6 @@ import type { SVGProps } from "react"
 import type { GraphRow } from "../../../../domain/entities/graph/commit-graph"
 import { laneColor } from "../../../../main/adapters"
 
-// GitLens metrics: compact rows, narrow lanes, seamless vertical stitching.
 export const GITLENS_LANE_W = 14
 export const GITLENS_ROW_H = 28
 
@@ -24,7 +23,6 @@ export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svg
 
   return (
     <svg width={width} height={rowHeight} aria-hidden="true" {...svgProps}>
-      {/* pass-through / entering lines (top half) */}
       {row.top.map((h, j) => {
         if (h === null || h === undefined) return null
         const c = laneColor(j)
@@ -57,7 +55,6 @@ export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svg
           />
         )
       })}
-      {/* outgoing links (bottom half) — straight when same lane, smooth S-curve otherwise */}
       {row.links.map((l) =>
         l.toLane === l.fromLane ? (
           <line
@@ -81,7 +78,6 @@ export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svg
           />
         ),
       )}
-      {/* node dot — GitLens style: solid for commits, hollow ring for merges */}
       {row.isMerge ? (
         <>
           <circle cx={x(row.lane)} cy={mid} r={6} fill="var(--bg-win)" stroke={color} strokeWidth={2} />

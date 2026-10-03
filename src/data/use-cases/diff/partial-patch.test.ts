@@ -18,12 +18,10 @@ function makeHunk(header: string, lines: string[]): DiffHunk {
 describe("buildPartialPatch", () => {
   it("keeps only selected lines and recounts the header", () => {
     const hunk = makeHunk("@@ -1,4 +1,4 @@", [" ctx1", "-old1", "-old2", "+new1", "+new2", " ctx2"])
-    // seleciona -old1 (índice 1) e +new1 (índice 3)
     const patch = useCase.buildPartialPatch(PREAMBLE, hunk, new Set([1, 3]))
     expect(patch).toContain("@@ -1,4 +1,4 @@")
     expect(patch).toContain("-old1")
     expect(patch).toContain("+new1")
-    // -old2 vira contexto, +new2 é descartado
     expect(patch).toContain(" old2")
     expect(patch).not.toContain("+new2")
   })

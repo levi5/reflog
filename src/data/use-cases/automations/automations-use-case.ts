@@ -137,7 +137,6 @@ const AUTOMATIONS_STORAGE_KEY = "forgegit.automations"
 const LEGACY_ACCENT_HEX = "#7c6cff"
 const ACCENT_VAR = "var(--accent)"
 
-/** Atalhos criados antes do accent theme-aware gravavam o roxo fixo; migra para seguir o accent. */
 function migrateShortcutColor(color: string): string {
   return color.toLowerCase() === LEGACY_ACCENT_HEX ? ACCENT_VAR : color
 }

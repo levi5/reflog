@@ -3,12 +3,6 @@ interface LogoMarkProps {
   className?: string
 }
 
-/**
- * Marca do Reflog inline (mesma arte de `public/icon.svg`).
- * O gradiente usa `var(--accent)` / `var(--grape-deep)`, então a logo
- * acompanha a cor de destaque e o tema automaticamente.
- * `var()` em SVG só funciona via `style`, não como atributo.
- */
 export function LogoMark({ size = 72, className }: LogoMarkProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 1024 1024" role="img" aria-label="Reflog" className={className}>
