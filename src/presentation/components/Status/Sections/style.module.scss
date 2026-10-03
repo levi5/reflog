@@ -1,0 +1,116 @@
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.chev {
+  flex-shrink: 0;
+  transition: transform 0.14s ease;
+}
+
+.open {
+  transform: rotate(90deg);
+}
+
+.icon {
+  display: flex;
+  color: var(--faint);
+}
+
+.label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.count {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.headActions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  padding-left: 10px;
+}
+
+.body > * {
+  padding: 3px 6px;
+  gap: 6px;
+  border-radius: 5px;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  color: var(--faint);
+  background: none;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.action:hover {
+  color: var(--fg);
+  background: var(--bg-raised);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.action.danger:hover {
+  color: var(--red);
+  background: var(--red-dim);
+}

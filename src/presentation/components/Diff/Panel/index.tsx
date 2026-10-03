@@ -42,62 +42,11 @@ interface DiffPanelProps {
   errorMessage: string | null
   maxHeight?: number
   onLoad: () => void
-  onShowUnstaged: () => void
-  onShowStaged: () => void
-  onStageFile: () => void
-  onUnstageFile: () => void
-  onDiscardFile: () => void
   onStageHunk: (hunkPatch: string) => void
   onUnstageHunk: (hunkPatch: string) => void
   onDiscardHunk: (hunkPatch: string) => void
   onStageSelected: (partialPatch: string) => void
   onUnstageSelected: (partialPatch: string) => void
-  onEditFile: () => void
-}
-
-interface DiffToolbarProps {
-  isStaged?: boolean
-  onShowUnstaged?: () => void
-  onShowStaged?: () => void
-  onStageFile?: () => void
-  onUnstageFile?: () => void
-  onDiscardFile?: () => void
-  onEditFile?: () => void
-}
-
-function DiffToolbar({
-  isStaged,
-  onShowUnstaged,
-  onShowStaged,
-  onStageFile,
-  onUnstageFile,
-  onDiscardFile,
-  onEditFile,
-}: DiffToolbarProps) {
-  const { t } = useTranslation()
-  return (
-    <div className={classnames(styles.rowFlex, styles.wrap)}>
-      <button type="button" onClick={onShowUnstaged}>
-        Unstaged
-      </button>
-      <button type="button" onClick={onShowStaged}>
-        Staged
-      </button>
-      <button type="button" onClick={onEditFile} title={t("editFile")}>
-        {t("editFile")}
-      </button>
-      <button type="button" onClick={onStageFile}>
-        + stage
-      </button>
-      <button type="button" onClick={onUnstageFile}>
-        − unstage
-      </button>
-      <button type="button" className="danger" onClick={onDiscardFile}>
-        {t("discard")}
-      </button>
-      <span className={classnames(styles.fbadge, styles.green)}>{isStaged ? t("staged") : t("unstaged")}</span>
-    </div>
-  )
 }
 
 function DiffPreamble({ parsedDiff }: { parsedDiff: ParsedDiff }) {
@@ -252,17 +201,11 @@ export function DiffPanel({
   errorMessage,
   maxHeight,
   onLoad,
-  onShowUnstaged,
-  onShowStaged,
-  onStageFile,
-  onUnstageFile,
-  onDiscardFile,
   onStageHunk,
   onUnstageHunk,
   onDiscardHunk,
   onStageSelected,
   onUnstageSelected,
-  onEditFile,
 }: DiffPanelProps) {
   const { t } = useTranslation()
   const diffSize = diffContent.length
@@ -287,34 +230,19 @@ export function DiffPanel({
     return <EmptyState message={t("selectFileHint")} />
   }
 
-  const toolbar = (
-    <DiffToolbar
-      isStaged={isStaged}
-      onShowUnstaged={onShowUnstaged}
-      onShowStaged={onShowStaged}
-      onStageFile={onStageFile}
-      onUnstageFile={onUnstageFile}
-      onDiscardFile={onDiscardFile}
-      onEditFile={onEditFile}
-    />
-  )
-
   if (!loaded) {
     return (
-      <>
-        {toolbar}
-        <div className={styles.largeDiffBanner}>
-          {errorMessage && (
-            <span className={styles.loadError} role="alert">
-              {errorMessage}
-            </span>
-          )}
-          <button type="button" className="primary" onClick={onLoad} disabled={loading}>
-            {loading ? t("loading") : t("loadDiff")}
-          </button>
-          {loading && <div className={styles.diffSkeleton} role="status" aria-busy aria-label={t("loading")} />}
-        </div>
-      </>
+      <div className={styles.largeDiffBanner}>
+        {errorMessage && (
+          <span className={styles.loadError} role="alert">
+            {errorMessage}
+          </span>
+        )}
+        <button type="button" className="primary" onClick={onLoad} disabled={loading}>
+          {loading ? t("loading") : t("loadDiff")}
+        </button>
+        {loading && <div className={styles.diffSkeleton} role="status" aria-busy aria-label={t("loading")} />}
+      </div>
     )
   }
 
@@ -371,7 +299,6 @@ export function DiffPanel({
 
   return (
     <>
-      {toolbar}
       {isLargeDiff && (
         <div className={styles.largeDiffBanner}>
           <span>{t("largeDiffPreview")}</span>

@@ -93,3 +93,16 @@
   color: var(--muted);
   font-size: 11px;
 }
+
+.factions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.fcard:hover .factions,
+.fcard:focus-within .factions {
+  opacity: 1;
+}

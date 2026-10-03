@@ -13,6 +13,8 @@ import { Resizable } from "@/presentation/components/Resizable"
 import { ResizeGrip } from "../../components/Resizable/Grip"
 import { SearchBox } from "../../components/Search"
 import { Status } from "../../components/Status"
+import type { FileCheckSelection } from "../../components/Status/File"
+import { groupBySection, type SectionId } from "../../components/Status/Sections/section-groups"
 import { Tabs } from "../../components/Tabs"
 import { Tag } from "../../components/Tag"
 
@@ -29,6 +31,8 @@ import styles from "./style.module.scss"
 type SideTab = "files" | "branches" | "tags" | "remotes" | "stash" | "submodules"
 
 type Props = Record<string, never>
+
+const toPath = (file: FileStatus): string => file.path
 
 export function Staging(_props: Props) {
   const { lang } = useSettingsContext()
@@ -57,21 +61,51 @@ export function Staging(_props: Props) {
         .getOrElse([]) as FileStatus[],
     [statusFiles, query, scope],
   )
-  const orderedPaths = useMemo(() => files.map((file) => file.path), [files])
-  const selection = useFileSelection(orderedPaths, repo.repo)
-  const fileSelection = useMemo(
-    () => ({ checked: selection.checked, onToggle: selection.toggle }),
-    [selection.checked, selection.toggle],
+  const grouped = useMemo(() => groupBySection(files), [files])
+  const sectionPaths = useMemo(
+    () => ({
+      conflicts: grouped.conflicts.map(toPath),
+      staged: grouped.staged.map(toPath),
+      changes: grouped.changes.map(toPath),
+    }),
+    [grouped],
   )
+  const conflictsSelection = useFileSelection(sectionPaths.conflicts, repo.repo)
+  const stagedSelection = useFileSelection(sectionPaths.staged, repo.repo)
+  const changesSelection = useFileSelection(sectionPaths.changes, repo.repo)
+  const selections = useMemo<Record<SectionId, FileCheckSelection>>(
+    () => ({
+      conflicts: { checked: conflictsSelection.checked, onToggle: conflictsSelection.toggle },
+      staged: { checked: stagedSelection.checked, onToggle: stagedSelection.toggle },
+      changes: { checked: changesSelection.checked, onToggle: changesSelection.toggle },
+    }),
+    [
+      conflictsSelection.checked,
+      conflictsSelection.toggle,
+      stagedSelection.checked,
+      stagedSelection.toggle,
+      changesSelection.checked,
+      changesSelection.toggle,
+    ],
+  )
+  const checkedPaths = useMemo(
+    () => [...conflictsSelection.checked, ...stagedSelection.checked, ...changesSelection.checked],
+    [conflictsSelection.checked, stagedSelection.checked, changesSelection.checked],
+  )
+
+  const clearSelection = useCallback(() => {
+    conflictsSelection.clear()
+    stagedSelection.clear()
+    changesSelection.clear()
+  }, [conflictsSelection.clear, stagedSelection.clear, changesSelection.clear])
 
   const runBatch = useCallback(
     (work: (paths: string[]) => Promise<unknown>) => {
-      const paths = [...selection.checked]
-      if (paths.length === 0) return
-      selection.clear()
-      void work(paths)
+      if (checkedPaths.length === 0) return
+      clearSelection()
+      void work(checkedPaths)
     },
-    [selection.checked, selection.clear],
+    [checkedPaths, clearSelection],
   )
 
   const handleSelectDiff = useCallback(
@@ -171,21 +205,27 @@ export function Staging(_props: Props) {
             <SearchBox placeholder={t(lang, "searchPh")} />
             {tab === "files" && (
               <SelectionToolbar
-                count={selection.checked.size}
+                count={checkedPaths.length}
                 onStage={() => runBatch(repo.stageFiles)}
                 onUnstage={() => runBatch(repo.unstageFiles)}
                 onDiscard={() => runBatch(repo.discardFiles)}
-                onClear={selection.clear}
+                onClear={clearSelection}
               />
             )}
           </Flex.Col>
           {tab === "files" && (
-            <Status.File
+            <Status.Sections
               files={files}
               selectedFilePath={repo.selectedFile}
-              detailed
+              selections={selections}
               onSelect={handleSelectDiff}
-              selection={fileSelection}
+              onStage={repo.stageFile}
+              onUnstage={repo.unstageFile}
+              onDiscard={repo.discardFile}
+              onEdit={repo.openEditor}
+              onStageMany={repo.stageFiles}
+              onUnstageMany={repo.unstageFiles}
+              onDiscardMany={repo.discardFiles}
             />
           )}
           {tab === "branches" && (
@@ -244,12 +284,6 @@ export function Staging(_props: Props) {
               errorMessage={repo.diffError}
               maxHeight={diffHeight.size}
               onLoad={() => repo.loadDiff()}
-              onShowUnstaged={() => repo.loadDiff(repo.selectedFile, false)}
-              onShowStaged={() => repo.loadDiff(repo.selectedFile, true)}
-              onStageFile={() => repo.stageFile(repo.selectedFile)}
-              onUnstageFile={() => repo.unstageFile(repo.selectedFile)}
-              onDiscardFile={() => repo.discardFile(repo.selectedFile)}
-              onEditFile={() => repo.openEditor(repo.selectedFile)}
               onStageHunk={repo.stageHunk}
               onUnstageHunk={repo.unstageHunk}
               onDiscardHunk={repo.discardHunk}

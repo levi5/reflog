@@ -1,5 +1,6 @@
 import classnames from "classnames"
 import { Circle, CircleCheck, TriangleAlert } from "lucide-react"
+import type { ReactNode } from "react"
 import { memo, useCallback } from "react"
 import type { StringKey } from "../../../../i18n"
 import type { FileStatus } from "../../../../types"
@@ -22,57 +23,57 @@ interface StatusFileListProps {
 
 type Translate = (key: StringKey) => string
 
-const statusTone = (fileStatus: FileStatus): string =>
-  fileStatus.unmerged ? styles.warn : fileStatus.staged ? styles.ok : styles.pend
+const statusTone = (fileStatus: FileStatus, staged: boolean): string =>
+  fileStatus.unmerged ? styles.warn : staged ? styles.ok : styles.pend
 
 const statusLabel = (translate: Translate, fileStatus: FileStatus): string =>
   `${fileStatus.x}${fileStatus.y} · ${
     fileStatus.unmerged ? translate("unmerged") : fileStatus.staged ? translate("staged") : translate("unstaged")
   }`
 
-interface StatusFileItemProps {
+export interface FileStatusRowProps {
   fileStatus: FileStatus
+  staged: boolean
   isSelected: boolean
-  isChecked: boolean
   detailed: boolean
-  showCheck: boolean
+  selection?: FileCheckSelection
+  actions?: ReactNode
   onSelect: (filePath: string, staged: boolean, range: boolean) => void
-  onToggle: (filePath: string, range: boolean) => void
 }
 
-const StatusFileItem = memo(function StatusFileItem({
+export const FileStatusRow = memo(function FileStatusRow({
   fileStatus,
+  staged,
   isSelected,
-  isChecked,
   detailed,
-  showCheck,
+  selection,
+  actions,
   onSelect,
-  onToggle,
-}: StatusFileItemProps) {
+}: FileStatusRowProps) {
   const { t } = useTranslation()
-  const Icon = fileStatus.unmerged ? TriangleAlert : fileStatus.staged ? CircleCheck : Circle
+  const Icon = fileStatus.unmerged ? TriangleAlert : staged ? CircleCheck : Circle
   return (
     <div className={classnames(styles.fcard, isSelected && styles.active)}>
-      {showCheck && (
+      {selection !== undefined && (
         <input
           type="checkbox"
           className={styles.fcheck}
-          checked={isChecked}
+          checked={selection.checked.has(fileStatus.path)}
           aria-label={fileStatus.path}
           onChange={(event) => {
             const native = event.nativeEvent as MouseEvent | undefined
-            onToggle(fileStatus.path, native?.shiftKey ?? false)
+            selection.onToggle(fileStatus.path, native?.shiftKey ?? false)
           }}
         />
       )}
       <button
         type="button"
         className={styles.fselect}
-        onClick={(event) => onSelect(fileStatus.path, fileStatus.staged, event.shiftKey)}
+        onClick={(event) => onSelect(fileStatus.path, staged, event.shiftKey)}
         aria-pressed={isSelected}
         aria-label={fileStatus.path}
       >
-        <span className={classnames(styles.fico, statusTone(fileStatus))}>
+        <span className={classnames(styles.fico, statusTone(fileStatus, staged))} title={statusLabel(t, fileStatus)}>
           <Icon size={16} />
         </span>
         <span className={styles.fmeta}>
@@ -82,6 +83,7 @@ const StatusFileItem = memo(function StatusFileItem({
           {detailed && <small>{statusLabel(t, fileStatus)}</small>}
         </span>
       </button>
+      {actions && <span className={styles.factions}>{actions}</span>}
     </div>
   )
 })
@@ -93,23 +95,18 @@ export function StatusFileList({ files, selectedFilePath, detailed, onSelect, se
       range && selection ? selection.onToggle(filePath, true) : onSelect(filePath, staged),
     [onSelect, selection],
   )
-  const handleToggle = useCallback(
-    (filePath: string, range: boolean) => selection?.onToggle(filePath, range),
-    [selection],
-  )
   return files.length === 0 ? (
     <EmptyState small message={t("noChanges")} />
   ) : (
     files.map((fileStatus) => (
-      <StatusFileItem
+      <FileStatusRow
         key={fileStatus.path}
         fileStatus={fileStatus}
+        staged={fileStatus.staged}
         isSelected={fileStatus.path === selectedFilePath}
-        isChecked={selection?.checked.has(fileStatus.path) ?? false}
         detailed={detailed}
-        showCheck={selection !== undefined}
+        selection={selection}
         onSelect={handleSelect}
-        onToggle={handleToggle}
       />
     ))
   )
