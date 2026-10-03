@@ -81,3 +81,6 @@ jobs:
             AppImage, .deb and .rpm for Linux; .msi and -setup.exe for Windows.
           prerelease: ${{ steps.version.outputs.prerelease }}
           args: ${{ matrix.bundles }}
+          releaseAssetNamePattern: "[name]_[version]_[platform]_[arch][setup].[ext]"
+          uploadWorkflowArtifacts: true
+          retryAttempts: 2

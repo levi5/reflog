@@ -69,6 +69,13 @@ describe("release workflow", () => {
     expect(release).toContain("id: version")
   })
 
+  it("names the assets with the version and publishes them as workflow artifacts", () => {
+    expect(release).toContain("releaseAssetNamePattern:")
+    expect(release).toContain("[name]_[version]_[platform]_[arch][setup].[ext]")
+    expect(release).toContain("uploadWorkflowArtifacts: true")
+    expect(release).toContain("retryAttempts: 2")
+  })
+
   it("installs the bundler only the linux build needs", () => {
     expect(release).toContain('if: runner.os == "Linux"')
     expect(release).toContain("rpm")
