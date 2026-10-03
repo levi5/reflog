@@ -51,6 +51,11 @@ describe("ci workflow", () => {
     expect(ci).not.toContain("tauri-action")
     expect(ci).not.toContain("--bundles")
   })
+
+  it("type checks the backend for windows", () => {
+    expect(ci).toContain("windows-latest")
+    expect(ci).toContain("cargo check --manifest-path src-tauri/Cargo.toml --all-targets")
+  })
 })
 
 describe("release workflow", () => {

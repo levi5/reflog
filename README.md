@@ -162,8 +162,12 @@ The Windows `.msi` cannot be produced on Linux — WiX runs on Windows only. Bui
 
 | Workflow | Trigger | What it does |
 | -------- | ------- | ------------ |
-| `.github/workflows/ci.yml` | push / PR | Biome, Vitest, `tsc --noEmit`, `cargo test`, version check |
+| `.github/workflows/ci.yml` | push / PR | actionlint, Biome, Vitest, `tsc --noEmit`, `cargo test` (Linux) and `cargo check --all-targets` (Windows) |
 | `.github/workflows/release.yml` | tag `v*` | same checks, then AppImage + `.deb` + `.rpm` (ubuntu-22.04) and `-setup.exe` (windows-latest), attached to the GitHub Release |
+
+The `cargo check` on `windows-latest` exists because `cfg(windows)` code never compiles on a Linux
+dev machine or on the Linux CI runner: a broken `#[cfg(unix)]` branch would otherwise only surface
+in the release build, after the tag was pushed.
 
 During the beta line Windows ships the NSIS installer only (`Reflog_<version>_windows_x64-setup.exe`).
 The MSI bundler goes through WiX v3, whose `ProductVersion` is numeric-only, so it rejects

@@ -139,7 +139,6 @@ pub fn rebase_start(
         .map(|c| (c.hash.clone(), first_line(&c.message)))
         .collect();
 
-    let root = runner.repo_root(repo_path)?;
     let stem = format!(
         "reflog-rebase-{}-{}",
         std::process::id(),
@@ -151,23 +150,26 @@ pub fn rebase_start(
     let todo_path = std::env::temp_dir().join(format!("{stem}.todo"));
     std::fs::write(&todo_path, build_todo(&ops, &subjects)).map_err(|e| e.to_string())?;
 
-    #[cfg(unix)]
-    let script_path = write_sequence_editor(&todo_path)?;
     #[cfg(not(unix))]
     {
         let _ = std::fs::remove_file(&todo_path);
         return Err("rebase interativo não suportado nesta plataforma".to_string());
     }
 
-    let editor = script_path.to_string_lossy().to_string();
-    let result = runner.run_env(
-        Some(&root),
-        &["rebase", "-i", onto],
-        &[("GIT_SEQUENCE_EDITOR", editor.as_str())],
-    );
-    let _ = std::fs::remove_file(&todo_path);
-    let _ = std::fs::remove_file(&script_path);
-    result
+    #[cfg(unix)]
+    {
+        let root = runner.repo_root(repo_path)?;
+        let script_path = write_sequence_editor(&todo_path)?;
+        let editor = script_path.to_string_lossy().to_string();
+        let result = runner.run_env(
+            Some(&root),
+            &["rebase", "-i", onto],
+            &[("GIT_SEQUENCE_EDITOR", editor.as_str())],
+        );
+        let _ = std::fs::remove_file(&todo_path);
+        let _ = std::fs::remove_file(&script_path);
+        result
+    }
 }
 
 pub fn rebase_continue(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
