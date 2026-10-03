@@ -4,6 +4,27 @@ import { describe, expect, it } from "vitest"
 
 const workflow = (name: string) => readFileSync(resolve(process.cwd(), ".github/workflows", name), "utf8")
 
+const conditionLines = (yaml: string) =>
+  yaml
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("if:"))
+
+describe("workflow conditions", () => {
+  it("only use single quotes in if expressions", () => {
+    for (const name of ["ci.yml", "release.yml"]) {
+      for (const line of conditionLines(workflow(name))) {
+        expect(line).not.toMatch(/== "/)
+        expect(line).not.toMatch(/!= "/)
+      }
+    }
+  })
+
+  it("keeps at least one condition so the rule is actually exercised", () => {
+    expect(conditionLines(workflow("release.yml")).length).toBeGreaterThan(0)
+  })
+})
+
 describe("ci workflow", () => {
   const ci = workflow("ci.yml")
 
@@ -94,7 +115,7 @@ describe("release workflow", () => {
   })
 
   it("installs the bundler only the linux build needs", () => {
-    expect(release).toContain('if: runner.os == "Linux"')
+    expect(release).toContain("if: runner.os == 'Linux'")
     expect(release).toContain("rpm")
   })
 })

@@ -174,6 +174,12 @@ If a bundler fails, the binaries that did get produced are still uploaded to the
 Artifacts (`bundles-ubuntu-22.04` / `bundles-windows-latest`) — the release upload is not the only
 copy, so nothing is lost while debugging.
 
+The `ci` workflow validates `.github/workflows/*.yml` with
+[actionlint](https://github.com/rhysd/actionlint). A workflow file that GitHub cannot parse fails
+instantly with zero jobs and no obvious error in the run page, so this catches that class of typo
+(the usual one: double quotes inside an `if:` expression, which GitHub rejects — only single quotes
+are valid string delimiters there) before it reaches a release tag.
+
 ### Versions (the app is in beta)
 
 Reflog is pre-1.0 and ships as **prereleases**: the version carries a semver prerelease tag

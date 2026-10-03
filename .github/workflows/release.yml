@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: system dependencies
-        if: runner.os == "Linux"
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils rpm libfuse2
@@ -79,7 +79,7 @@ jobs:
         shell: bash
         run: |
           value="${{ matrix.bundles }}"
-          if [ "${{ matrix.msi }}" = "true" ] && [ "${{ steps.version.outputs.prerelease }}" = "false" ]; then
+          if [ "${{ matrix.msi }}" = 'true' ] && [ "${{ steps.version.outputs.prerelease }}" = 'false' ]; then
             value="$value,msi"
           fi
           echo "value=$value" >> "$GITHUB_OUTPUT"
