@@ -267,6 +267,8 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let dir = temp.path().to_string_lossy().to_string();
         git(&dir, &["init"]);
+        git(&dir, &["config", "user.name", "demo"]);
+        git(&dir, &["config", "user.email", "demo@demo"]);
         std::fs::write(temp.path().join("f.txt"), "1\n").unwrap();
         git(&dir, &["add", "."]);
         git(&dir, &["commit", "-m", "one"]);

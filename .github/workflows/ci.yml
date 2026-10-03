@@ -39,3 +39,6 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
       - run: cargo test --manifest-path src-tauri/Cargo.toml
+        env:
+          GIT_CONFIG_GLOBAL: /dev/null
+          GIT_CONFIG_NOSYSTEM: "1"
