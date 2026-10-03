@@ -19,7 +19,6 @@ interface TemplateListProps {
   onPageChange: (page: number) => void
   onSelectDoc: (doc: TemplateDoc) => void
   onCreateNew: () => void
-  onLoadExample: () => void
   onDeleteTemplate?: (doc: TemplateDoc) => void
 }
 
@@ -31,7 +30,6 @@ export function TemplateList({
   onPageChange,
   onSelectDoc,
   onCreateNew,
-  onLoadExample,
   onDeleteTemplate,
 }: TemplateListProps) {
   const { t } = useTranslation()
@@ -40,9 +38,6 @@ export function TemplateList({
     <div className={styles.listHead}>
       <strong>{t("templateTitle")}</strong>
       <div className={styles.listActions}>
-        <button type="button" className="mini-btn" title={t("templatePreview")} onClick={onLoadExample}>
-          <Sparkles size={12} />
-        </button>
         <button type="button" className="mini-btn" onClick={onCreateNew}>
           <FileCode size={12} /> {t("templateNew")}
         </button>

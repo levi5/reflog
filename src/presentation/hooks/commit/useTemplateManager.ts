@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import type { TemplateDoc } from "../../../domain/entities/commit/commit-markdown"
-import { BUILTIN_DOCS, EXAMPLE_TEMPLATE, STANDARD_ID } from "../../../shared/constants//commit/commitMarkdown"
-import { buildVars, formatCommit, parseTemplateDoc, renderTemplate } from "../../../main/adapters"
+import { BUILTIN_DOCS, STANDARD_ID } from "../../../shared/constants/commit/commitMarkdown"
+import { buildVars, formatCommit, renderTemplate } from "../../../main/adapters"
 import type { CommitFields, CommitPreset } from "../../../domain/entities/commit/commit-template"
 import { t } from "../../../i18n"
 import { DEFAULT_TEMPLATE_FOLDER, gitApi } from "../../../infrastructure/git"
 import { newId } from "../../../shared/utils/id"
 import type { Lang } from "../../../types"
 import { cleanTemplateFileName, serializeTemplateDoc, type ViewTab } from "../../pages/Templates/types"
+import type { TemplateStartMode } from "../../components/Template/CreateDialog"
+import { BLANK_START } from "../../components/Template/CreateDialog"
 import { useCommitConfig, useTranslation } from "../../context"
 import { useTemplateDocs } from "./useTemplateDocs"
 
@@ -21,15 +23,22 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
   const lang = propLang ?? contextLang
   const [viewTab, setViewTab] = useState<ViewTab>("templates")
   const { docs, identity, reloadDocs } = useTemplateDocs(repoPath)
-  const [selectedId, setSelectedId] = useState<string | null>(STANDARD_ID)
-  const [draft, setDraft] = useState<TemplateDoc | null>(BUILTIN_DOCS[0])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [draft, setDraft] = useState<TemplateDoc | null>(null)
   const { prefs, presets, savePrefs, savePresets } = useCommitConfig()
   const [editingPreset, setEditingPreset] = useState<CommitPreset | null>(null)
   const [page, setPage] = useState(0)
   const [feedback, setFeedback] = useState<string>("")
+  const [createOpen, setCreateOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [templateToDelete, setTemplateToDelete] = useState<TemplateDoc | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const repoDocs = useMemo(() => docs.filter((doc) => doc.source === "repo"), [docs])
+  const canDeleteDraft = useMemo(
+    () => Boolean(draft) && repoDocs.some((doc) => doc.id === draft?.id),
+    [draft, repoDocs],
+  )
 
   const handleSelectDoc = useCallback((doc: TemplateDoc) => {
     setSelectedId(doc.id)
@@ -37,24 +46,32 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
     setFeedback("")
   }, [])
 
-  const handleCreateNew = useCallback(() => {
-    const newDoc: TemplateDoc = {
-      id: newId("repo:new"),
-      name: "new-template",
-      source: "repo",
-      defaults: { type: "feat", scope: "" },
-      pattern: "{{header}}\n\n{{#body}}{{body}}\n\n{{/body}}{{#footer}}{{footer}}{{/footer}}",
-    }
-    setSelectedId(newDoc.id)
-    setDraft(newDoc)
-    setFeedback("")
-    setViewTab("templates")
+  const handleOpenCreate = useCallback(() => {
+    setCreateOpen(true)
   }, [])
 
-  const handleLoadExample = useCallback(() => {
-    const exampleDoc = parseTemplateDoc(newId("repo:jira-example"), "jira-issue", "repo", EXAMPLE_TEMPLATE)
-    setSelectedId(exampleDoc.id)
-    setDraft(exampleDoc)
+  const handleStartCreate = useCallback((mode: TemplateStartMode) => {
+    setCreateOpen(false)
+
+    const ready = mode === BLANK_START ? undefined : BUILTIN_DOCS.find((doc) => doc.id === mode)
+    const newDoc: TemplateDoc = ready
+      ? {
+          ...ready,
+          id: newId(`repo:${ready.name}`),
+          name: `${ready.name}-copy`,
+          source: "repo",
+          defaults: { ...ready.defaults },
+        }
+      : {
+          id: newId("repo:new"),
+          name: "new-template",
+          source: "repo",
+          defaults: { type: "feat", scope: "" },
+          pattern: "{{header}}\n\n{{#body}}{{body}}\n\n{{/body}}{{#footer}}{{footer}}{{/footer}}",
+        }
+
+    setSelectedId(newDoc.id)
+    setDraft(newDoc)
     setFeedback("")
     setViewTab("templates")
   }, [])
@@ -92,6 +109,7 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
       setFeedback(t(lang, "templateSaved"))
       await reloadDocs()
       setSelectedId(`repo:${fileName}`)
+      setDraft((prev) => (prev ? { ...prev, id: `repo:${fileName}` } : prev))
     } catch (err) {
       setFeedback(err instanceof Error ? err.message : String(err))
     }
@@ -100,16 +118,21 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
   const handleRequestDeleteTemplate = useCallback(
     (doc?: TemplateDoc) => {
       const target = doc ?? draft
-      if (target?.source !== "repo") return
+      if (!target || !repoDocs.some((saved) => saved.id === target.id)) return
       setTemplateToDelete(target)
       setDeleteOpen(true)
     },
-    [draft],
+    [draft, repoDocs],
   )
 
   const handleDeleteTemplate = useCallback(async () => {
-    const target = templateToDelete ?? (draft?.source === "repo" ? draft : null)
-    if (target?.source !== "repo" || !repoPath) return
+    const target = templateToDelete ?? draft
+    if (!target || !repoPath) return
+    if (!repoDocs.some((saved) => saved.id === target.id)) {
+      setDeleteOpen(false)
+      setTemplateToDelete(null)
+      return
+    }
     const fileName = cleanTemplateFileName(target.name)
     try {
       await gitApi.templateDelete(repoPath, DEFAULT_TEMPLATE_FOLDER, fileName)
@@ -118,14 +141,13 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
       setTemplateToDelete(null)
       await reloadDocs()
       if (selectedId === target.id) {
-        const fallback = BUILTIN_DOCS[0]
-        setSelectedId(fallback.id)
-        setDraft(fallback)
+        setSelectedId(null)
+        setDraft(null)
       }
     } catch (err) {
       setFeedback(err instanceof Error ? err.message : String(err))
     }
-  }, [templateToDelete, draft, repoPath, lang, reloadDocs, selectedId])
+  }, [templateToDelete, draft, repoDocs, repoPath, lang, reloadDocs, selectedId])
 
   const handleToggleActiveTemplate = useCallback(
     (isActive: boolean) => {
@@ -243,6 +265,8 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
     viewTab,
     setViewTab,
     docs,
+    repoDocs,
+    canDeleteDraft,
     selectedId,
     draft,
     setDraft,
@@ -251,14 +275,16 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
     page,
     setPage,
     feedback,
+    createOpen,
+    setCreateOpen,
     deleteOpen,
     setDeleteOpen,
     templateToDelete,
     textareaRef,
     livePreview,
     handleSelectDoc,
-    handleCreateNew,
-    handleLoadExample,
+    handleOpenCreate,
+    handleStartCreate,
     handleDuplicate,
     handleSaveTemplate,
     handleRequestDeleteTemplate,

@@ -3,7 +3,8 @@ export {
   JIRA_ID,
   STANDARD_ID,
   BUILTIN_DOCS,
-  EXAMPLE_TEMPLATE,
+  READY_TEMPLATE_IDS,
+  type ReadyTemplateId,
 } from "../../../infrastructure/templates"
 
 export const TYPE_FROM_BRANCH = [

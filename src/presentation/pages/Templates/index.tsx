@@ -1,6 +1,7 @@
 import { Check } from "lucide-react"
 import { Dialog } from "../../components/Dialog"
 import { TemplateEditor } from "../../components/Editor/Template"
+import { TemplateCreateDialog } from "../../components/Template/CreateDialog"
 import { TemplateSidebar } from "../../components/Template/SideBar"
 import { EmptyState } from "../../components/Empty/State"
 import { useRepo, useTranslation } from "../../context"
@@ -18,6 +19,8 @@ export function Templates() {
     viewTab,
     setViewTab,
     docs,
+    repoDocs,
+    canDeleteDraft,
     selectedId,
     draft,
     setDraft,
@@ -26,14 +29,16 @@ export function Templates() {
     page,
     setPage,
     feedback,
+    createOpen,
+    setCreateOpen,
     deleteOpen,
     setDeleteOpen,
     templateToDelete,
     textareaRef,
     livePreview,
     handleSelectDoc,
-    handleCreateNew,
-    handleLoadExample,
+    handleOpenCreate,
+    handleStartCreate,
     handleDuplicate,
     handleSaveTemplate,
     handleRequestDeleteTemplate,
@@ -58,7 +63,7 @@ export function Templates() {
   return (
     <div className={styles.layout}>
       <TemplateSidebar
-        docs={docs}
+        docs={repoDocs}
         selectedId={selectedId}
         prefs={prefs}
         presets={presets}
@@ -67,8 +72,7 @@ export function Templates() {
         onSetViewTab={setViewTab}
         onSetPage={setPage}
         onSelectDoc={handleSelectDoc}
-        onCreateNew={handleCreateNew}
-        onLoadExample={handleLoadExample}
+        onCreateNew={handleOpenCreate}
         onDeleteTemplate={handleRequestDeleteTemplate}
         onDeletePreset={handleDeletePreset}
         onEditPreset={handleStartEditPreset}
@@ -81,20 +85,27 @@ export function Templates() {
           </div>
         )}
 
-        {viewTab === "templates" && draft && (
-          <TemplateEditor
-            draft={draft}
-            isActive={prefs.templateId === draft.id}
-            livePreview={livePreview}
-            textareaRef={textareaRef}
-            onDraftChange={(updater) => setDraft((prev) => (prev ? updater(prev) : prev))}
-            onToggleActive={handleToggleActiveTemplate}
-            onDuplicate={handleDuplicate}
-            onDeleteRequest={() => handleRequestDeleteTemplate(draft)}
-            onSave={handleSaveTemplate}
-            onInsertVariable={handleInsertVariable}
-          />
-        )}
+        {viewTab === "templates" &&
+          (draft ? (
+            <TemplateEditor
+              draft={draft}
+              isActive={prefs.templateId === draft.id}
+              canDelete={canDeleteDraft}
+              livePreview={livePreview}
+              textareaRef={textareaRef}
+              onDraftChange={(updater) => setDraft((prev) => (prev ? updater(prev) : prev))}
+              onToggleActive={handleToggleActiveTemplate}
+              onDuplicate={handleDuplicate}
+              onDeleteRequest={() => handleRequestDeleteTemplate(draft)}
+              onSave={handleSaveTemplate}
+              onInsertVariable={handleInsertVariable}
+            />
+          ) : (
+            <div className={styles.pickTemplate}>
+              <h3>{t("templateTitle")}</h3>
+              <p>{t("templatePickHint")}</p>
+            </div>
+          ))}
 
         {(viewTab === "presets" || viewTab === "prefs") && (
           <PresetsTab
@@ -114,6 +125,8 @@ export function Templates() {
           />
         )}
       </main>
+
+      <TemplateCreateDialog open={createOpen} onCancel={() => setCreateOpen(false)} onSelect={handleStartCreate} />
 
       <Dialog.Confirm
         open={deleteOpen}

@@ -15,6 +15,7 @@ const COMMIT_TYPE_OPTIONS = COMMIT_TYPES.map((type) => ({
 export function TemplateEditor({
   draft,
   isActive,
+  canDelete,
   livePreview,
   textareaRef,
   onDraftChange,
@@ -39,7 +40,7 @@ export function TemplateEditor({
             <Copy size={12} /> {t("templateDuplicate")}
           </button>
 
-          {draft.source === "repo" && (
+          {canDelete && (
             <button type="button" className="mini-btn danger-t" onClick={onDeleteRequest}>
               <Trash2 size={12} /> {t("templateDelete")}
             </button>

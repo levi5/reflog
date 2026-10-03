@@ -14,6 +14,7 @@ export interface TemplateEditorProps {
   lang?: Lang
   draft: TemplateDoc
   isActive: boolean
+  canDelete: boolean
   livePreview: string
   textareaRef: RefObject<HTMLTextAreaElement | null>
   onDraftChange: (updater: (prev: TemplateDoc) => TemplateDoc) => void
@@ -36,7 +37,6 @@ export interface TemplateSidebarProps {
   onSetPage: (page: number) => void
   onSelectDoc: (doc: TemplateDoc) => void
   onCreateNew: () => void
-  onLoadExample: () => void
   onDeleteTemplate?: (doc: TemplateDoc) => void
   onDeletePreset: (id: string) => void
   onEditPreset?: (preset: CommitPreset) => void

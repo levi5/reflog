@@ -23,19 +23,9 @@ export const BUILTIN_DOCS: TemplateDoc[] = [
   },
 ]
 
-export const EXAMPLE_TEMPLATE = `---
-name: jira-issue
-type: feat
-scope: core
----
+export const READY_TEMPLATE_IDS = [CONVENTIONAL_ID, JIRA_ID] as const
 
-{{header}}
-
-{{#body}}{{body}}
-
-{{/body}}{{#issue}}Jira: {{issue}}
-{{/issue}}{{#footer}}{{footer}}{{/footer}}
-`
+export type ReadyTemplateId = (typeof READY_TEMPLATE_IDS)[number]
 
 export const DEFAULT_PRESETS: CommitPreset[] = [
   {

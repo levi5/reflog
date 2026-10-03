@@ -19,7 +19,6 @@ export function TemplateSidebar({
   onSetPage,
   onSelectDoc,
   onCreateNew,
-  onLoadExample,
   onDeleteTemplate,
   onDeletePreset,
   onEditPreset,
@@ -53,7 +52,6 @@ export function TemplateSidebar({
           onPageChange={onSetPage}
           onSelectDoc={onSelectDoc}
           onCreateNew={onCreateNew}
-          onLoadExample={onLoadExample}
           onDeleteTemplate={onDeleteTemplate}
         />
       )}
