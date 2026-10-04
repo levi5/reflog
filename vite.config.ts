@@ -16,10 +16,10 @@ export default defineConfig(() => ({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@domain": path.resolve(__dirname, "./src/domain"),
-      "@components": path.resolve(__dirname, "./src/presentation/components"),
-      "@infrastructure": path.resolve(__dirname, "./src/infrastructure"),
+      "@": path.resolve(import.meta.dirname, "./src"),
+      "@domain": path.resolve(import.meta.dirname, "./src/domain"),
+      "@components": path.resolve(import.meta.dirname, "./src/presentation/components"),
+      "@infrastructure": path.resolve(import.meta.dirname, "./src/infrastructure"),
       funcio: "funcio/lib/main.js",
     },
   },
@@ -32,9 +32,11 @@ export default defineConfig(() => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          highlight: ["lowlight", "hast-util-to-jsx-runtime"],
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined
+          if (id.includes("lowlight") || id.includes("hast-util-to-jsx-runtime")) return "highlight"
+          if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)\//.test(id)) return "vendor"
+          return undefined
         },
       },
     },
