@@ -14,8 +14,8 @@ const status = await invoke<StatusResult>('git_status', { repoPath: '/path/to/re
 > (see the `IGitApi` interface in `src/infrastructure/git/types.ts`).
 > Most commands run on a background thread via `run_blocking`
 > (`spawn_blocking`); the exceptions are `get_file_content`,
-> `save_file_content`, `get_conflicted_files`, `git_config_*` (reads),
-> `git_template_*` and `take_cli_path`, which execute synchronously.
+> `save_file_content`, `get_conflicted_files`, `git_template_*` and
+> `take_cli_path`, which execute synchronously.
 
 ---
 
@@ -76,6 +76,7 @@ Full working tree status.
 interface StatusResult {
   root: string
   branch: string
+  head: string
   ahead: number
   behind: number
   files: FileStatus[]
@@ -111,7 +112,7 @@ interface BranchInfo {
   remote: boolean
   ahead: number
   behind: number
-  upstream?: string
+  upstream: string | null // always serialized; null when the branch has none
 }
 
 invoke<BranchInfo[]>('git_branches', { repoPath: string })
@@ -376,6 +377,18 @@ invoke<string>('git_discard', { repoPath: string, file: string })
 
 ---
 
+### `git_discard_untracked`
+
+Discards untracked files (`clean -f -d --` with an explicit path list,
+so nothing else in the worktree is touched). An empty list is a no-op.
+Paths are validated as repo-relative.
+
+```ts
+invoke<string>('git_discard_untracked', { repoPath: string, files: string[] })
+```
+
+---
+
 ### `git_apply_patch`
 
 Applies a patch from a string via stdin
@@ -397,8 +410,10 @@ invoke<string>('git_apply_patch', {
 
 ### `git_merge_opts`
 
-Merge a branch into the current one.
-Exactly one of `squash` / `noFf` may be set.
+Merge a branch into the current one: plain, `--squash` or `--no-ff`.
+The backend applies them in that order of precedence (`squash` first, then
+`no_ff`) rather than rejecting the combination, so callers should send at most
+one — the UI clears `noFf` when `squash` is on.
 
 ```ts
 invoke<string>('git_merge_opts', {
@@ -429,13 +444,11 @@ Push with explicit intent. `force` uses `--force-with-lease` (never bare
 overwritten. Deleting a remote branch goes through the remote it lives on
 (`origin/feat` -> `push origin --delete feat`).
 
-```ts
-interface PushOptions {
-  force?: boolean
-  pushTags?: boolean
-  deleteRemoteBranch?: string
-}
+The wrapper in `src/infrastructure/git/ipc-client.ts` takes an options object
+(`{ force?, tags?, deleteRemoteBranch? }`) and fills in the three wire
+arguments below; `tags` becomes `pushTags` on the Rust side.
 
+```ts
 invoke<string>('git_push_with', {
   repoPath: string,
   force: boolean,
@@ -607,10 +620,15 @@ invoke<string>('git_diff_refs', {
 
 ### `git_diff_stat_files`
 
-Per-file added/removed line counts. Binary files report `0/0`.
+Per-file added/removed line counts (`diff --numstat`). Binary files
+report `-`/`-` upstream and therefore come back as `0/0`.
 
 ```ts
-type CompareFileStat = { path: string; added: number; removed: number }
+interface CompareFileStat {
+  path: string
+  added: number
+  removed: number
+}
 
 invoke<CompareFileStat[]>('git_diff_stat_files', {
   repoPath: string,
@@ -624,9 +642,17 @@ invoke<CompareFileStat[]>('git_diff_stat_files', {
 ### `git_commits_ahead` / `git_commits_behind`
 
 Commits reachable from `target` (resp. `base`) but not from the merge base.
+`limit` defaults to 200 and is clamped to 500.
 
 ```ts
 invoke<CommitInfo[]>('git_commits_ahead', {
+  repoPath: string,
+  base: string,
+  target: string,
+  limit?: number
+})
+
+invoke<CommitInfo[]>('git_commits_behind', {
   repoPath: string,
   base: string,
   target: string,
@@ -660,6 +686,9 @@ instead of only the commits the UI already paged in. Paths always go after a
 
 ### `git_search_log` / `git_search_graph`
 
+Same arguments and same filter for both; the difference is the output — plain
+commits for the log, decorated commits with parent/ref data for the graph.
+
 ```ts
 interface LogFilter {
   author?: string
@@ -672,6 +701,13 @@ interface LogFilter {
 }
 
 invoke<CommitInfo[]>('git_search_log', {
+  repoPath: string,
+  filter: LogFilter,
+  limit?: number,
+  skip?: number
+})
+
+invoke<CommitInfo[]>('git_search_graph', {
   repoPath: string,
   filter: LogFilter,
   limit?: number,
@@ -936,24 +972,25 @@ Lists files with unresolved conflicts (`diff --diff-filter=U`),
 each with its content and parsed conflict hunks.
 
 ```ts
+// Note: this struct has no serde rename_all, so the wire format is snake_case
 interface ConflictBlock {
   id: number
-  startLine: number
-  midLine?: number
-  baseStart?: number
-  baseEnd?: number
-  endLine: number
-  currentLabel: string
-  incomingLabel: string
+  start_line: number
+  mid_line: number | null
+  base_start: number | null
+  base_end: number | null
+  end_line: number
+  current_label: string
+  incoming_label: string
   current: string[]
   base: string[]
   incoming: string[]
-  isDiff3: boolean
+  is_diff3: boolean
 }
 
 interface ConflictFile {
   path: string
-  absPath: string
+  abs_path: string
   content: string
   conflicts: ConflictBlock[]
 }
@@ -986,6 +1023,12 @@ invoke<string>('git_template_delete', { repoPath: string, folder: string, name: 
 Lists submodules with status flag (`' '`, `-`, `+`, `U`),
 commit hash, path, name, URL and branch.
 
+`ahead` and `behind` count the commits between the checked-out
+submodule commit and its upstream (`git rev-list --left-right --count
+HEAD...@{u}`), so a submodule that is ahead of the recorded gitlink
+reports `0` behind. Both are `0` when the submodule is uninitialized or
+has no upstream to compare against.
+
 ```ts
 interface SubmoduleInfo {
   name: string
@@ -994,6 +1037,8 @@ interface SubmoduleInfo {
   branch: string
   hash: string
   state: string
+  ahead: number
+  behind: number
 }
 
 invoke<SubmoduleInfo[]>('git_submodule_list', { repoPath: string })

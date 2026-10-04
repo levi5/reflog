@@ -11,9 +11,10 @@ The frontend is a React 19 + TypeScript application built with Vite, following C
 ```txt
 src/
 ├── presentation/        # Presentation Layer (UI)
+│   ├── cms/             # Content (integrated docs, AutomationHub copy)
 │   ├── components/      # Reusable components (Commit, Diff, Modal, …)
 │   ├── pages/           # Pages (routes)
-│   ├── layout/          # Application layouts
+│   ├── layout/          # Application layouts (AppLayout, MainLayout)
 │   ├── context/         # React Context providers
 │   └── hooks/           # Custom hooks
 ├── domain/              # Domain Layer
@@ -21,16 +22,20 @@ src/
 ├── infrastructure/      # Infrastructure Layer
 │   ├── git/             # Typed Tauri command wrappers (IGitApi)
 │   ├── storage/         # Versioned localStorage helpers + usePersistentSetting
-│   └── templates/       # Template IO helpers
+│   └── templates/       # Builtin template constants (IO goes through git_template_*)
 ├── data/                # Use-cases, protocols and ready-to-use singletons
+│   ├── use-cases/       # Business logic per feature
+│   └── protocols/       # Storage ports (e.g. storage.ts)
 ├── shared/              # Shared code
 │   ├── utils/           # Utilities
 │   ├── constants/       # Constants
 │   └── schemas/         # Zod schemas
 ├── message/             # i18n strings (en.json, pt.json)
+├── styles/              # Design tokens + global styles
 ├── types/               # Shared TypeScript types (mirrors backend entities)
 ├── i18n.ts              # t(lang, key), formatMessage, locale helpers
-└── routes.tsx           # Route configuration
+├── routes.tsx           # Route configuration
+└── main.tsx             # Entry point
 ```
 
 ### Principles
@@ -51,7 +56,14 @@ Uses `react-router-dom` v7 with HashRouter for Tauri compatibility.
 const router = createHashRouter([
   {
     path: "/",
-    element: <AppLayout />,
+    element: (
+      <MessageProvider>
+        <RepoProvider>
+          <AppLayout />
+        </RepoProvider>
+      </MessageProvider>
+    ),
+    errorElement: <RouteErrorElement />,
     children: [
       { path: "", element: <MainLayout />, children: [...] }
     ]
@@ -66,28 +78,31 @@ const router = createHashRouter([
 | `/` | Welcome | Initial dashboard, recent repositories |
 | `/staging` | Staging | Staging area, commit, diff |
 | `/graph` | Graph | History visualization (log/graph/reflog) |
+| `/compare` | Compare | Two-ref comparison (merge base, stats, ahead/behind, diff) |
 | `/merge` | Merge | Conflict resolution |
 | `/blame` | Blame | Line annotations (git blame) |
 | `/visualize` | Visualize | Advanced visualizations |
 | `/automation`, `/automation/:section` | AutomationHub | Automations, templates, recipes, monitors |
 | `/repo/*` | RepoDeepLink | Deep link: validates path, redirects to view |
-| `/docs` | Docs | Integrated documentation |
+| `/docs` | Docs | Integrated documentation (content from `presentation/cms`) |
 | `/settings` | Settings | App settings |
 
 `/monitors` and `/templates` redirect to `/automation?section=…`.
 Unknown paths render `RouteNotFound`; loader/route errors render
 `RouteErrorElement`. Deep-link validation lives in `repoLoader`
-(`src/routes.tsx`), which returns 400 for empty paths and 404 for
-non-repositories.
+(`src/routes.tsx`), which returns 400 for empty paths, 404 for
+non-repositories and 500 for any other failure.
 
 ## Key Components
 
 ### Layout (`src/presentation/layout/`)
 
-- **AppLayout** - Main wrapper with global providers
-- **MainLayout** - Layout with sidebar, header, content area
-- **Sidebar** - Lateral navigation with repositories
-- **Header** - Top bar with global actions
+- **AppLayout** (`layout/App/`) - Global providers plus the app chrome: top bar,
+  window frame, merge banner and the view tabs
+- **MainLayout** (`layout/MainLayout.tsx`) - Error boundary + `Suspense` + `Outlet`
+
+The sidebar and header components themselves live under
+`src/presentation/components/SideBar/` and `.../Header/`.
 
 ### Reusable Components (`src/presentation/components/`)
 
@@ -105,42 +120,75 @@ non-repositories.
 
 - `Button/` - Variants (primary, secondary, ghost, danger)
 - `Modal/` - Accessible modals (focus trap, Esc, backdrop close)
+- `Dialog/` - Confirm/prompt dialogs built on the modal stack
 - `Drawer/` - Side panels
 - `Tabs/` - Tabs
 - `Select/` - Custom dropdowns
 - `Toast/` - Notifications
-- `Pagination/`, `Skeleton/`, `Resizable/` - Paging, loading skeletons, split layouts
-- `Switch/`, `Filter/`, `Search/`, `Command/` - Toggles, filters, search box, palette
+- `Pagination/`, `Skeleton/`, `Resizable/`, `Accordion/`, `Form/` - Paging, loading skeletons, split layouts, disclosure, inline forms
+- `Switch/`, `Search/`, `Command/` - Toggles, search box, palette
+- `List/` - List primitives, including `List.Paged`
+- `Code/`, `Picker/`, `Wrapper/`, `Animation/` - Highlighting, pickers, layout helpers, spinners
 
 #### Specialized
 
 - `Editor/` - File/conflict editors
-- `Monitor/`, `Recipe/`, `Automations/`, `Block/` - Automation hub UI
-- `Profile/`, `ErrorBoundary/`, `ErrorFallback/`, `FatalError/` - Profiles + error UI
-- `Bar/`, `SideBar/`, `Header/`, `Window/`, `Brand/`, `Icons/`, `Activity/`, `Event/`, `Empty/` - Chrome + misc
+- `Monitor/`, `Recipe/`, `Automations/`, `Template/` - Automation hub UI
+- `Profile/`, `Repo/`, `ErrorBoundary/`, `ErrorFallback/`, `FatalError/` - Profiles, repo switcher, error UI
+- `Bar/`, `SideBar/`, `Header/`, `Window/`, `Brand/`, `Icons/`, `Event/`, `Empty/`, `Tool/` - Chrome + misc
 
 ## Global State (Context)
 
 ### Main Providers (`src/presentation/context/`)
 
-Providers are composed in `AppLayout` / `routes.tsx`
-(`RepoProvider` wraps the whole app):
+The chain is nested, not flat. `main.tsx` mounts `SettingsProvider` **outside**
+the router, and that one component renders six providers in order:
 
-- **RepoProvider** (`repository/`) - Current repo, status, branches, log/graph pages, git actions
-- **MessageProvider** (`message/`) - Toasts (`notify/error/success/response/loading`, auto-dismiss timers)
-- **TranslationProvider** (`translation/`) - `lang`, `t(key)`, `format*` helpers (pt/en)
-- **SettingsProvider** (`settings/`) - User settings (wraps translation)
-- **ThemeProvider / AccentProvider** (`theme/`, `accent/`) - Theme + accent color
-- **CommitConfigProvider** (`commit/`) - Commit prefs, presets, history
-- **ProfileProvider** (`profile/`) - Git identity profiles
-- **SearchProvider** (`filter/`) - Global search query/scope
-- **UiProvider** (`ui/`), **StartupProvider** (`startup/`) - UI state, startup/reopen logic
+```txt
+main.tsx
+└── ErrorBoundary
+    └── SettingsProvider          (context/settings/)
+        ├── TranslationProvider    (translation/)
+        ├── ThemeProvider          (theme/)
+        ├── MaterialProvider       (material/)
+        ├── AccentProvider         (accent/)
+        ├── UiProvider             (ui/)
+        └── StartupProvider        (startup/)
+            └── RouterProvider (src/routes.tsx)
+                └── MessageProvider (message/)
+                    └── RepoProvider (repository/)
+                        ├── ProfileProvider (profile/)
+                        ├── CommitConfigProvider (commit/)
+                        └── AppLayout
+                            └── SearchProvider (filter/)
+```
 
-Every setting above is persisted by `usePersistentSetting`
-(`src/infrastructure/storage/versioned-storage.ts`): it reads the versioned
-key, normalizes the value, writes it back debounced, mirrors changes from other
-tabs and applies the side effect (CSS variable, `data-*` attribute). Adding a new
-setting means one hook call, not a new copy of that plumbing.
+| Provider | Holds |
+| -------- | ----- |
+| `TranslationProvider` | `lang`, `t(key)`, `format*` helpers (pt/en) |
+| `ThemeProvider` | Light/dark mode |
+| `MaterialProvider` | Windows material/acrylic effect |
+| `AccentProvider` | Accent color |
+| `UiProvider` | UI state (font size, …) |
+| `StartupProvider` | Startup/reopen behaviour |
+| `MessageProvider` | Toasts (`notify/error/success/response/loading`, auto-dismiss timers) |
+| `RepoProvider` | Memoizes the four repository slices — it holds no git logic itself |
+| `ProfileProvider` | Git identity profiles |
+| `CommitConfigProvider` | Commit prefs, presets, history |
+| `SearchProvider` | Global search query/scope (in-memory only) |
+
+### Persistence
+
+Theme, material, accent, UI, startup and translation settings go through
+`usePersistentSetting` (`src/infrastructure/storage/versioned-storage.ts`): it
+reads the versioned key, normalizes the value, writes it back debounced,
+mirrors changes from other tabs and applies the side effect (CSS variable,
+`data-*` attribute). Adding a new setting means one hook call, not a new copy
+of that plumbing. The first write lands immediately; later ones are debounced.
+
+`CommitConfigProvider` and `ProfileProvider` persist through their own
+use-cases (`commitTemplateUseCase`, `profileManagerUseCase`) backed by
+`LocalStorageAdapter`, and `SearchProvider` is not persisted at all.
 
 ## Use-cases (`src/data/`)
 
@@ -158,14 +206,30 @@ factory layer in between.
 | `useStaging` | Staging area operations |
 | `useMerge` | Merge/conflict state |
 | `useBranchOps`, `useTagOps`, `useRemoteOps`, `useStashOps` | Branch/tag/remote/stash actions |
+| `useSyncOps` | Pull/push/fetch/upstream actions (internal to `useRepoCore`) |
 | `useGitAction` / `useGitActions` | `runAction` adapters with i18n messages |
 | `usePaginated` | Paginated IPC loading (log/graph pages) |
 | `useCommitTemplate` | Conventional-commit builder (fields <-> formatted message) |
 | `useTemplateManager`, `useTemplateDocs` | Template CRUD + docs |
 | `useMatchNavigator`, `useResizable`, `useIntersectionObserver`, `useAutoRefresh`, `useDismiss`, `useWindowDrag` | UI utilities |
-| `useConsoleSession`, `consoleHistory` | In-app git console |
-| `useAutomations`, `useAutomationStore`, `useRecipeEditor`, `useAutomationTransfer`, `conditionRunner` | Automations/recipes/monitors |
+| `useGlobalShortcuts`, `useAltShortcut` | Keyboard shortcuts |
+| `useVirtualRows`, `useUndoStack`, `useFocusTrap`, `useCollapsedSections`, `useElapsed` | Windowing, undo, focus management, disclosure, timers |
+| `useConsoleSession` + `consoleHistory` module | In-app git console |
+| `useAutomations`, `useAutomationStore`, `useAutomationLog`, `useRecipeEditor`, `useAutomationTransfer` + `conditionRunner` module | Automations/recipes/monitors |
 | `useProfiles` | Git identity profiles |
+
+`src/presentation/hooks/index.ts` is the public barrel. A few modules are
+deliberately left out of it and imported directly: `ui/useModalStack`
+(`pushModal`/`isTopModal`), `ui/useFocusTrap`, `repository/useSyncOps`,
+`repository/useHistorySearch`, `repository/useRepositoryData`,
+`repository/useRecents`, `repository/useRepoScope`,
+`staging/useStagingDiff`, `staging/useStagingBlame`,
+`staging/useStagingIndexOps`, `useStableSlice` and the
+`conditionRunner` / `consoleHistory` helpers.
+
+Note: `useRepoCore` is two different functions — the builder in
+`hooks/repository/useRepoCore.ts` (takes `lang` + an optional `IGitApi`) and
+the context reader in `context/repository/repo-context.tsx`.
 
 ## Domain Entities (`src/domain/entities/`)
 
@@ -187,8 +251,15 @@ entities/
 ```
 
 Backend-shaped types (`CommitInfo`, `StatusResult`, `BranchInfo`,
-`StashItem`, …) are mirrored in `src/types/` (see `src/types/main.ts`),
-matching the Rust `domain/entities.rs` field for field.
+`StashItem`, `CompareFileStat`, …) are mirrored in `src/types/`
+(see `src/types/main.ts`) against the Rust `domain/entities.rs`: same field
+names, same order. Two deliberate differences — the Rust structs are always
+serialized, so `upstream`/`mid_line` arrive as `null` rather than missing, and
+`#[serde(default)]` fields (`StatusResult.head`, `StatusResult.rebasing`) are
+non-optional on the TS side because the backend always sends them.
+`LogFilter` and `RebaseOp` are command payloads rather than entities:
+`LogFilter` lives next to the client in `ipc-client.ts`, `RebaseOp` in
+`src/types/main.ts`.
 
 Example (`src/types/main.ts`):
 
@@ -209,23 +280,28 @@ export interface CommitInfo {
 ### Tauri API (`src/infrastructure/git/`)
 
 Typed wrappers for backend commands, described by `IGitApi`
-(`src/infrastructure/git/types.ts`):
+(`src/infrastructure/git/types.ts`) and implemented by the `gitApi` singleton
+(`src/infrastructure/git/ipc-client.ts`, re-exported by `index.ts`):
 
 ```ts
-// src/infrastructure/git/index.ts
+// src/infrastructure/git/ipc-client.ts
 import { invoke } from '@tauri-apps/api/core'
 
-export const gitStatus = (repoPath: string) =>
-  invoke<StatusResult>('git_status', { repoPath })
-
-export const gitCommit = (repoPath: string, message: string, signoff = false, sign = false) =>
-  invoke<string>('git_commit', { repoPath, message, signoff, sign })
+export const gitApi = {
+  status: (repoPath: string) => invokeTyped<StatusResult>('git_status', { repoPath }),
+  commit: (repoPath: string, message: string, signoff = false, sign = false) =>
+    invokeTyped<string>('git_commit', { repoPath, message, signoff, sign }),
+  // ...
+}
 ```
+
+`invokeTyped` wraps `invoke` and rethrows failures as `GitApiError`, which
+carries the originating `command` name.
 
 ### Usage Pattern
 
 ```tsx
-// Hooks consume IGitApi (injected, default: gitApi singleton)
+// Hooks receive IGitApi (default: the gitApi singleton) and call it through runAction
 const handleCommit = async (message: string) => {
   await runAction(() => git.commit(repo, message))
   // runAction shows loading/success/error toasts and refreshes repo data
@@ -252,11 +328,13 @@ from re-rendering the file list.
 
 | Shortcut | Action |
 | -------- | ------ |
-| `Ctrl/Cmd+K` | Command palette |
+| `Ctrl/Cmd+K` | Command palette (handled by the palette itself) |
 | `Ctrl/Cmd+F` | Focus the page search box |
 | `Ctrl/Cmd+P` | Quick open a tracked file |
-| `Ctrl/Cmd+Z` / `Ctrl/Cmd+Shift+Z` | Undo / redo the last reversible action |
+| `Ctrl/Cmd+Z` / `Ctrl/Cmd+Shift+Z` / `Ctrl/Cmd+Y` | Undo / redo the last reversible action |
+| `Alt+P` | Cycle Git identity profile |
 | `F5`, `Ctrl/Cmd+R` | Refresh the repository |
+| `Esc` | Close the topmost overlay (via the modal stack) |
 
 ## Styling
 
@@ -282,16 +360,30 @@ const { t } = useTranslation() // t(key: StringKey): string
 
 ## Testing
 
-- **Vitest** - Unit tests (`*.test.ts`, run with Node 24 — see `.nvmrc`)
+- **Vitest** - Unit, component and hook tests (`*.test.ts` / `*.test.tsx`,
+  run with Node 24 — see `.nvmrc`)
+- **React Testing Library + user-event** - `render`, `renderHook`, `screen`
+- **jsdom** - opt-in per file via `// @vitest-environment jsdom`; the default
+  environment is `node` (`vite.config.ts`), and the component suites that only
+  need markup render with `renderToString`
 
 ```bash
 pnpm test           # Run tests (vitest run)
 ```
 
-Covered today: automation codecs, partial patches, command-palette fuzzy
-matching, shared utils, theme/accent contrast tokens, the modal stack, reduced
-motion, and SSR renders of a few components. There is no React Testing Library
-or E2E setup, so hooks and context providers are still untested.
+Layout: `tests/` mirrors `src/` (`tests/data/use-cases/…`,
+`tests/presentation/components/…`, `tests/presentation/hooks/…`) plus
+`tests/scripts/` for the version helpers and the workflow files.
+`tests/presentation/helpers/` holds the shared `render` wrapper and the token
+fixtures.
+
+Covered today: automation codecs and TOML import, partial patches, conflict
+resolution, semver, graph layout, commit-template round-trip, command-palette
+fuzzy matching, shared utils, theme/accent/contrast tokens, the modal stack,
+reduced motion, staging and discard semantics, repository action wiring
+(through an injected `IGitApi`), context providers, and a set of component
+renders. There is no E2E setup — no Playwright or Cypress — so full IPC flows
+against a real repository are still untested.
 
 ## Build and Deploy
 
@@ -300,14 +392,22 @@ or E2E setup, so hooks and context providers are still untested.
 ```bash
 pnpm dev            # Vite dev server (hot reload)
 pnpm tauri dev      # Tauri app with dev server
+pnpm lint           # Biome over src, tests, scripts and web
 ```
 
 ### Production
 
 ```bash
 pnpm build          # tsc + vite build
-pnpm tauri build    # Native bundle (AppImage, .dmg, .msi)
+pnpm tauri build    # Native bundle
 ```
+
+`tauri.conf.json` sets `targets: "all"`, so a local build produces whatever the
+host can build (AppImage, `.deb` and `.rpm` on Linux, `.dmg` on macOS,
+NSIS and MSI on Windows). The release workflow is narrower — see the README:
+it builds `.deb`/`.rpm`/AppImage on `ubuntu-22.04` and NSIS on
+`windows-latest`, adding MSI only for non-prerelease versions. There is no
+macOS runner, so no macOS artifact is ever published.
 
 ### Outputs
 
@@ -323,6 +423,7 @@ pnpm tauri build    # Native bundle (AppImage, .dmg, .msi)
    blame view and the commit graph
 4. **Error boundaries** - Per feature/page (`RouteErrorElement`, `ErrorFallback`)
 5. **Accessibility** - ARIA roles, keyboard nav, focus trap in modals. Overlays
-   register in `useModalStack` so `Escape` only reaches the topmost one
+   register in `hooks/ui/useModalStack.ts` (`pushModal`/`isTopModal`) so
+   `Escape` only reaches the topmost one
 6. **Type safety** - `strict: true`, `noUnusedLocals`, `noUnusedParameters`,
    `noFallthroughCasesInSwitch` (see `tsconfig.json`)

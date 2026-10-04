@@ -182,7 +182,9 @@ export const docsPtContent: DocsContent = {
       id: "submodules",
       title: "Submodules",
       steps: [
-        "A aba Automações lista os submodules com estado: ok, divergente, conflito ou não iniciado.",
+        "A aba Submodules da tela de Staging lista cada submodule com um ícone de estado: ok, divergente, conflito ou não iniciado.",
+        "O estado divergente mostra só o ícone, com a dica explicando que o commit atual está diferente do commit registrado no superprojeto.",
+        "O ícone de atualizar e o ícone do repositório ficam amarelos só quando o submodule está atrás do upstream, e o vira um check quando o update muda o submodule.",
         "Abra um submodule para agir dentro dele com todas as telas do app.",
         "Rode update ou foreach direto no submodule pelo console do Visualize.",
       ],

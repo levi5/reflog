@@ -58,7 +58,7 @@ pub async fn git_diff_refs(
 
 git_command!(
     git_diff_stat_files,
-    Vec<(String, usize, usize)>,
+    Vec<crate::domain::CompareFileStat>,
     diff_stat_files,
     (repo_path: String, base: String, target: String),
     ()

@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest"
 import type { SubmoduleInfo } from "../../../../types"
-import { buildScopeGroups, filterScopeGroups, submoduleStateTone } from "./scope-targets"
+import { buildScopeGroups, filterScopeGroups, isOutdated } from "./scope-targets"
 
-const submodule = (path: string, state = " ", name = path): SubmoduleInfo => ({
+const submodule = (path: string, state = " ", name = path, behind = 0): SubmoduleInfo => ({
   name,
   path,
   url: "",
   branch: "",
   hash: "a".repeat(40),
   state,
+  ahead: 0,
+  behind,
 })
 
 describe("buildScopeGroups", () => {
@@ -64,7 +66,7 @@ describe("buildScopeGroups", () => {
       lang: "pt",
       repo: "/work/super",
       chain: ["/work/super"],
-      submodules: [submodule("libs/lib", "+"), submodule("libs/api", "-")],
+      submodules: [submodule("libs/lib", "+", "libs/lib", 3), submodule("libs/api", "-")],
       siblingModules: [],
       recents: [],
     })
@@ -72,8 +74,25 @@ describe("buildScopeGroups", () => {
     expect(groups.map((group) => group.id)).toEqual(["children"])
     expect(groups[0].targets.map((target) => target.path)).toEqual(["/work/super/libs/lib", "/work/super/libs/api"])
     expect(groups[0].targets[0].tone).toBe("warn")
-    expect(groups[0].targets[1].tone).toBe("muted")
-    expect(groups[0].targets[0].badge).toBe("divergente")
+    expect(groups[0].targets[0].outdated).toBe(true)
+    expect(groups[0].targets[0].behind).toBe(3)
+    expect(groups[0].targets[0].badge).toBeUndefined()
+    expect(groups[0].targets[1].tone).toBe("ok")
+    expect(groups[0].targets[1].outdated).toBe(false)
+  })
+
+  it("keeps a submodule that is ahead of its upstream green", () => {
+    const groups = buildScopeGroups({
+      lang: "pt",
+      repo: "/work/super",
+      chain: ["/work/super"],
+      submodules: [submodule("libs/lib", "+")],
+      siblingModules: [],
+      recents: [],
+    })
+
+    expect(groups[0].targets[0].tone).toBe("ok")
+    expect(groups[0].targets[0].outdated).toBe(false)
   })
 
   it("never repeats the same path across groups", () => {
@@ -132,12 +151,11 @@ describe("filterScopeGroups", () => {
   })
 })
 
-describe("submoduleStateTone", () => {
-  it("maps the git submodule status flags", () => {
-    expect(submoduleStateTone(" ")).toBe("ok")
-    expect(submoduleStateTone("+")).toBe("warn")
-    expect(submoduleStateTone("-")).toBe("muted")
-    expect(submoduleStateTone("U")).toBe("danger")
-    expect(submoduleStateTone("?")).toBe("ok")
+describe("isOutdated", () => {
+  it("marks only submodules with commits pending on the upstream", () => {
+    expect(isOutdated(submodule("libs/lib", " ", "libs/lib", 2))).toBe(true)
+    expect(isOutdated(submodule("libs/lib", "+"))).toBe(false)
+    expect(isOutdated(submodule("libs/lib"))).toBe(false)
+    expect(isOutdated(submodule("libs/lib", "U"))).toBe(false)
   })
 })

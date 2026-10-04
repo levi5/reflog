@@ -1,5 +1,6 @@
 import type {
   BranchInfo,
+  CompareFileStat,
   CommitFileChange,
   CommitInfo,
   ConfigEntry,
@@ -12,12 +13,13 @@ import type {
   StatusResult,
   SubmoduleInfo,
 } from "../../types"
-import type { CompareFileStat, LogFilter, PushOptions } from "./ipc-client"
+import type { LogFilter, PushOptions } from "./ipc-client"
 
 export interface IGitApi {
   checkRepo(path: string): Promise<boolean>
   repoRoot(path: string): Promise<string>
   init(path: string): Promise<string>
+  takeCliPath(): Promise<string | null>
   status(repoPath: string): Promise<StatusResult>
   branches(repoPath: string): Promise<BranchInfo[]>
   count(repoPath: string): Promise<number>
@@ -43,6 +45,9 @@ export interface IGitApi {
   revertContinue(repoPath: string): Promise<string>
   revertAbort(repoPath: string): Promise<string>
   reset(repoPath: string, target: string, mode?: "soft" | "mixed" | "hard"): Promise<string>
+  unstage(repoPath: string, file: string): Promise<string>
+  discard(repoPath: string, file: string): Promise<string>
+  discardUntracked(repoPath: string, files: string[]): Promise<string>
   mergeOpts(repoPath: string, branch: string, squash: boolean, noFf: boolean): Promise<string>
   mergeAbort(repoPath: string): Promise<string>
   rebaseCommits(repoPath: string, onto: string): Promise<CommitInfo[]>
@@ -71,6 +76,7 @@ export interface IGitApi {
   gpg(repoPath: string): Promise<string>
   clone(url: string, path: string): Promise<string>
   blame(repoPath: string, file: string): Promise<string>
+  lsFiles(repoPath: string): Promise<string[]>
   tagList(repoPath: string): Promise<string[]>
   tagCreate(repoPath: string, name: string, message?: string): Promise<string>
   tagDelete(repoPath: string, name: string): Promise<string>

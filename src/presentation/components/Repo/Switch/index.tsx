@@ -116,6 +116,8 @@ function TargetRow({
   onSelect: () => void
   onOpen: (path: string) => void
 }) {
+  const { format } = useTranslation()
+  const outdatedTip = target.outdated ? format("subBehind", { count: target.behind ?? 0 }) : undefined
   return (
     <li className={classnames(styles.targetItem, isActive && styles.selected)} data-scope-target={target.id}>
       <button
@@ -125,7 +127,7 @@ function TargetRow({
         onFocus={onSelect}
         title={target.path}
       >
-        <span className={classnames(styles.targetIcon, target.tone && TONE_CLASS[target.tone])}>
+        <span className={classnames(styles.targetIcon, target.tone && TONE_CLASS[target.tone])} title={outdatedTip}>
           <FolderGit2 size={15} />
         </span>
         <span className={styles.targetInfo}>

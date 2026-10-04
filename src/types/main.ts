@@ -45,6 +45,8 @@ export interface SubmoduleInfo {
   branch: string
   hash: string
   state: string
+  ahead: number
+  behind: number
 }
 
 export interface CommitInfo {
@@ -85,6 +87,12 @@ export interface CommitFileChange {
   status: string
   path: string
   oldPath?: string
+}
+
+export interface CompareFileStat {
+  path: string
+  added: number
+  removed: number
 }
 
 export interface ConflictBlock {

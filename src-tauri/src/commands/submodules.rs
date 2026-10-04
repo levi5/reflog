@@ -61,6 +61,24 @@ fn config_value(runner: &dyn GitRunner, root: &str, key: &str) -> String {
         .unwrap_or_default()
 }
 
+fn parse_ahead_behind(out: &str) -> (usize, usize) {
+    let mut fields = out.split_whitespace();
+    match (fields.next(), fields.next()) {
+        (Some(ahead), Some(behind)) => (ahead.parse().unwrap_or(0), behind.parse().unwrap_or(0)),
+        _ => (0, 0),
+    }
+}
+
+fn ahead_behind(runner: &dyn GitRunner, submodule_dir: &str) -> (usize, usize) {
+    runner
+        .run(
+            Some(submodule_dir),
+            &["rev-list", "--left-right", "--count", "HEAD...@{u}"],
+        )
+        .map(|out| parse_ahead_behind(&out))
+        .unwrap_or((0, 0))
+}
+
 pub fn submodule_list(
     runner: &dyn GitRunner,
     repo_path: &str,
@@ -85,6 +103,12 @@ pub fn submodule_list(
         let name = names.get(&path).cloned().unwrap_or_else(|| path.clone());
         let url = config_value(runner, &root, &format!("submodule.{name}.url"));
         let branch = config_value(runner, &root, &format!("submodule.{name}.branch"));
+        let (ahead, behind) = if state.trim() == "-" {
+            (0, 0)
+        } else {
+            let dir = std::path::Path::new(&root).join(&path);
+            ahead_behind(runner, &dir.to_string_lossy())
+        };
         list.push(SubmoduleInfo {
             name,
             path,
@@ -92,6 +116,8 @@ pub fn submodule_list(
             branch,
             hash,
             state,
+            ahead,
+            behind,
         });
     }
     Ok(list)
@@ -215,6 +241,77 @@ mod tests {
         assert_eq!(list[0].url, "https://x/y.git");
         assert_eq!(list[0].branch, "main");
         assert_eq!(list[0].state, " ");
+    }
+
+    #[test]
+    fn counts_how_many_commits_the_submodule_is_behind_its_upstream() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                (
+                    "submodule status",
+                    "+1111111111111111111111111111111111111111 libs/a",
+                ),
+                (
+                    "config -f .gitmodules --get-regexp ^submodule\\..*\\.path$",
+                    "submodule.libs/a.path libs/a",
+                ),
+                ("rev-list --left-right --count HEAD...@{u}", "2\t5"),
+            ],
+            &[],
+        );
+
+        let list = submodule_list(&runner, "/r").unwrap();
+
+        assert_eq!((list[0].ahead, list[0].behind), (2, 5));
+    }
+
+    #[test]
+    fn reports_no_upstream_distance_when_git_cannot_answer() {
+        let runner = MockRunner::with_failures(
+            &[("rev-list --left-right --count HEAD...@{u}", "no upstream")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                (
+                    "submodule status",
+                    " 1111111111111111111111111111111111111111 libs/a",
+                ),
+                (
+                    "config -f .gitmodules --get-regexp ^submodule\\..*\\.path$",
+                    "submodule.libs/a.path libs/a",
+                ),
+            ],
+        );
+
+        let list = submodule_list(&runner, "/r").unwrap();
+
+        assert_eq!((list[0].ahead, list[0].behind), (0, 0));
+    }
+
+    #[test]
+    fn skips_the_upstream_distance_for_uninitialized_submodules() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                (
+                    "submodule status",
+                    "-1111111111111111111111111111111111111111 libs/a",
+                ),
+                (
+                    "config -f .gitmodules --get-regexp ^submodule\\..*\\.path$",
+                    "submodule.libs/a.path libs/a",
+                ),
+            ],
+            &[],
+        );
+
+        let list = submodule_list(&runner, "/r").unwrap();
+
+        assert_eq!((list[0].ahead, list[0].behind), (0, 0));
+        assert_eq!(
+            runner.calls_for("rev-list --left-right --count HEAD...@{u}"),
+            0
+        );
     }
 
     #[test]

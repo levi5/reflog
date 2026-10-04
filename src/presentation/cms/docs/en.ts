@@ -181,7 +181,9 @@ export const docsEnContent: DocsContent = {
       id: "submodules",
       title: "Submodules",
       steps: [
-        "The Automations tab lists submodules with state: ok, diverged, conflict or uninitialized.",
+        "The Submodules tab in the Staging screen lists each submodule with a state icon: ok, diverged, conflict or uninitialized.",
+        "The diverged state shows the icon alone, with a tooltip explaining that the checked-out commit differs from the commit recorded in the superproject.",
+        "The update icon and the repository icon turn amber only when the submodule is behind its upstream, and turn into a check when the update changes it.",
         "Open a submodule to act inside it with every app screen.",
         "Run update or foreach straight on the submodule from the Visualize console.",
       ],

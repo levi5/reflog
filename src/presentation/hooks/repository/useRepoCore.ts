@@ -190,7 +190,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
         base,
         target,
         mergeBase,
-        files: files.map((entry) => ({ path: entry.path, added: entry.added, removed: entry.removed })),
+        files,
         ahead,
         behind,
         diff,

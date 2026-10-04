@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core"
 import type {
   BranchInfo,
+  CompareFileStat,
   ConfigEntry,
   CommitFileChange,
   CommitInfo,
@@ -32,12 +33,6 @@ export interface LogFilter {
   follow?: boolean
 }
 
-export interface CompareFileStat {
-  path: string
-  added: number
-  removed: number
-}
-
 export class GitApiError extends Error {
   constructor(
     message: string,
@@ -49,7 +44,7 @@ export class GitApiError extends Error {
   }
 }
 
-async function invokeTyped<T>(command: string, args: Record<string, unknown> | undefined): Promise<T> {
+async function invokeTyped<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   try {
     return await invoke<T>(command, args)
   } catch (e) {
@@ -61,6 +56,7 @@ export const gitApi = {
   checkRepo: (path: string) => invokeTyped<boolean>("check_repo", { path }),
   repoRoot: (path: string) => invokeTyped<string>("repo_root", { path }),
   init: (path: string) => invokeTyped<string>("init_repo", { path }),
+  takeCliPath: () => invokeTyped<string | null>("take_cli_path"),
   status: (repoPath: string) => invokeTyped<StatusResult>("git_status", { repoPath }),
   branches: (repoPath: string) => invokeTyped<BranchInfo[]>("git_branches", { repoPath }),
   count: (repoPath: string) => invokeTyped<number>("git_count", { repoPath }),

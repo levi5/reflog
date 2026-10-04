@@ -130,4 +130,13 @@ pub struct SubmoduleInfo {
     pub branch: String,
     pub hash: String,
     pub state: String,
+    pub ahead: usize,
+    pub behind: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct CompareFileStat {
+    pub path: String,
+    pub added: usize,
+    pub removed: usize,
 }

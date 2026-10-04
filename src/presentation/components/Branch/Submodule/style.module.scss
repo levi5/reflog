@@ -75,10 +75,13 @@
 }
 
 .stateBadge {
-  font-size: var(--font-xs);
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-family: var(--mono);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .stateOk {
@@ -99,6 +102,14 @@
 .stateConflict {
   background: var(--red-dim);
   color: var(--danger);
+}
+
+.targetOutdated {
+  color: var(--amber);
+}
+
+.updatedIcon {
+  color: var(--green);
 }
 
 .submodulePath {

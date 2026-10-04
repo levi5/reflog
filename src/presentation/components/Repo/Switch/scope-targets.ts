@@ -1,5 +1,5 @@
 import { mergeStatsUseCase } from "../../../../data"
-import { t, type StringKey } from "../../../../i18n"
+import { t } from "../../../../i18n"
 import type { Lang, SubmoduleInfo } from "../../../../types"
 
 export type ScopeTone = "ok" | "warn" | "muted" | "danger"
@@ -13,6 +13,8 @@ export interface ScopeTarget {
   hint: string
   tone?: ScopeTone
   badge?: string
+  outdated?: boolean
+  behind?: number
 }
 
 export interface ScopeGroup {
@@ -31,38 +33,23 @@ interface BuildScopeGroupsInput {
   maxRecents?: number
 }
 
-const TONE_BY_STATE: Record<string, ScopeTone> = {
-  " ": "ok",
-  "+": "warn",
-  "-": "muted",
-  U: "danger",
+export function isOutdated(sub: SubmoduleInfo): boolean {
+  return sub.behind > 0
 }
 
-const STATE_LABEL_BY_STATE: Record<string, StringKey> = {
-  " ": "subOk",
-  "+": "subDiverged",
-  "-": "subUninitialized",
-  U: "subConflict",
-}
-
-export function submoduleStateTone(state: string): ScopeTone {
-  return TONE_BY_STATE[state.trim()] ?? "ok"
-}
-
-export function submoduleStateLabel(lang: Lang, state: string): string {
-  const key = STATE_LABEL_BY_STATE[state.trim()]
-  return key ? t(lang, key) : state.trim()
-}
-
-function submoduleTargets(lang: Lang, base: string, submodules: SubmoduleInfo[]): ScopeTarget[] {
-  return submodules.map((sub) => ({
-    id: `sub:${base}:${sub.path}`,
-    path: `${base}/${sub.path}`,
-    name: mergeStatsUseCase.repoBaseName(sub.path) || sub.name || sub.path,
-    hint: sub.path,
-    tone: submoduleStateTone(sub.state),
-    badge: submoduleStateLabel(lang, sub.state),
-  }))
+function submoduleTargets(base: string, submodules: SubmoduleInfo[]): ScopeTarget[] {
+  return submodules.map((sub) => {
+    const outdated = isOutdated(sub)
+    return {
+      id: `sub:${base}:${sub.path}`,
+      path: `${base}/${sub.path}`,
+      name: mergeStatsUseCase.repoBaseName(sub.path) || sub.name || sub.path,
+      hint: sub.path,
+      tone: outdated ? "warn" : "ok",
+      outdated,
+      behind: sub.behind,
+    }
+  })
 }
 
 function claim(seen: Set<string>, path: string): boolean {
@@ -114,13 +101,13 @@ export function buildScopeGroups({
   addGroup(groups, {
     id: "siblings",
     label: t(lang, "scopeSiblings"),
-    targets: uniqueTargets(seen, submoduleTargets(lang, chain[chain.length - 2] ?? repo, siblingModules), "sibling"),
+    targets: uniqueTargets(seen, submoduleTargets(chain[chain.length - 2] ?? repo, siblingModules), "sibling"),
   })
 
   addGroup(groups, {
     id: "children",
     label: t(lang, "scopeSubmodules"),
-    targets: uniqueTargets(seen, submoduleTargets(lang, repo, submodules), "child"),
+    targets: uniqueTargets(seen, submoduleTargets(repo, submodules), "child"),
   })
 
   addGroup(groups, {

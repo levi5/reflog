@@ -63,6 +63,8 @@ const submodule = (overrides: Partial<SubmoduleInfo> = {}): SubmoduleInfo => ({
   branch: "main",
   hash: "bbb2222",
   state: "ok",
+  ahead: 0,
+  behind: 0,
   ...overrides,
 })
 
@@ -114,5 +116,6 @@ describe("repository snapshot equality", () => {
     expect(sameSubmodules([submodule()], [submodule()])).toBe(true)
     expect(sameSubmodules([submodule()], [submodule({ state: "diverged" })])).toBe(false)
     expect(sameSubmodules([submodule()], [submodule({ hash: "ccc3333" })])).toBe(false)
+    expect(sameSubmodules([submodule()], [submodule({ behind: 3 })])).toBe(false)
   })
 })

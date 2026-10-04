@@ -1,21 +1,22 @@
-import { renderToString } from "react-dom/server"
 import { describe, expect, it } from "vitest"
-import { TranslationProvider } from "../../../src/presentation/context/translation/translation-context"
 import { ScopeBreadcrumb, ScopeGroupSection } from "../../../src/presentation/components/Repo/Switch"
 import { buildScopeGroups } from "../../../src/presentation/components/Repo/Switch/scope-targets"
 import type { SubmoduleInfo } from "../../../src/types"
+import { renderString } from "../helpers/render"
 
-const submodule = (path: string, state = " "): SubmoduleInfo => ({
+const submodule = (path: string, state = " ", behind = 0): SubmoduleInfo => ({
   name: path,
   path,
   url: "",
   branch: "",
   hash: "b".repeat(40),
   state,
+  ahead: 0,
+  behind,
 })
 
 function render(node: React.ReactNode) {
-  return renderToString(<TranslationProvider>{node}</TranslationProvider>)
+  return renderString(node, { lang: "pt" })
 }
 
 const noop = () => undefined
@@ -32,13 +33,13 @@ describe("RepoSwitcher presentation", () => {
     expect(html).toContain("/work/super")
   })
 
-  it("renders the superproject row and the sibling rows with their state badges", () => {
+  it("renders the superproject row and marks the desynchronized sibling on its icon", () => {
     const [parents, siblings] = buildScopeGroups({
       lang: "pt",
       repo: "/work/super/libs/lib",
       chain: ["/work/super", "/work/super/libs/lib"],
       submodules: [],
-      siblingModules: [submodule("libs/lib"), submodule("libs/api", "+")],
+      siblingModules: [submodule("libs/lib"), submodule("libs/api", "+", 4)],
       recents: [],
     })
 
@@ -51,7 +52,9 @@ describe("RepoSwitcher presentation", () => {
 
     expect(html).toContain("Superprojeto")
     expect(html).toContain('title="/work/super/libs/api"')
-    expect(html).toContain("divergente")
+    expect(html).toContain('title="4 atrás do upstream"')
+    expect(html).toContain("toneWarn")
+    expect(html).not.toContain(">divergente<")
     expect(html).not.toContain("libs/lib")
   })
 
@@ -69,7 +72,9 @@ describe("RepoSwitcher presentation", () => {
 
     expect(html).toContain("Submódulos")
     expect(html).toContain('title="/work/super/libs/lib"')
-    expect(html).toContain("não iniciado")
+    expect(html).toContain("toneOk")
+    expect(html).not.toContain("toneWarn")
+    expect(html).not.toContain("targetBadge")
   })
 
   it("marks the active target", () => {

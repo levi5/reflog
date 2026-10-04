@@ -26,7 +26,7 @@ export const site = {
   name: "Reflog",
   tagline: "A Git client built around the parts that are hard.",
   description:
-    "A desktop Git client for Linux, macOS and Windows. Visual merge conflicts, interactive rebase, DAG history and workflow automations.",
+    "A desktop Git client for Linux and Windows. Visual merge conflicts, interactive rebase, DAG history and workflow automations.",
   repository: "https://github.com/levi5/reflog",
   release: "https://github.com/levi5/reflog/releases",
 }
@@ -164,12 +164,7 @@ export const install = {
   entries: [
     {
       label: "Linux",
-      command: "AppImage or .deb",
-      href: "https://github.com/levi5/reflog/releases",
-    },
-    {
-      label: "macOS",
-      command: "Universal .app bundle",
+      command: "AppImage, .deb or .rpm",
       href: "https://github.com/levi5/reflog/releases",
     },
     {

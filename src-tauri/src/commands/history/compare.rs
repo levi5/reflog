@@ -1,5 +1,5 @@
 use crate::commands::validation::validate_rev_spec;
-use crate::domain::CommitInfo;
+use crate::domain::{CommitInfo, CompareFileStat};
 use crate::runner::GitRunner;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
@@ -131,7 +131,7 @@ pub fn diff_stat_files(
     repo_path: &str,
     base: &str,
     target: &str,
-) -> Result<Vec<(String, usize, usize)>, String> {
+) -> Result<Vec<CompareFileStat>, String> {
     validate_rev_spec(base)?;
     validate_rev_spec(target)?;
     let root = runner.repo_root(repo_path)?;
@@ -151,7 +151,7 @@ pub fn diff_stat_files(
         let added = fields[0].parse::<usize>().unwrap_or(0);
         let removed = fields[1].parse::<usize>().unwrap_or(0);
         let path = fields[2].to_string();
-        files.push((path, added, removed));
+        files.push(CompareFileStat { path, added, removed });
     }
     Ok(files)
 }
@@ -273,8 +273,25 @@ mod tests {
         let runner = MockRunner::new(&rows, &[]);
         let files = diff_stat_files(&runner, "/r", "main", "feat").unwrap();
         assert_eq!(files.len(), 3);
-        assert_eq!(files[0], ("src/a.ts".to_string(), 3, 1));
-        assert_eq!(files[2], ("assets/logo.png".to_string(), 0, 0));
+        assert_eq!(files[0].path, "src/a.ts");
+        assert_eq!((files[0].added, files[0].removed), (3, 1));
+        assert_eq!((files[2].added, files[2].removed), (0, 0));
+        assert_eq!(files[2].path, "assets/logo.png");
+    }
+
+    #[test]
+    fn serializes_numstat_rows_as_named_fields() {
+        let rows = vec![
+            ("rev-parse --show-toplevel", "/r"),
+            ("merge-base main feat", "aaa1111"),
+            ("diff --numstat aaa1111..feat", "3\t1\tsrc/a.ts"),
+        ];
+        let runner = MockRunner::new(&rows, &[]);
+        let files = diff_stat_files(&runner, "/r", "main", "feat").unwrap();
+        let json = serde_json::to_value(&files).unwrap();
+        assert_eq!(json[0]["path"], "src/a.ts");
+        assert_eq!(json[0]["added"], 3);
+        assert_eq!(json[0]["removed"], 1);
     }
 
     #[test]

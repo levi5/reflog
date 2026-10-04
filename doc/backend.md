@@ -12,21 +12,24 @@ The backend is a Rust application using Tauri 2, responsible for executing Git c
 src-tauri/src/
 ├── commands/            # Tauri Commands (IPC API)
 │   ├── files/           # File operations (content, conflicted)
-│   ├── history/         # History: branches, log, diff
+│   ├── history/         # History: branches, log, diff, compare, search
 │   ├── meta.rs          # Config, version, clone, identity, gpg
 │   ├── refs.rs          # Branches, tags, remotes
 │   ├── staging.rs       # Stage, commit, checkout, cherry-pick, revert, reset
 │   ├── status/          # Git status (porcelain parsing)
 │   ├── sync.rs          # Merge, push, pull, fetch, stash
 │   ├── templates.rs     # Commit templates
+│   ├── rebase.rs        # Interactive rebase
 │   ├── repo.rs          # Repo detection, root, init, CLI path
 │   ├── submodules.rs    # Submodules
 │   ├── playground.rs    # Console (allowlisted git commands)
 │   ├── validation.rs    # Input validators (refs, oids, paths, URLs)
-│   └── mod.rs           # run_blocking helper
+│   └── mod.rs           # git_command! macro + run_blocking helper
 ├── domain/              # Rust Domain (entities, conflict parsing, errors)
 ├── runner.rs            # GitRunner trait + ProcessRunner (+ timeouts/limits)
-└── lib.rs               # Entry point, setup, command registry
+├── test_support.rs      # Real-repo helper for tests (cfg(test))
+├── lib.rs               # Entry point, setup, command registry
+└── main.rs              # Thin binary wrapper around lib.rs
 ```
 
 ### Principles
@@ -44,6 +47,8 @@ Abstraction for Git command execution, allowing mocking in tests.
 ```rust
 pub trait GitRunner: Send + Sync {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String>;
+
+    // Default implementations: the plain method plus a length check
     fn run_with_timeout(
         &self,
         repo: Option<&str>,
@@ -57,7 +62,25 @@ pub trait GitRunner: Send + Sync {
         env: &[(&str, &str)],
         timeout: Duration,
     ) -> Result<String, String>;
+    fn run_env_limited(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        max_bytes: usize,
+    ) -> Result<String, String>;
+    fn run_env_limited_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        timeout: Duration,
+        max_bytes: usize,
+    ) -> Result<String, String>;
     fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String>;
+
+    // Required from every implementation (run, run_stdin, run_env,
+    // read_file, write_file, path_exists — MockRunner implements all six)
     fn run_stdin(
         &self,
         repo: Option<&str>,
@@ -173,7 +196,8 @@ validated as repo-relative.
 | `git_revert_continue/abort` | Continue/abort revert |
 | `git_reset` | Reset (soft/mixed/hard) |
 | `git_unstage` | Unstage files |
-| `git_discard` | Discard changes |
+| `git_discard` | Discard changes in one file |
+| `git_discard_untracked` | Discard untracked files (`clean -f -d --`) |
 | `git_apply_patch` | Apply patch |
 
 #### Sync (`commands/sync.rs`)
@@ -365,6 +389,7 @@ pub struct CommitInfo {
 pub struct StatusResult {
     pub root: String,
     pub branch: String,
+    pub head: String,        // #[serde(default)]
     pub ahead: usize,
     pub behind: usize,
     pub files: Vec<FileStatus>,
@@ -374,6 +399,10 @@ pub struct StatusResult {
     pub rebasing: bool, // #[serde(default)] for back-compat
 }
 ```
+
+`#[serde(default)]` only relaxes deserialization: those fields are always
+present in the JSON the backend sends. The TypeScript mirror lives in
+`src/types/main.ts`.
 
 ## Tauri Plugins Used
 
@@ -485,8 +514,10 @@ mod tests {
    to stay inside the repository root
 7. **No hangs** - `GIT_TERMINAL_PROMPT=0`, `GIT_SSH_COMMAND="ssh -o BatchMode=yes"`,
    `GIT_EDITOR=true`, stdin nulled when unused, idle/absolute timeouts
-8. **Output caps** - `run_limited` truncates-enforces byte limits
-   (log/graph/reflog, diffs, file lists) so huge repos can't OOM the app
+8. **Output caps** - `run_limited` **enforces** byte limits (it fails with
+   `OUTPUT_LIMIT_ERROR`, it does not truncate): log/graph/reflog, search and
+   diff/blame at 2 MiB, compare and the console at 4 MiB, rebase and file lists
+   at 512 KiB, so huge repos can't OOM the app
 9. **FS scope** - file access goes through the backend runner, not direct renderer FS
 
 ## Performance

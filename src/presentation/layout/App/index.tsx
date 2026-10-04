@@ -1,7 +1,6 @@
 import { ArrowRight, OctagonX, TriangleAlert } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Outlet, useLocation, useNavigate } from "react-router-dom"
-import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 
 import { Bar } from "../../components/Bar"
@@ -15,6 +14,7 @@ import { Windows } from "../../components/Window"
 
 import { SearchProvider, useMessage, useRepo, useSettingsContext } from "../../context"
 import { t } from "../../../i18n"
+import { gitApi } from "../../../infrastructure/git"
 import { useAltShortcut, useAutoRefresh, useGlobalShortcuts, useProfiles } from "../../hooks"
 import { modalStackDepth } from "../../hooks/ui/useModalStack"
 import { VIEW_LABELS, VIEW_TABS } from "../../../shared/constants"
@@ -109,7 +109,8 @@ export function AppLayout() {
         else unlisten = stop
       })
       .catch(() => undefined)
-    void invoke<string | null>("take_cli_path")
+    void gitApi
+      .takeCliPath()
       .then((path) => {
         if (!disposed && path) void openCliPath(path)
       })

@@ -78,7 +78,9 @@ export function sameSubmodules(a: SubmoduleInfo[], b: SubmoduleInfo[]): boolean 
         submodule.url === other.url &&
         submodule.branch === other.branch &&
         submodule.hash === other.hash &&
-        submodule.state === other.state
+        submodule.state === other.state &&
+        submodule.ahead === other.ahead &&
+        submodule.behind === other.behind
       )
     })
   )

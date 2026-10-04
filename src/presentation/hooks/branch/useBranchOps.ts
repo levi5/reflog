@@ -14,7 +14,9 @@ export function useBranchOps(deps: RepositoryActionDeps) {
       if (!repo || !branch) return Promise.resolve()
       const status = await git.status(repo)
       if (status.files.length === 0) {
-        return gitAction(() => git.checkout(repo, branch, false), "checkoutBranchLoading", "checkoutBranchSuccess")
+        return gitAction(() => git.checkout(repo, branch, false), "checkoutBranchLoading", "checkoutBranchSuccess", {
+          vars: { branch },
+        })
       }
       const confirmed = await requestConfirm(t(lang, "checkoutWithChanges"), t(lang, "checkoutWithChangesHint"))
       if (!confirmed) return Promise.resolve()
@@ -42,6 +44,7 @@ export function useBranchOps(deps: RepositoryActionDeps) {
         () => git.checkout(repo, trimmedName, true, trimmedFrom === "" ? undefined : trimmedFrom),
         "createBranchLoading",
         "createBranchSuccess",
+        { vars: { branch: trimmedName } },
       )
     },
     [repo, git, gitAction],
