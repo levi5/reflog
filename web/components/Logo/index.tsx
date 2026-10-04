@@ -12,7 +12,7 @@ export const Logo = ({ size = 22, withWordmark = true }: LogoProps) => (
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.7"
+      strokeWidth={size <= 24 ? 2.2 : 1.7}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
