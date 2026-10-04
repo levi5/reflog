@@ -18,7 +18,7 @@ export function AboutSection() {
         <div className={styles.settingsMeta}>
           <strong>Reflog</strong>
           <p>
-            {t("version")}: 0.1.0
+            {t("version")}: {__APP_VERSION__}
             {gitVersion ? ` · git ${gitVersion}` : ""}
           </p>
           <p>{t("developedBy")} Levi Araújo</p>
