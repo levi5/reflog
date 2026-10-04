@@ -18,9 +18,9 @@ const WINDOW_SIZE = 5
 
 function pageWindow(current: number, total: number): number[] {
   if (total <= 0) return []
-  if (total <= WINDOW_SIZE + 2) return Array.from({ length: total }, (_, i) => i)
+  if (total <= WINDOW_SIZE + 2) return Array.from({ length: total }, (_, pageIndex) => pageIndex)
   const start = Math.min(Math.max(current - 2, 1), total - WINDOW_SIZE - 1)
-  return Array.from({ length: WINDOW_SIZE }, (_, i) => start + i)
+  return Array.from({ length: WINDOW_SIZE }, (_, offset) => start + offset)
 }
 
 export function Pagination({
@@ -43,7 +43,7 @@ export function Pagination({
   const visible = pageWindow(currentPage, totalPages)
   const showFirst = visible[0] !== 0
   const showLast = visible[visible.length - 1] !== lastPage
-  const middle = showFirst || showLast ? visible.filter((p) => p !== 0 && p !== lastPage) : visible
+  const middle = showFirst || showLast ? visible.filter((page) => page !== 0 && page !== lastPage) : visible
   const leftSingle = visible[0] === 2
   const rightSingle = visible[visible.length - 1] === lastPage - 2
   const showLeftGap = visible[0] > 2

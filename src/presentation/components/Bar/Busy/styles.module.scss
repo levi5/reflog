@@ -27,6 +27,10 @@
     var(--purple) 60%,
     transparent 100%
   );
+  animation: none;
+}
+
+.busyBar.active::before {
   animation: busySlide 1.4s ease-in-out infinite;
 }
 

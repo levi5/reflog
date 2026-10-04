@@ -24,15 +24,23 @@ export function QuickOpen({ open, onClose }: QuickOpenProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const listId = useId()
+  const wasOpenRef = useRef(false)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      wasOpenRef.current = false
+      return
+    }
+    if (wasOpenRef.current) return
+    wasOpenRef.current = true
     setQuery("")
     setActiveIndex(0)
-    const id = window.setTimeout(() => inputRef.current?.focus(), 0)
-    if (repo.repo && trackedFiles.length === 0) void loadTracked()
-    return () => window.clearTimeout(id)
-  }, [open, repo.repo, trackedFiles, loadTracked])
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !repo.repo) return
+    if (trackedFiles.length === 0) void loadTracked()
+  }, [open, repo.repo, trackedFiles.length, loadTracked])
 
   const results = useMemo(() => {
     if (!query.trim()) return trackedFiles.slice(0, MAX_RESULTS)
@@ -70,7 +78,7 @@ export function QuickOpen({ open, onClose }: QuickOpenProps) {
   }
 
   return (
-    <Modal title={t("quickOpenTitle")} size="md" onClose={onClose}>
+    <Modal title={t("quickOpenTitle")} size="md" onClose={onClose} initialFocus={inputRef}>
       <div className={styles.wrap}>
         <input
           ref={inputRef}

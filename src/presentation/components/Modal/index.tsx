@@ -90,8 +90,10 @@ export function Modal({
     // biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close on a presentational overlay; the inner dialog carries semantics
     <div
       className={styles.overlay}
-      onMouseDown={(e) => {
-        if (closeOnBackdrop && isTopModal(modalId.current) && e.target === e.currentTarget) onClose()
+      onMouseDown={(event) => {
+        if (closeOnBackdrop && isTopModal(modalId.current) && event.target === event.currentTarget) {
+          onClose()
+        }
       }}
     >
       <div

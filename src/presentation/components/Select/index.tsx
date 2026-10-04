@@ -32,9 +32,10 @@ export function Select({ label, value, options, disabled = false, icon, classNam
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const appliedValueRef = useRef<string | null>(null)
   const listId = useId()
   const isInteractive = !disabled && options.length > 0
-  const current = options.find((o) => o.value === value) ?? options[0]
+  const current = options.find((option) => option.value === value) ?? options[0]
 
   const close = useCallback((restoreFocus = true) => {
     setOpen(false)
@@ -49,7 +50,7 @@ export function Select({ label, value, options, disabled = false, icon, classNam
     setActiveIndex(
       Math.max(
         0,
-        options.findIndex((o) => o.value === value),
+        options.findIndex((option) => option.value === value),
       ),
     )
     setOpen(true)
@@ -57,13 +58,22 @@ export function Select({ label, value, options, disabled = false, icon, classNam
   }, [focusList, options, value])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      appliedValueRef.current = null
+      return
+    }
+    if (appliedValueRef.current === value) return
+    appliedValueRef.current = value
     setActiveIndex(
       Math.max(
         0,
-        options.findIndex((o) => o.value === value),
+        options.findIndex((option) => option.value === value),
       ),
     )
+  }, [open, options, value])
+
+  useEffect(() => {
+    if (!open) return
 
     const onPointerDown = (event: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(false)
@@ -85,7 +95,7 @@ export function Select({ label, value, options, disabled = false, icon, classNam
       document.removeEventListener("focusin", onFocusIn)
       document.removeEventListener("keydown", onKey)
     }
-  }, [open, close, options, value])
+  }, [open, close])
 
   useEffect(() => {
     if (!open) return

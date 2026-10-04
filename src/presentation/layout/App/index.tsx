@@ -16,6 +16,7 @@ import { Windows } from "../../components/Window"
 import { SearchProvider, useMessage, useRepo, useSettingsContext } from "../../context"
 import { t } from "../../../i18n"
 import { useAltShortcut, useAutoRefresh, useGlobalShortcuts, useProfiles } from "../../hooks"
+import { modalStackDepth } from "../../hooks/ui/useModalStack"
 import { VIEW_LABELS, VIEW_TABS } from "../../../shared/constants"
 import type { TabItem } from "../../../types/components"
 import type { View } from "../../hooks"
@@ -25,12 +26,15 @@ import styles from "./styles.module.scss"
 export interface AppOutletContext {
   showRebase: boolean
   toggleRebase: () => void
+  rebaseCount: number
+  setRebaseCount: (count: number) => void
 }
 
 export function AppLayout() {
   const { lang } = useSettingsContext()
   const [showRepoBar, setShowRepoBar] = useState(true)
   const [showRebase, setShowRebase] = useState(false)
+  const [rebaseCount, setRebaseCount] = useState(0)
   const [cloneUrl, setCloneUrl] = useState("")
   const [cloneDir, setCloneDir] = useState("")
   const [quickOpen, setQuickOpen] = useState(false)
@@ -43,8 +47,11 @@ export function AppLayout() {
   const message = useMessage()
   const repo = useRepo()
   const { pendingConfirm } = repo
-  const toggleRebase = useCallback(() => setShowRebase((s) => !s), [])
-  const outletContext = useMemo<AppOutletContext>(() => ({ showRebase, toggleRebase }), [showRebase, toggleRebase])
+  const toggleRebase = useCallback(() => setShowRebase((wasOpen) => !wasOpen), [])
+  const outletContext = useMemo<AppOutletContext>(
+    () => ({ showRebase, toggleRebase, rebaseCount, setRebaseCount }),
+    [showRebase, toggleRebase, rebaseCount],
+  )
   const profiles = useProfiles({
     lang,
     repoRoot: repo.repo,
@@ -124,7 +131,9 @@ export function AppLayout() {
   })
 
   const focusSearch = useCallback(() => {
-    const input = document.querySelector<HTMLInputElement>('input[type="search"]')
+    if (modalStackDepth() > 0) return
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="search"]'))
+    const input = inputs.find((candidate) => candidate.offsetParent !== null)
     if (input) {
       input.focus()
       input.select()
@@ -139,7 +148,7 @@ export function AppLayout() {
       onRedo: () => void repo.redoLast(),
       onFind: focusSearch,
       onQuickOpen: () => setQuickOpen(true),
-      onRefresh: () => void repo.refresh(repo.repo),
+      onRefresh: () => void repo.refresh(repo.repo, "full"),
     }),
     [repo.undoLast, repo.redoLast, repo.refresh, repo.repo, focusSearch],
   )
@@ -167,7 +176,7 @@ export function AppLayout() {
             onBrowseDir={repo.handleBrowse}
             onBrowseCloneDir={() => repo.pickDir().then((p: string | null) => p && setCloneDir(p))}
             onClone={() => repo.cloneRepo(cloneUrl, cloneDir)}
-            onSelectRecent={(p) => repo.openRecent(p)}
+            onSelectRecent={(path) => repo.openRecent(path)}
             onClearRecents={repo.clearRecents}
             onDone={() => setShowRepoBar(false)}
           />
@@ -192,7 +201,7 @@ export function AppLayout() {
             totalHunks={repo.stats.totalHunks}
             resolvedHunks={repo.stats.resolvedHunks}
             remainingHunks={repo.stats.remainingHunks}
-            rebaseCount={repo.log.length}
+            rebaseCount={rebaseCount}
             branches={repo.localBranches}
             mergeInput={repo.mergeBranch}
             onMergeInputChange={repo.setMergeBranch}
