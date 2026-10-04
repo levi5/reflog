@@ -5,10 +5,15 @@ pub fn validate_repo_path(path: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn has_parent_traversal(path: &str) -> bool {
+    path.split(['/', '\\']).any(|segment| segment == "..")
+}
+
 pub fn validate_repo_relative_path(path: &str) -> Result<(), String> {
     if path.is_empty()
         || path.starts_with('/')
-        || path.contains("..")
+        || path.starts_with('\\')
+        || has_parent_traversal(path)
         || path.contains('\0')
         || path.contains('\n')
         || path.len() > 4096
@@ -163,4 +168,63 @@ pub fn validate_search_term(term: &str) -> Result<(), String> {
         return Err("termo de busca inválido".to_string());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_relative_paths_that_only_look_like_traversal() {
+        assert!(validate_repo_relative_path("a..b.txt").is_ok());
+        assert!(validate_repo_relative_path("notes..2024/readme.md").is_ok());
+        assert!(validate_repo_relative_path("..hidden").is_ok());
+        assert!(validate_repo_relative_path("dir/..name/file.txt").is_ok());
+    }
+
+    #[test]
+    fn rejects_actual_parent_traversal_and_absolute_paths() {
+        assert!(validate_repo_relative_path("..").is_err());
+        assert!(validate_repo_relative_path("../secrets").is_err());
+        assert!(validate_repo_relative_path("src/../../etc/passwd").is_err());
+        assert!(validate_repo_relative_path("src\\..\\..\\windows").is_err());
+        assert!(validate_repo_relative_path("/etc/passwd").is_err());
+        assert!(validate_repo_relative_path("").is_err());
+        assert!(validate_repo_relative_path("a\0b").is_err());
+        assert!(validate_repo_relative_path("a\nb").is_err());
+    }
+
+    #[test]
+    fn detects_parent_traversal_per_segment() {
+        assert!(has_parent_traversal("a/../b"));
+        assert!(has_parent_traversal("..\\b"));
+        assert!(has_parent_traversal(".."));
+        assert!(!has_parent_traversal("a/..b/c"));
+        assert!(!has_parent_traversal("a..b/..c"));
+    }
+
+    #[test]
+    fn config_keys_are_allow_listed() {
+        assert!(validate_config_key("user.name").is_ok());
+        assert!(validate_config_key("commit.gpgsign").is_ok());
+        assert!(validate_config_key("credential.helper").is_err());
+        assert!(validate_config_key("core.sshCommand").is_err());
+        assert!(validate_config_key("--global").is_err());
+    }
+
+    #[test]
+    fn ref_names_reject_option_like_and_shell_unsafe_input() {
+        assert!(validate_ref_name("feature/ok-1").is_ok());
+        assert!(validate_ref_name("-force").is_err());
+        assert!(validate_ref_name("has space").is_err());
+        assert!(validate_ref_name("a..b").is_err());
+        assert!(validate_ref_name("trailing.").is_err());
+        assert!(validate_ref_name("main.lock").is_err());
+    }
+
+    #[test]
+    fn patch_size_is_capped() {
+        assert!(validate_patch_size("ok", 4).is_ok());
+        assert!(validate_patch_size("toolong", 4).is_err());
+    }
 }

@@ -1,3 +1,4 @@
+use crate::commands::validation::validate_repo_relative_path;
 use crate::runner::GitRunner;
 use crate::AppState;
 use std::fs;
@@ -5,17 +6,14 @@ use std::path::{Path, PathBuf};
 use tauri::State;
 
 fn is_safe_repo_path(file: &str) -> bool {
-    if file.is_empty()
-        || file.starts_with('/')
-        || file.contains("..")
-        || file.contains('\0')
-    {
-        return false;
-    }
-    true
+    validate_repo_relative_path(file).is_ok()
 }
 
-fn resolve_repo_file(runner: &dyn GitRunner, repo_path: &str, file: &str) -> Result<PathBuf, String> {
+fn resolve_repo_file(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    file: &str,
+) -> Result<PathBuf, String> {
     if !is_safe_repo_path(file) {
         return Err("caminho do arquivo inválido".to_string());
     }
@@ -54,11 +52,7 @@ fn resolve_repo_file_write(
     Ok(full)
 }
 
-pub fn content_of(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    file: &str,
-) -> Result<String, String> {
+pub fn content_of(runner: &dyn GitRunner, repo_path: &str, file: &str) -> Result<String, String> {
     let target = resolve_repo_file(runner, repo_path, file)?;
     runner
         .read_file(&target)
@@ -96,4 +90,3 @@ pub fn save_file_content(
 ) -> Result<(), String> {
     save_content(state.runner.as_ref(), &repo_path, &file, &content)
 }
-

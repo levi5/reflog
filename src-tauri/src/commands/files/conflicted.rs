@@ -1,3 +1,4 @@
+use crate::commands::validation::validate_repo_relative_path;
 use crate::domain::{parse_conflict_text, ConflictFile};
 use crate::runner::GitRunner;
 use crate::AppState;
@@ -5,10 +6,7 @@ use std::path::Path;
 use tauri::State;
 
 fn is_safe_repo_path(file: &str) -> bool {
-    if file.is_empty() || file.starts_with('/') || file.contains("..") || file.contains('\0') {
-        return false;
-    }
-    true
+    validate_repo_relative_path(file).is_ok()
 }
 
 pub fn conflicted_of(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<ConflictFile>, String> {
