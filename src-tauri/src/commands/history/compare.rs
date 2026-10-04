@@ -1,9 +1,14 @@
 use crate::commands::validation::validate_rev_spec;
 use crate::domain::CommitInfo;
 use crate::runner::GitRunner;
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 const MAX_COMPARE_BYTES: usize = 4 * 1024 * 1024;
 const MAX_COMPARE_COMMITS: usize = 500;
+const MERGE_BASE_TTL: Duration = Duration::from_secs(30);
+const MERGE_BASE_CACHE_LIMIT: usize = 32;
 
 const FORMAT: &str = "%H%x1f%h%x1f%an%x1f%ad%x1f%s";
 const GRAPH_FORMAT: &str = "%H%x1f%h%x1f%an%x1f%ad%x1f%s%x1f%P%x1f%D";
@@ -11,40 +16,75 @@ const GRAPH_FORMAT: &str = "%H%x1f%h%x1f%an%x1f%ad%x1f%s%x1f%P%x1f%D";
 fn parse_commits(out: &str, with_graph: bool) -> Vec<CommitInfo> {
     let mut commits = vec![];
     for line in out.lines() {
-        let p: Vec<&str> = line.split('\u{1f}').collect();
+        let fields: Vec<&str> = line.split('\u{1f}').collect();
         if with_graph {
-            if p.len() < 7 {
+            if fields.len() < 7 {
                 continue;
             }
             commits.push(CommitInfo {
-                hash: p[0].to_string(),
-                short: p[1].to_string(),
-                author: p[2].to_string(),
-                date: p[3].to_string(),
-                message: p[4].to_string(),
-                parents: p[5].split_whitespace().map(|s| s.to_string()).collect(),
-                refs: p[6]
+                hash: fields[0].to_string(),
+                short: fields[1].to_string(),
+                author: fields[2].to_string(),
+                date: fields[3].to_string(),
+                message: fields[4].to_string(),
+                parents: fields[5]
+                    .split_whitespace()
+                    .map(|hash| hash.to_string())
+                    .collect(),
+                refs: fields[6]
                     .split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
+                    .map(|value| value.trim().to_string())
+                    .filter(|value| !value.is_empty())
                     .collect(),
             });
         } else {
-            if p.len() < 5 {
+            if fields.len() < 5 {
                 continue;
             }
             commits.push(CommitInfo {
-                hash: p[0].to_string(),
-                short: p[1].to_string(),
-                author: p[2].to_string(),
-                date: p[3].to_string(),
-                message: p[4].to_string(),
+                hash: fields[0].to_string(),
+                short: fields[1].to_string(),
+                author: fields[2].to_string(),
+                date: fields[3].to_string(),
+                message: fields[4].to_string(),
                 parents: vec![],
                 refs: vec![],
             });
         }
     }
     commits
+}
+
+type MergeBaseKey = (String, String, String);
+
+fn merge_base_cache() -> &'static Mutex<HashMap<MergeBaseKey, (Instant, String)>> {
+    static CACHE: OnceLock<Mutex<HashMap<MergeBaseKey, (Instant, String)>>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn cached_merge_base(root: &str, a: &str, b: &str) -> Option<String> {
+    let cache = merge_base_cache();
+    let key: MergeBaseKey = (root.to_string(), a.to_string(), b.to_string());
+    let mut guard = cache
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let now = Instant::now();
+    guard.retain(|_, (at, _)| now.duration_since(*at) < MERGE_BASE_TTL);
+    guard.get(&key).map(|(_, sha)| sha.clone())
+}
+
+fn store_merge_base(root: &str, a: &str, b: &str, sha: &str) {
+    let cache = merge_base_cache();
+    let mut guard = cache
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if guard.len() >= MERGE_BASE_CACHE_LIMIT {
+        guard.clear();
+    }
+    guard.insert(
+        (root.to_string(), a.to_string(), b.to_string()),
+        (Instant::now(), sha.to_string()),
+    );
 }
 
 pub fn merge_base(
@@ -56,11 +96,15 @@ pub fn merge_base(
     validate_rev_spec(a)?;
     validate_rev_spec(b)?;
     let root = runner.repo_root(repo_path)?;
+    if let Some(hit) = cached_merge_base(&root, a, b) {
+        return Ok(hit);
+    }
     let out = runner.run(Some(&root), &["merge-base", a, b])?;
     let base = out.trim();
     if base.is_empty() {
         return Err("os refs não compartilham um ancestral comum".to_string());
     }
+    store_merge_base(&root, a, b, base);
     Ok(base.to_string())
 }
 
@@ -100,13 +144,13 @@ pub fn diff_stat_files(
     )?;
     let mut files = vec![];
     for line in out.lines() {
-        let p: Vec<&str> = line.split('\t').collect();
-        if p.len() < 3 {
+        let fields: Vec<&str> = line.split('\t').collect();
+        if fields.len() < 3 {
             continue;
         }
-        let added = p[0].parse::<usize>().unwrap_or(0);
-        let removed = p[1].parse::<usize>().unwrap_or(0);
-        let path = p[2].to_string();
+        let added = fields[0].parse::<usize>().unwrap_or(0);
+        let removed = fields[1].parse::<usize>().unwrap_or(0);
+        let path = fields[2].to_string();
         files.push((path, added, removed));
     }
     Ok(files)
@@ -247,6 +291,36 @@ mod tests {
         let runner = MockRunner::new(&rows, &[]);
         assert!(merge_base(&runner, "/r", "--upload-pack=evil", "main").is_err());
         assert!(diff_refs(&runner, "/r", "main", "--hard", false).is_err());
+    }
+
+    #[test]
+    fn resolves_the_merge_base_once_per_ref_pair() {
+        let rows = vec![
+            ("rev-parse --show-toplevel", "/r"),
+            ("merge-base cached-a cached-b", "aaa1111"),
+            ("diff aaa1111..cached-b", ""),
+            ("diff --stat aaa1111..cached-b", ""),
+            ("diff --numstat aaa1111..cached-b", ""),
+            (
+                "log --topo-order --max-count=200 --pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s aaa1111..cached-b",
+                "",
+            ),
+            (
+                "log --topo-order --max-count=200 --pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s aaa1111..cached-a",
+                "",
+            ),
+            ("log --topo-order --graph --max-count=200 --pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s%x1f%P%x1f%D aaa1111..cached-b", ""),
+        ];
+        let runner = MockRunner::new(&rows, &[]);
+
+        diff_refs(&runner, "/r", "cached-a", "cached-b", false).unwrap();
+        diff_refs(&runner, "/r", "cached-a", "cached-b", true).unwrap();
+        diff_stat_files(&runner, "/r", "cached-a", "cached-b").unwrap();
+        commits_ahead(&runner, "/r", "cached-a", "cached-b", None).unwrap();
+        commits_behind(&runner, "/r", "cached-a", "cached-b", None).unwrap();
+        compare_graph(&runner, "/r", "cached-a", "cached-b", None).unwrap();
+
+        assert_eq!(runner.calls_for("merge-base cached-a cached-b"), 1);
     }
 
     #[test]

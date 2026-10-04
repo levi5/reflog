@@ -33,13 +33,12 @@ pub fn commit_files_of(
     let out = runner.run_limited(
         Some(&root),
         &[
-            "diff-tree",
-            "--no-commit-id",
+            "show",
             "--name-status",
+            "--format=",
             "-z",
-            "--root",
+            "-m",
             "--first-parent",
-            "-r",
             rev,
         ],
         MAX_FILE_LIST_OUTPUT_BYTES,
@@ -105,8 +104,8 @@ pub fn ls_files_of(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<String
     let out = runner.run_limited(Some(&root), &["ls-files"], MAX_FILE_LIST_OUTPUT_BYTES)?;
     Ok(out
         .lines()
-        .map(|l| l.trim().to_string())
-        .filter(|l| !l.is_empty())
+        .map(|line| line.trim().to_string())
+        .filter(|line| !line.is_empty())
         .collect())
 }
 
@@ -131,7 +130,7 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 (
-                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r abc1234",
+                    "show --name-status --format= -z -m --first-parent abc1234",
                     "M\0src/index.ts\0A\0src/types.ts\0D\0old.txt\0",
                 ),
             ],
@@ -153,7 +152,7 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 (
-                    "diff-tree --no-commit-id --name-status -z --root --first-parent -r abc1234",
+                    "show --name-status --format= -z -m --first-parent abc1234",
                     "R100\0old\tname\0new\tname\0",
                 ),
             ],
@@ -214,5 +213,48 @@ mod tests {
         let files = commit_files_of(&crate::runner::ProcessRunner, &dir, "HEAD").unwrap();
         assert_eq!(files.len(), 1);
         assert_eq!(files[0].path, "f.txt");
+    }
+
+    #[test]
+    fn lists_files_of_a_merge_commit_in_real_repo() {
+        let temp = tempfile::tempdir().unwrap();
+        let dir = temp.path().to_string_lossy().to_string();
+        let run = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .current_dir(&dir)
+                .env("GIT_CONFIG_NOSYSTEM", "1")
+                .env("GIT_CONFIG_GLOBAL", "/dev/null")
+                .arg("-c")
+                .arg("user.name=demo")
+                .arg("-c")
+                .arg("user.email=demo@demo")
+                .arg("-c")
+                .arg("init.defaultBranch=main")
+                .arg("-c")
+                .arg("commit.gpgsign=false")
+                .args(args)
+                .output()
+                .expect("git binary missing");
+            assert!(
+                out.status.success(),
+                "git {} failed: {}",
+                args.join(" "),
+                String::from_utf8_lossy(&out.stderr)
+            );
+        };
+        run(&["init"]);
+        std::fs::write(temp.path().join("base.txt"), "1\n").unwrap();
+        run(&["add", "."]);
+        run(&["commit", "-m", "base"]);
+        run(&["checkout", "-b", "side"]);
+        std::fs::write(temp.path().join("side.txt"), "2\n").unwrap();
+        run(&["add", "."]);
+        run(&["commit", "-m", "side"]);
+        run(&["checkout", "main"]);
+        run(&["merge", "--no-ff", "-m", "merge", "side"]);
+
+        let files = commit_files_of(&crate::runner::ProcessRunner, &dir, "HEAD").unwrap();
+        let paths: Vec<&str> = files.iter().map(|file| file.path.as_str()).collect();
+        assert_eq!(paths, vec!["side.txt"]);
     }
 }
