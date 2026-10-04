@@ -1,7 +1,7 @@
 import { mergeStatsUseCase } from "../../../data"
 import { _Either, _pipe } from "funcio"
 import { useCallback, useMemo, useState } from "react"
-import { t } from "../../../i18n"
+import { formatMessage, t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
 import type { IGitApi } from "../../../infrastructure/git/types"
 import type { CommitInfo, CommitFileChange, Lang } from "../../../types"
@@ -18,6 +18,7 @@ import { useRecents } from "./useRecents"
 import { useRemoteOps } from "./useRemoteOps"
 import { useRepoOpener } from "./useRepoOpener"
 import { useRepoScope } from "./useRepoScope"
+import { useSyncOps } from "./useSyncOps"
 import { useTagOps } from "./useTagOps"
 
 export type View =
@@ -102,6 +103,9 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     [undoStack],
   )
 
+  const undoLast = useCallback(() => runUndo("undo"), [runUndo])
+  const redoLast = useCallback(() => runUndo("redo"), [runUndo])
+
   const runAction: RunAction = useCallback(
     async (work, after, options) => {
       if (!repo) return
@@ -133,10 +137,10 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
         after?.()
         await refresh(repo)
       } else {
-        const e = result.value
+        const failure = result.value
         messageService.dismiss(loadingId)
-        const errorMsg = options?.errorMessage ?? (e instanceof Error ? e.message : String(e))
-        fail(e, errorMsg)
+        const errorMsg = options?.errorMessage ?? (failure instanceof Error ? failure.message : String(failure))
+        fail(failure, errorMsg)
       }
 
       setBusy(false)
@@ -154,67 +158,12 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
 
   const gitAction = useGitAction(lang, runAction)
 
-  const pullIt = useCallback(() => gitAction(() => git.pull(repo), "pulling", "pulled"), [repo, git, gitAction])
-
-  const pushIt = useCallback(
-    () => gitAction(() => git.push(repo).then((m) => m || "pushed"), "pushing", "pushed"),
-    [repo, git, gitAction],
-  )
-
-  const pushForce = useCallback(
-    () =>
-      gitAction(() => git.pushWith(repo, { force: true }).then((m) => m || "pushed"), "pushing", "pushForceSuccess", {
-        errorMessage: t(lang, "pushForceFailed"),
-      }),
-    [repo, git, gitAction, lang],
-  )
-
-  const pushTags = useCallback(
-    () =>
-      gitAction(() => git.pushWith(repo, { tags: true }).then((m) => m || "pushed"), "pushingTags", "pushTagsSuccess"),
-    [repo, git, gitAction],
-  )
-
-  const deleteRemoteBranch = useCallback(
-    (remoteBranch: string) =>
-      gitAction(
-        () => git.pushWith(repo, { deleteRemoteBranch: remoteBranch }).then((m) => m || "deleted"),
-        "deletingRemoteBranch",
-        "deleteRemoteBranchSuccess",
-      ),
-    [repo, git, gitAction],
-  )
-
-  const setUpstream = useCallback(
-    (remote: string, branch: string) =>
-      gitAction(() => git.setUpstream(repo, remote, branch), "settingUpstream", "setUpstreamSuccess"),
-    [repo, git, gitAction],
-  )
+  const syncOps = useSyncOps({ lang, repo, git, runAction })
 
   const amendCommit = useCallback(
     (repoPath: string, message: string, signoff = false, sign = false) =>
       gitAction(() => git.amendCommit(repoPath, message, signoff, sign), "amendCommitLoading", "amendCommitSuccess"),
     [git, gitAction],
-  )
-
-  const fetchPrune = useCallback(
-    (prune = true) =>
-      gitAction(
-        () => git.fetch(repo, prune).then((m) => m.trim() || "fetched"),
-        prune ? "fetchPrune" : "fetch",
-        "fetchCompleted",
-      ),
-    [repo, git, gitAction],
-  )
-
-  const fetchFromRemote = useCallback(
-    (remote: string, prune: boolean, tags: boolean) =>
-      gitAction(
-        () => git.fetchRef(repo, remote, prune, tags).then((m) => m.trim() || "fetched"),
-        "fetch",
-        "fetchCompleted",
-      ),
-    [repo, git, gitAction],
   )
 
   const loadCommitFiles = useCallback(
@@ -258,13 +207,17 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     [repo, git],
   )
 
-  const openTerminalHint = useCallback(
-    () =>
-      _pipe(status?.root ?? repo, (targetPath: string) => {
-        setMsg(`${t(lang, "terminalHint")} ${targetPath}`)
-      }),
-    [lang, status?.root, repo],
-  )
+  const openTerminalHint = useCallback(async () => {
+    const target = status?.root ?? repo
+    if (!target) return
+    const command = `cd "${target}"`
+    try {
+      await navigator.clipboard.writeText(command)
+      setMsg(formatMessage(lang, "terminalCommandCopied", { command }))
+    } catch {
+      setMsg(`${t(lang, "terminalHint")} ${target}`)
+    }
+  }, [lang, status?.root, repo])
 
   const repoName = useMemo(
     () =>
@@ -290,6 +243,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     localBranches: data.localBranches,
     tags: data.tags,
     remotes: data.remotes,
+    submodules: data.submodules,
     log: logPage.items,
     graph: graphPage.items,
     totalCommits: data.totalCommits,
@@ -301,8 +255,8 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     canUndo: undoStack.canUndo,
     canRedo: undoStack.canRedo,
     undoLabel: undoStack.pendingLabel,
-    undoLast: () => runUndo("undo"),
-    redoLast: () => runUndo("redo"),
+    undoLast,
+    redoLast,
     clearUndoStack: undoStack.clear,
     opening,
     setBusy,
@@ -325,18 +279,18 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     createBranchFrom: branchOps.createBranchFrom,
     deleteBranch: branchOps.deleteBranch,
     renameBranch: branchOps.renameBranch,
-    fetchPrune,
-    fetchFromRemote,
-    pushForce,
-    pushTags,
-    deleteRemoteBranch,
-    setUpstream,
+    fetchPrune: syncOps.fetchPrune,
+    fetchFromRemote: syncOps.fetchFromRemote,
+    pushForce: syncOps.pushForce,
+    pushTags: syncOps.pushTags,
+    deleteRemoteBranch: syncOps.deleteRemoteBranch,
+    setUpstream: syncOps.setUpstream,
     createTag: tagOps.createTag,
     deleteTag: tagOps.deleteTag,
     addRemote: remoteOps.addRemote,
     removeRemote: remoteOps.removeRemote,
-    pullIt,
-    pushIt,
+    pullIt: syncOps.pullIt,
+    pushIt: syncOps.pushIt,
     amendCommit,
     loadMoreLog: logPage.loadMore,
     reflog,

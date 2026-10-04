@@ -27,8 +27,8 @@ export function CommitBox({ value, onChange, onCommit, onStageAll, repoPath, bra
   return (
     <form
       className={styles.commitBox}
-      onSubmit={(e) => {
-        e.preventDefault()
+      onSubmit={(event) => {
+        event.preventDefault()
         handleCommit()
       }}
     >

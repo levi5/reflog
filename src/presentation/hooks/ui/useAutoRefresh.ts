@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react"
 import { AUTO_REFRESH_MS, FOCUS_GAP_MS } from "../../../shared/constants/limits"
+import type { RefreshMode } from "../repository/useRepositoryData"
 
 interface AutoRefreshDeps {
   repoRoot: string
   busy: boolean
   opening: boolean
-  refresh: (root: string) => Promise<void> | void
+  refresh: (root: string, mode?: RefreshMode) => Promise<void> | void
   intervalMs?: number
   focusGapMs?: number
 }
@@ -33,7 +34,7 @@ export function useAutoRefresh({
       const now = Date.now()
       if (now - lastRun < focusGapMs) return
       lastRun = now
-      void refreshRef.current(root)
+      void refreshRef.current(root, "silent")
     }
     const id = setInterval(tryRefresh, intervalMs)
     const onFocus = () => tryRefresh()

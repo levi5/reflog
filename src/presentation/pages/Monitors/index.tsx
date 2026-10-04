@@ -2,7 +2,7 @@ import { automationsUseCase } from "../../../data"
 import { newId } from "../../../shared/utils/id"
 import { _Either, _Maybe } from "funcio"
 import { Zap } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import type { MonitorAutomation } from "../../../domain/entities/automations/automations"
 import { gitApi } from "../../../infrastructure/git"
@@ -19,9 +19,10 @@ const MONITORS_PER_PAGE = 10
 export function Monitors() {
   const { lang } = useSettingsContext()
   const repo = useRepoCore()
+  const submodulePaths = useMemo(() => repo.submodules.map((sub) => sub.path), [repo.submodules])
   const auto = useAutomations({
     repoRoot: repo.repo,
-    submodulePaths: [],
+    submodulePaths,
     refreshRepo: () => repo.refresh(repo.repo),
   })
 
@@ -85,14 +86,14 @@ export function Monitors() {
   }
 
   const deleteMonitor = async (id: string) => {
-    const target = auto.monitors.find((m) => m.id === id)
+    const target = auto.monitors.find((monitor) => monitor.id === id)
     if (!target) return
     const confirmed = await repo.requestConfirm(
       t(lang, "deleteMonitor"),
       t(lang, "deleteMonitorConfirm").replace("{name}", target.name),
     )
     if (!confirmed) return
-    const found = auto.monitors.find((m) => m.id !== id)
+    const found = auto.monitors.find((monitor) => monitor.id !== id)
     const next = _Maybe.of(found).getOrElse(null) as MonitorAutomation | null
     auto.deleteMonitor(id)
     setSelectedId(next?.id ?? null)

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { t } from "../../../i18n"
 import { gitApi } from "../../../infrastructure/git"
 import { EmptyState } from "../../components/Empty/State"
@@ -14,9 +14,10 @@ export function Automations() {
   const { lang } = useSettingsContext()
   const repository = useRepoCore()
   const currentRepoPath = repository.repo
+  const submodulePaths = useMemo(() => repository.submodules.map((sub) => sub.path), [repository.submodules])
   const automations = useAutomations({
     repoRoot: currentRepoPath,
-    submodulePaths: [],
+    submodulePaths,
     refreshRepo: () => repository.refresh(repository.repo),
   })
   const [variableValues, setVariableValues] = useState<Record<string, string>>({})

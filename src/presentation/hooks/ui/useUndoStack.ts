@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 
 export interface UndoEntry {
   id: string
@@ -58,5 +58,11 @@ export function useUndoStack(limit = MAX_ENTRIES) {
     sync()
   }, [sync])
 
-  return { push, undo, redo, clear, canUndo, canRedo, pendingLabel, setPendingLabel }
+  // A referencia deste objeto entra nas deps de runAction, que por sua vez
+  // memoiza branchOps, tagOps, remoteOps, gitActions e syncOps. Devolve-lo
+  // como literal invalidaria toda a RepoContext a cada render.
+  return useMemo(
+    () => ({ push, undo, redo, clear, canUndo, canRedo, pendingLabel, setPendingLabel }),
+    [push, undo, redo, clear, canUndo, canRedo, pendingLabel],
+  )
 }

@@ -1,4 +1,4 @@
-import { commitTemplateUseCase, mergeStatsUseCase } from "../../../data"
+import { mergeStatsUseCase } from "../../../data"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import classnames from "classnames"
@@ -13,11 +13,11 @@ import { Pagination } from "../../components/Pagination"
 import { ResizableSplitLayout } from "../../components/Resizable"
 import { SearchBox } from "../../components/Search"
 import { HistorySearchPanel } from "../../components/Graph"
-import type { LogFilter } from "../../../infrastructure/git/ipc-client"
 import { Skeleton } from "../../components/Skeleton"
 
 import { t } from "../../../i18n"
-import { useCommitTemplate, useIntersectionObserver } from "../../hooks"
+import { useIntersectionObserver } from "../../hooks"
+import { useAmendCommit, useHistorySearch } from "../../hooks/repository/useHistorySearch"
 import { useRepo, useSearch, useSettingsContext } from "../../context"
 import type { CommitInfo } from "../../../types"
 
@@ -33,21 +33,19 @@ export function Graph(_props: Props) {
   const [searchParams, setSearchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState<"graph" | "log" | "reflog">("graph")
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null)
-  const [amendCommit, setAmendCommit] = useState<CommitInfo | null>(null)
-  const [amendMessage, setAmendMessage] = useState("")
   const [commitPage, setCommitPage] = useState(0)
   const dismissedCommitHashRef = useRef("")
-  const amendApi = useCommitTemplate({
-    value: amendMessage,
-    onChange: setAmendMessage,
+  const headHash = repo.status?.head ?? ""
+
+  const amend = useAmendCommit({
+    lang,
+    headHash,
     repoPath: repo.repo,
     branch: repo.status?.branch ?? "",
+    amendCommit: repo.amendCommit,
+    setMsg: repo.setMsg,
   })
-
-  const handleAmend = useCallback((commit: CommitInfo) => {
-    setAmendCommit(commit)
-    setAmendMessage(commit.message)
-  }, [])
+  const { amendCommit, amendApi, handleAmend, confirmAmend, cancelAmend } = amend
 
   const handleCheckout = useCallback((hash: string) => void repo.checkoutBranch(hash), [repo.checkoutBranch])
   const handleReset = useCallback(
@@ -69,29 +67,6 @@ export function Graph(_props: Props) {
     },
     [setSearchParams],
   )
-
-  const confirmAmend = async () => {
-    const msg = amendMessage.trim()
-
-    if (!amendCommit || !msg || !amendApi.canCommit) return
-
-    const { signoff, sign } = amendApi.fields
-
-    const box = await _try.async(async () => {
-      await repo.amendCommit?.(repo.repo, msg, signoff, sign)
-
-      commitTemplateUseCase.pushHistory(msg)
-      setAmendCommit(null)
-      setAmendMessage("")
-    })
-
-    if (box.isLeft()) console.error("Amend failed:", box.value)
-  }
-
-  const cancelAmend = () => {
-    setAmendCommit(null)
-    setAmendMessage("")
-  }
 
   const repoPath = repo.repo
 
@@ -121,6 +96,16 @@ export function Graph(_props: Props) {
     repo.loadReflog,
   ])
 
+  const resetCommitPage = useCallback(() => setCommitPage(0), [])
+
+  const { searchFilter, searchResults, searchBusy, searchError, handleServerSearch, clearServerSearch } =
+    useHistorySearch({
+      repoRoot: repo.repo,
+      viewMode,
+      searchHistory: repo.searchHistory,
+      onSearchStart: resetCommitPage,
+    })
+
   const handleLoadMore = useCallback(() => {
     const method = viewMode === "log" ? "loadMoreLog" : "loadMoreGraph"
 
@@ -131,51 +116,6 @@ export function Graph(_props: Props) {
   useEffect(() => {
     handleLoadMoreRef.current = handleLoadMore
   }, [handleLoadMore])
-
-  const [searchFilter, setSearchFilter] = useState<LogFilter | null>(null)
-  const [searchResults, setSearchResults] = useState<CommitInfo[]>([])
-  const [searchBusy, setSearchBusy] = useState(false)
-  const [searchError, setSearchError] = useState<string | null>(null)
-  const searchRequestRef = useRef(0)
-
-  const runServerSearch = useCallback(
-    async (filter: LogFilter) => {
-      if (!repo.repo) return
-      const request = searchRequestRef.current + 1
-      searchRequestRef.current = request
-      setSearchBusy(true)
-      setSearchError(null)
-      try {
-        const results = await repo.searchHistory(filter, viewMode === "graph" ? "graph" : "log", 200)
-        if (searchRequestRef.current !== request) return
-        setSearchResults(results)
-      } catch (e) {
-        if (searchRequestRef.current !== request) return
-        setSearchError(String(e))
-        setSearchResults([])
-      } finally {
-        if (searchRequestRef.current === request) setSearchBusy(false)
-      }
-    },
-    [repo, viewMode],
-  )
-
-  const handleServerSearch = useCallback(
-    (filter: LogFilter) => {
-      setSearchFilter(filter)
-      setCommitPage(0)
-      void runServerSearch(filter)
-    },
-    [runServerSearch],
-  )
-
-  const clearServerSearch = useCallback(() => {
-    searchRequestRef.current += 1
-    setSearchFilter(null)
-    setSearchResults([])
-    setSearchError(null)
-    setSearchBusy(false)
-  }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: switching view, repo, scope or query must reset pagination
   useEffect(() => {
@@ -250,8 +190,8 @@ export function Graph(_props: Props) {
     }
     if (dismissedCommitHashRef.current === hashParam || selectedHash === hashParam) return
     const found =
-      logCommits.find((c) => c.hash === hashParam || c.short === hashParam) ??
-      graphCommits.find((c) => c.hash === hashParam || c.short === hashParam)
+      logCommits.find((commit) => commit.hash === hashParam || commit.short === hashParam) ??
+      graphCommits.find((commit) => commit.hash === hashParam || commit.short === hashParam)
     if (found) setSelectedCommit(found)
   }, [hashParam, logCommits, graphCommits, selectedHash])
   const branches = useMemo(
@@ -357,6 +297,7 @@ export function Graph(_props: Props) {
                     commits={commits}
                     currentBranchName={repo.status?.branch ?? ""}
                     showGraph={viewMode === "graph"}
+                    headHash={headHash}
                     selectedHash={selectedCommit?.hash}
                     query={query}
                     onSelect={handleSelectCommit}

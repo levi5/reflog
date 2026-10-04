@@ -32,7 +32,7 @@ export function useStashOps(deps: StashOpsDeps) {
     if (!repo) return Promise.resolve()
     const message = stashMsg || undefined
     return runAction(
-      () => gitApi.stash(repo, message).then((m) => m || "stashed"),
+      () => gitApi.stash(repo, message).then((output) => output || "stashed"),
       () => {
         setStashMsg("")
         void loadStashes()
@@ -47,7 +47,7 @@ export function useStashOps(deps: StashOpsDeps) {
   const stashPopIt = useCallback(
     () =>
       runAction(
-        () => gitApi.stashPop(repo).then((m) => m || "stash pop"),
+        () => gitApi.stashPop(repo).then((output) => output || "stash pop"),
         () => void loadStashes(),
         {
           loadingMessage: t(lang, "stashPopping"),

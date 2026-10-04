@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { IGitApi } from "../../../infrastructure/git/types"
 import { GRAPH_LIMIT, LOG_LIMIT, REFLOG_LIMIT } from "../../../shared/constants/limits"
-import type { BranchInfo, CommitInfo, ConflictFile, ReflogEntry, RemoteInfo, StatusResult } from "../../../types"
+import type {
+  BranchInfo,
+  CommitInfo,
+  ConflictFile,
+  ReflogEntry,
+  RemoteInfo,
+  StatusResult,
+  SubmoduleInfo,
+} from "../../../types"
 
 import { usePaginated } from "./usePaginated"
+import { sameBranches, sameConflicts, sameRemotes, sameStatus, sameStrings, sameSubmodules } from "./snapshot"
 
 interface RepositoryDataDeps {
   repo: string
@@ -11,6 +20,8 @@ interface RepositoryDataDeps {
   setBusy: (busy: boolean) => void
   setMsg: (message: string) => void
 }
+
+export type RefreshMode = "full" | "data" | "silent"
 
 export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryDataDeps) {
   const [status, setStatus] = useState<StatusResult | null>(null)
@@ -21,6 +32,7 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
   const [reflogLoaded, setReflogLoaded] = useState(false)
   const [tags, setTags] = useState<string[]>([])
   const [remotes, setRemotes] = useState<RemoteInfo[]>([])
+  const [submodules, setSubmodules] = useState<SubmoduleInfo[]>([])
   const [gitVersion, setGitVersion] = useState("")
   const [remoteUrl, setRemoteUrl] = useState("")
   const [gpg, setGpg] = useState("")
@@ -46,6 +58,8 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
   const refreshRequestRef = useRef(0)
   const reflogRequestRef = useRef(0)
   const reflogLoadingRef = useRef(false)
+  const countPendingRef = useRef(false)
+  const countRepoRef = useRef<string | null>(null)
   const staticCacheRef = useRef<{ repo: string; version: string; remoteUrl: string; gpg: string } | null>(null)
 
   const loadReflog = useCallback(async () => {
@@ -69,23 +83,26 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
   }, [repo, git, setMsg])
 
   const refresh = useCallback(
-    async (root: string) => {
+    async (root: string, mode: RefreshMode = "data") => {
       if (!root) return
+      const full = mode === "full"
+      const silent = mode === "silent"
       const request = refreshRequestRef.current + 1
       refreshRequestRef.current = request
-      setBusy(true)
-      reflogRequestRef.current += 1
-      reflogLoadingRef.current = false
-      setReflogLoading(false)
-      logPage.reset()
-      graphPage.reset()
-      setTotalCommits(null)
-      void git
-        .count(root)
-        .then((total) => {
-          if (request === refreshRequestRef.current) setTotalCommits(total)
-        })
-        .catch(() => {})
+      if (!silent) setBusy(true)
+      if (full) {
+        reflogRequestRef.current += 1
+        reflogLoadingRef.current = false
+        setReflogLoading(false)
+        logPage.reset()
+        graphPage.reset()
+      }
+      if (full && countRepoRef.current !== root) {
+        countRepoRef.current = null
+        setTotalCommits(null)
+      }
+      const needsCount = !countPendingRef.current && (full || countRepoRef.current === null)
+      if (needsCount) countPendingRef.current = true
       try {
         const cached = staticCacheRef.current
         const staticPromise =
@@ -96,38 +113,51 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
                 git.remoteUrl(root).catch(() => ""),
                 git.gpg(root).catch(() => ""),
               ])
-        const [status, branches, conflicts, tags, remotes, [version, remoteUrl, gpg]] = await Promise.all([
-          git.status(root),
-          git.branches(root),
-          git.conflicted(root),
-          git.tagList(root),
-          git.remoteList(root),
-          staticPromise,
-        ])
+        const [nextStatus, nextBranches, nextConflicts, nextTags, nextRemotes, nextModules, nextTotal, statics] =
+          await Promise.all([
+            git.status(root),
+            git.branches(root),
+            git.conflicted(root),
+            git.tagList(root),
+            git.remoteList(root),
+            git.submodules(root).catch(() => [] as SubmoduleInfo[]),
+            needsCount ? git.count(root).catch(() => null) : Promise.resolve(null),
+            staticPromise,
+          ])
         if (request !== refreshRequestRef.current) return
-        staticCacheRef.current = { repo: root, version, remoteUrl, gpg }
-        setStatus(status)
-        setBranches(branches)
-        setReflog([])
-        setReflogLoaded(false)
-        setConflicts(conflicts)
-        setGitVersion(version)
-        setRemoteUrl(remoteUrl)
-        setGpg(gpg)
-        setTags(tags)
-        setRemotes(remotes)
-        if (conflicts.length === 0) setMsg("")
+        const [version, url, signature] = statics
+        staticCacheRef.current = { repo: root, version, remoteUrl: url, gpg: signature }
+        if (full) {
+          setReflog([])
+          setReflogLoaded(false)
+        }
+        if (nextConflicts.length === 0) setMsg("")
+        if (needsCount) countPendingRef.current = false
+        if (nextTotal !== null) {
+          countRepoRef.current = root
+          setTotalCommits(nextTotal)
+        }
+        setStatus((prev) => (sameStatus(prev, nextStatus) ? prev : nextStatus))
+        setBranches((prev) => (sameBranches(prev, nextBranches) ? prev : nextBranches))
+        setConflicts((prev) => (sameConflicts(prev, nextConflicts) ? prev : nextConflicts))
+        setTags((prev) => (sameStrings(prev, nextTags) ? prev : nextTags))
+        setRemotes((prev) => (sameRemotes(prev, nextRemotes) ? prev : nextRemotes))
+        setSubmodules((prev) => (sameSubmodules(prev, nextModules) ? prev : nextModules))
+        setGitVersion((prev) => (prev === version ? prev : version))
+        setRemoteUrl((prev) => (prev === url ? prev : url))
+        setGpg((prev) => (prev === signature ? prev : signature))
       } catch (error) {
-        if (request === refreshRequestRef.current) setMsg(String(error))
+        countPendingRef.current = false
+        if (request === refreshRequestRef.current && !silent) setMsg(String(error))
       } finally {
-        if (request === refreshRequestRef.current) setBusy(false)
+        if (request === refreshRequestRef.current && !silent) setBusy(false)
       }
     },
     [git, logPage.reset, graphPage.reset, setBusy, setMsg],
   )
 
   useEffect(() => {
-    if (repo) void refresh(repo)
+    if (repo) void refresh(repo, "full")
   }, [repo, refresh])
 
   return {
@@ -142,6 +172,7 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
     loadReflog,
     tags,
     remotes,
+    submodules,
     gitVersion,
     remoteUrl,
     gpg,
