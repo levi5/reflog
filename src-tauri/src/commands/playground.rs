@@ -1,5 +1,7 @@
 use crate::runner::{GitRunner, NETWORK_TIMEOUT};
 
+const MAX_CONSOLE_OUTPUT_BYTES: usize = 4 * 1024 * 1024;
+
 const ALLOWED: &[&str] = &[
     "log",
     "status",
@@ -69,39 +71,45 @@ const FOREACH_VERBS: &[&str] = &[
 
 const FOREACH_FLAGS: &[&str] = &["--quiet", "--recursive"];
 
+const PATCH_MODE_VERBS: &[&str] = &[
+    "add", "checkout", "switch", "reset", "restore", "stash", "grep",
+];
+
+const PATCH_MODE_FLAGS: &[&str] = &["-p", "--patch"];
+
 const NO_HANG_ENV: [(&str, &str); 3] = [
     ("GIT_EDITOR", "true"),
     ("GIT_PAGER", "cat"),
     ("GIT_TERMINAL_PROMPT", "0"),
 ];
 
-fn split_shell_words(s: &str) -> Option<Vec<String>> {
+fn split_shell_words(input: &str) -> Option<Vec<String>> {
     let mut out = vec![];
     let mut cur = String::new();
     let mut quote: Option<char> = None;
     let mut pushed = false;
-    for ch in s.chars() {
-        if let Some(q) = quote {
-            if ch == q {
+    for char in input.chars() {
+        if let Some(quote_char) = quote {
+            if char == quote_char {
                 quote = None;
             } else {
-                cur.push(ch);
+                cur.push(char);
             }
             continue;
         }
-        if ch == '"' || ch == '\'' {
-            quote = Some(ch);
+        if char == '"' || char == '\'' {
+            quote = Some(char);
             pushed = true;
             continue;
         }
-        if ch.is_whitespace() {
+        if char.is_whitespace() {
             if !cur.is_empty() || pushed {
                 out.push(std::mem::take(&mut cur));
                 pushed = false;
             }
             continue;
         }
-        cur.push(ch);
+        cur.push(char);
     }
     if quote.is_some() {
         return None;
@@ -121,7 +129,7 @@ fn safe_token(token: &str) -> bool {
         || DENIED_EXACT.contains(&token)
         || DENIED_PREFIXES
             .iter()
-            .any(|p| token == *p || token.starts_with(&format!("{p}=")))
+            .any(|prefix| token == *prefix || token.starts_with(&format!("{prefix}=")))
     {
         return false;
     }
@@ -130,7 +138,7 @@ fn safe_token(token: &str) -> bool {
     !stripped.is_empty()
         && stripped
             .chars()
-            .all(|c| c.is_ascii_alphanumeric() || "-_./@:".contains(c))
+            .all(|char| char.is_ascii_alphanumeric() || "-_./@:".contains(char))
 }
 
 fn validate_submodule_foreach(args: &[String]) -> Result<(), String> {
@@ -201,39 +209,47 @@ pub fn run_git(runner: &dyn GitRunner, repo_path: &str, args: &[String]) -> Resu
     if !ALLOWED.contains(&args[0].as_str()) {
         return Err(format!("comando não permitido: {}", args[0]));
     }
-    for a in args {
-        if a.contains('\n')
-            || a.contains('\0')
-            || a.contains(';')
-            || a.contains('|')
-            || a.contains('&')
-            || a.contains('`')
-            || a.contains('$')
-            || (a != CONSOLE_SAFE_FORCE
-                && (DENIED.contains(&a.as_str())
-                    || DENIED_EXACT.contains(&a.as_str())
+    for arg in args {
+        if arg.contains('\n')
+            || arg.contains('\0')
+            || arg.contains(';')
+            || arg.contains('|')
+            || arg.contains('&')
+            || arg.contains('`')
+            || arg.contains('$')
+            || (arg != CONSOLE_SAFE_FORCE
+                && (DENIED.contains(&arg.as_str())
+                    || DENIED_EXACT.contains(&arg.as_str())
                     || DENIED_PREFIXES
                         .iter()
-                        .any(|p| a == *p || a.starts_with(&format!("{p}=")))))
+                        .any(|prefix| arg == *prefix || arg.starts_with(&format!("{prefix}=")))))
         {
-            return Err(format!("argumento não permitido: {a}"));
+            return Err(format!("argumento não permitido: {arg}"));
         }
     }
     if args[0] == "commit"
         && !args
             .iter()
-            .any(|a| a == "-m" || a == "--allow-empty-message")
+            .any(|arg| arg == "-m" || arg == "--allow-empty-message")
     {
         return Err("commit precisa de -m \"mensagem\"".to_string());
     }
     if args[0] == "tag"
-        && args.iter().any(|a| a == "-a" || a == "-s")
-        && !args.iter().any(|a| a == "-m")
+        && args.iter().any(|arg| arg == "-a" || arg == "-s")
+        && !args.iter().any(|arg| arg == "-m")
     {
         return Err("tag anotada precisa de -m \"mensagem\"".to_string());
     }
     if args[0] == "submodule" {
         validate_submodule(args)?;
+    }
+    if PATCH_MODE_VERBS.contains(&args[0].as_str())
+        && args.iter().any(|a| PATCH_MODE_FLAGS.contains(&a.as_str()))
+    {
+        return Err(format!(
+            "{} não aceita modo interativo (-p) no console: use a visão Staging",
+            args[0]
+        ));
     }
     if args[0] == "branch" && args.iter().any(|a| a == "-D" || a == "--delete") {
         let has_branch_name = args.iter().skip(1).any(|a| !a.starts_with("-"));
@@ -250,9 +266,15 @@ pub fn run_git(runner: &dyn GitRunner, repo_path: &str, args: &[String]) -> Resu
             .iter()
             .any(|a| a == "pull" || a == "fetch" || a == "push");
     if is_submodule_foreach_network {
-        runner.run_env_with_timeout(Some(&root), &refs, &NO_HANG_ENV, NETWORK_TIMEOUT)
+        runner.run_env_limited_with_timeout(
+            Some(&root),
+            &refs,
+            &NO_HANG_ENV,
+            NETWORK_TIMEOUT,
+            MAX_CONSOLE_OUTPUT_BYTES,
+        )
     } else {
-        runner.run_env(Some(&root), &refs, &NO_HANG_ENV)
+        runner.run_env_limited(Some(&root), &refs, &NO_HANG_ENV, MAX_CONSOLE_OUTPUT_BYTES)
     }
 }
 
@@ -268,6 +290,9 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 ("log --oneline -5", "abc x"),
+                ("log -p", "patch"),
+                ("show --patch", "patch"),
+                ("diff -p", "patch"),
                 ("reset --soft HEAD~1", ""),
                 ("add -A", ""),
                 ("push --force-with-lease", "ok"),
@@ -341,6 +366,25 @@ mod tests {
         )
         .is_err());
         assert!(run_git(&r, "/r", &args(&["submodule", "status"])).is_ok());
+    }
+
+    #[test]
+    fn blocks_interactive_patch_mode_with_a_clear_error() {
+        let r = runner();
+        for verb in ["add", "checkout", "reset", "stash"] {
+            let err = run_git(&r, "/r", &args(&[verb, "-p"]))
+                .expect_err("interactive patch mode must be refused");
+            assert!(err.contains("Staging"), "unexpected error: {err}");
+            assert!(run_git(&r, "/r", &args(&[verb, "--patch"])).is_err());
+        }
+    }
+
+    #[test]
+    fn keeps_patch_output_flags_for_read_only_verbs() {
+        let r = runner();
+        assert!(run_git(&r, "/r", &args(&["log", "-p"])).is_ok());
+        assert!(run_git(&r, "/r", &args(&["show", "--patch"])).is_ok());
+        assert!(run_git(&r, "/r", &args(&["diff", "-p"])).is_ok());
     }
 
     #[test]
