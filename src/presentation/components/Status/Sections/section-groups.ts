@@ -10,6 +10,10 @@ export interface SectionedFiles {
 
 const hasWorktreeChange = (file: FileStatus): boolean => file.y !== " "
 
+export function isUntrackedFile(file: FileStatus): boolean {
+  return file.y === "?"
+}
+
 export function groupBySection(files: FileStatus[]): SectionedFiles {
   const sections: SectionedFiles = { conflicts: [], staged: [], changes: [] }
   for (const file of files) {

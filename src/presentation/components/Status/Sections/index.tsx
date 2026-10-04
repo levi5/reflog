@@ -7,7 +7,7 @@ import { useTranslation } from "../../../context"
 import { useCollapsedSections } from "../../../hooks"
 import { EmptyState } from "../../Empty/State"
 import { FileStatusRow, type FileCheckSelection } from "../File"
-import { groupBySection, type SectionId } from "./section-groups"
+import { groupBySection, isUntrackedFile, type SectionId } from "./section-groups"
 import styles from "./style.module.scss"
 
 interface StatusSectionsProps {
@@ -17,11 +17,11 @@ interface StatusSectionsProps {
   onSelect: (filePath: string, staged: boolean) => void
   onStage: (filePath: string) => void
   onUnstage: (filePath: string) => void
-  onDiscard: (filePath: string) => void
+  onDiscard: (file: FileStatus) => void
   onEdit: (filePath: string) => void
   onStageMany: (paths: string[]) => void
   onUnstageMany: (paths: string[]) => void
-  onDiscardMany: (paths: string[]) => void
+  onDiscardMany: (files: FileStatus[]) => void
   busy?: boolean
 }
 
@@ -150,11 +150,11 @@ export function StatusSections({
                 onClick={() => onStageMany(toPaths(groups.changes))}
               />
               <IconAction
-                title={t("discardAllChanges")}
+                title={groups.changes.some(isUntrackedFile) ? t("delete") : t("discardAllChanges")}
                 icon={<Trash2 size={13} />}
                 danger
                 disabled={busy}
-                onClick={() => onDiscardMany(toPaths(groups.changes))}
+                onClick={() => onDiscardMany(groups.changes)}
               />
             </>
           ),
@@ -189,11 +189,11 @@ export function StatusSections({
         />
         {!file.unmerged && (
           <IconAction
-            title={t("discard")}
+            title={isUntrackedFile(file) ? t("delete") : t("discard")}
             icon={<Trash2 size={13} />}
             danger
             disabled={busy}
-            onClick={() => onDiscard(file.path)}
+            onClick={() => onDiscard(file)}
           />
         )}
         <IconAction

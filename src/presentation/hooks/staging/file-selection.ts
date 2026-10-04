@@ -5,9 +5,10 @@ export function toggleChecked(current: ReadonlySet<string>, path: string): Set<s
 }
 
 export function rangeBetween(ordered: readonly string[], from: string, to: string): string[] {
-  const a = ordered.indexOf(from)
-  const b = ordered.indexOf(to)
-  return a === -1 || b === -1 ? [] : ordered.slice(Math.min(a, b), Math.max(a, b) + 1)
+  const fromIndex = ordered.indexOf(from)
+  const toIndex = ordered.indexOf(to)
+  if (fromIndex === -1 || toIndex === -1) return []
+  return ordered.slice(Math.min(fromIndex, toIndex), Math.max(fromIndex, toIndex) + 1)
 }
 
 export function applyRange(current: ReadonlySet<string>, paths: readonly string[], select: boolean): Set<string> {

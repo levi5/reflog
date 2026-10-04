@@ -95,6 +95,10 @@ export function Staging(_props: Props) {
     () => [...conflictsSelection.checked, ...stagedSelection.checked, ...changesSelection.checked],
     [conflictsSelection.checked, stagedSelection.checked, changesSelection.checked],
   )
+  const checkedFiles = useMemo(() => {
+    const wanted = new Set(checkedPaths)
+    return files.filter((file) => wanted.has(file.path))
+  }, [files, checkedPaths])
 
   const clearSelection = useCallback(() => {
     conflictsSelection.clear()
@@ -110,6 +114,12 @@ export function Staging(_props: Props) {
     },
     [checkedPaths, clearSelection],
   )
+
+  const discardSelection = useCallback(() => {
+    if (checkedFiles.length === 0) return
+    clearSelection()
+    void repo.discardFiles(checkedFiles)
+  }, [checkedFiles, clearSelection, repo.discardFiles])
 
   const handleSelectDiff = useCallback(
     (filePath: string, staged: boolean) => repo.selectDiff(filePath, staged),
@@ -213,7 +223,7 @@ export function Staging(_props: Props) {
                 count={checkedPaths.length}
                 onStage={() => runBatch(repo.stageFiles)}
                 onUnstage={() => runBatch(repo.unstageFiles)}
-                onDiscard={() => runBatch(repo.discardFiles)}
+                onDiscard={discardSelection}
                 onClear={clearSelection}
                 busy={repo.busy}
               />
