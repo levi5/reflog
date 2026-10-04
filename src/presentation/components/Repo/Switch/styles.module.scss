@@ -36,7 +36,7 @@
   background: var(--bg-deep);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   word-break: break-all;
 }
 
@@ -68,7 +68,7 @@
   margin: 0 0 8px;
   padding: 0 2px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -80,16 +80,16 @@
   margin-left: auto;
   padding: 0 6px;
   border-radius: 8px;
-  background: var(--bg-panel2);
+  background: var(--surface);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 
 .groupHint {
   margin: 6px 2px 0;
   color: var(--faint);
-  font-size: 11px;
+  font-size: var(--font-sm);
   line-height: 1.5;
 }
 
@@ -171,7 +171,7 @@
   background: var(--bg-deep);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 
 .targetHint {
@@ -180,7 +180,7 @@
   white-space: nowrap;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .targetChevron {

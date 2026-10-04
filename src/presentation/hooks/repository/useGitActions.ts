@@ -1,6 +1,6 @@
 import { _Either } from "funcio"
 import { useCallback } from "react"
-import { t } from "../../../i18n"
+import { formatMessage, t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
 import type { RebaseOp } from "../../../types"
 import type { RepositoryActionDeps } from "./action-types"
@@ -69,7 +69,10 @@ export function useGitActions(deps: RepositoryActionDeps) {
     async (target: string, mode: "soft" | "mixed" | "hard" = "mixed") => {
       if (!repo || !target) return Promise.resolve()
       if (mode === "hard") {
-        const confirmed = await requestConfirm(t(lang, "resetToCommit"), t(lang, "resetConfirm"))
+        const confirmed = await requestConfirm(
+          t(lang, "resetToCommit"),
+          formatMessage(lang, "resetHardConfirm", { target: target.slice(0, 7) }),
+        )
         if (!confirmed) return Promise.resolve()
       }
       const resolved = await _Either.try.async(() => git.run(repo, ["rev-parse", "HEAD"]))
@@ -82,16 +85,13 @@ export function useGitActions(deps: RepositoryActionDeps) {
         loadingMessage: t(lang, "actionProcessing"),
         successMessage: t(lang, "actionSuccess"),
         successDuration: prevHead ? 8000 : undefined,
-        successAction: prevHead
-          ? {
-              label: t(lang, "undo"),
-              onAction: () => {
-                void runAction(() => git.reset(repo, prevHead, mode), undefined, {
-                  loadingMessage: t(lang, "actionProcessing"),
-                  successMessage: t(lang, "actionSuccess"),
-                })
-              },
-            }
+        undoLabel: formatMessage(lang, "undoReset", { target }),
+        undo: prevHead
+          ? () =>
+              runAction(() => git.reset(repo, prevHead, mode), undefined, {
+                loadingMessage: t(lang, "actionProcessing"),
+                successMessage: t(lang, "actionSuccess"),
+              })
           : undefined,
       })
     },

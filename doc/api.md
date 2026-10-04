@@ -14,7 +14,7 @@ const status = await invoke<StatusResult>('git_status', { repoPath: '/path/to/re
 > (see the `IGitApi` interface in `src/infrastructure/git/types.ts`).
 > Most commands run on a background thread via `run_blocking`
 > (`spawn_blocking`); the exceptions are `get_file_content`,
-> `save_file_content`, `get_conflicted_files`, `parse_conflicts`,
+> `save_file_content`, `get_conflicted_files`, `git_config_*` (reads),
 > `git_template_*` and `take_cli_path`, which execute synchronously.
 
 ---
@@ -219,15 +219,6 @@ invoke<string>('git_diff', { repoPath: string, file: string, staged: boolean })
 
 ---
 
-### `git_show`
-
-`--stat` summary of a commit.
-
-```ts
-invoke<string>('git_show', { repoPath: string, rev: string })
-```
-
----
 
 ### `git_blame`
 
@@ -293,10 +284,16 @@ invoke<string>('git_amend_commit', {
 
 ### `git_checkout`
 
-Checkout a branch. Set `create` to create it (`checkout -b`).
+Checkout a branch. Set `create` to create it (`checkout -b`), optionally starting
+from an arbitrary ref: `from: 'main'`, `'v1.0'`, a commit hash, and so on.
 
 ```ts
-invoke<string>('git_checkout', { repoPath: string, branch: string, create: boolean })
+invoke<string>('git_checkout', {
+  repoPath: string,
+  branch: string,
+  create: boolean,
+  from: string | null
+})
 ```
 
 ---
@@ -425,6 +422,60 @@ invoke<string>('git_push', { repoPath: string })
 
 ---
 
+### `git_push_with`
+
+Push with explicit intent. `force` uses `--force-with-lease` (never bare
+`--force`), so a remote that moved unexpectedly is rejected instead of being
+overwritten. Deleting a remote branch goes through the remote it lives on
+(`origin/feat` -> `push origin --delete feat`).
+
+```ts
+interface PushOptions {
+  force?: boolean
+  pushTags?: boolean
+  deleteRemoteBranch?: string
+}
+
+invoke<string>('git_push_with', {
+  repoPath: string,
+  force: boolean,
+  pushTags: boolean,
+  deleteRemoteBranch: string | null
+})
+```
+
+---
+
+### `git_set_upstream` / `git_unset_upstream`
+
+Publishes a branch on a remote, or detaches it from its tracking ref.
+
+```ts
+invoke<string>('git_set_upstream', {
+  repoPath: string,
+  remote: string,
+  branch: string
+})
+invoke<string>('git_unset_upstream', { repoPath: string, branch: string })
+```
+
+---
+
+### `git_fetch_ref`
+
+Fetches a single remote, optionally pruning and/or pulling tags.
+
+```ts
+invoke<string>('git_fetch_ref', {
+  repoPath: string,
+  remote: string,
+  prune: boolean,
+  tags: boolean
+})
+```
+
+---
+
 ### `git_pull`
 
 Pull from the upstream. If no upstream is configured,
@@ -522,6 +573,125 @@ Applies a stash entry without removing it.
 
 ```ts
 invoke<string>('git_stash_apply', { repoPath: string, index: number })
+```
+
+---
+
+## Compare - Branches
+
+Every compare command resolves the merge base first, so the output reflects what
+actually diverged rather than a plain two-dot range.
+
+### `git_merge_base`
+
+```ts
+invoke<string>('git_merge_base', { repoPath: string, base: string, target: string })
+```
+
+---
+
+### `git_diff_refs`
+
+Unified diff between two refs. `statOnly` returns `--stat` instead.
+
+```ts
+invoke<string>('git_diff_refs', {
+  repoPath: string,
+  base: string,
+  target: string,
+  statOnly: boolean
+})
+```
+
+---
+
+### `git_diff_stat_files`
+
+Per-file added/removed line counts. Binary files report `0/0`.
+
+```ts
+type CompareFileStat = { path: string; added: number; removed: number }
+
+invoke<CompareFileStat[]>('git_diff_stat_files', {
+  repoPath: string,
+  base: string,
+  target: string
+})
+```
+
+---
+
+### `git_commits_ahead` / `git_commits_behind`
+
+Commits reachable from `target` (resp. `base`) but not from the merge base.
+
+```ts
+invoke<CommitInfo[]>('git_commits_ahead', {
+  repoPath: string,
+  base: string,
+  target: string,
+  limit?: number
+})
+```
+
+---
+
+### `git_compare_graph`
+
+Decorated, topologically ordered commits between two refs, with the graph gutter
+stripped so the UI can lay it out.
+
+```ts
+invoke<CommitInfo[]>('git_compare_graph', {
+  repoPath: string,
+  base: string,
+  target: string,
+  limit?: number
+})
+```
+
+---
+
+## Search - History
+
+Filters are pushed straight into `git log`, so results cover the whole history
+instead of only the commits the UI already paged in. Paths always go after a
+`--` separator and are validated as repo-relative; `--follow` requires a path.
+
+### `git_search_log` / `git_search_graph`
+
+```ts
+interface LogFilter {
+  author?: string
+  grep?: string
+  path?: string
+  since?: string
+  until?: string
+  pickaxe?: string
+  follow?: boolean
+}
+
+invoke<CommitInfo[]>('git_search_log', {
+  repoPath: string,
+  filter: LogFilter,
+  limit?: number,
+  skip?: number
+})
+```
+
+---
+
+### `git_file_history`
+
+Commit history for one file, following renames by default.
+
+```ts
+invoke<CommitInfo[]>('git_file_history', {
+  repoPath: string,
+  file: string,
+  limit?: number,
+  follow: boolean
+})
 ```
 
 ---
@@ -640,6 +810,23 @@ Set `global` to read from `~/.gitconfig` instead of the repo.
 
 ```ts
 invoke<string>('git_config_get', { repoPath: string, key: string, global: boolean })
+```
+
+---
+
+### `git_config_snapshot`
+
+Reads every key in `ALLOWED_CONFIG_KEYS` with its effective value. No other
+setting is reachable, so credentials helpers and `core.sshCommand` cannot leak.
+
+```ts
+interface ConfigEntry {
+  key: string
+  value: string
+  allowed: boolean
+}
+
+invoke<ConfigEntry[]>('git_config_snapshot', { repoPath: string, global: boolean })
 ```
 
 ---
@@ -776,15 +963,6 @@ invoke<ConflictFile[]>('get_conflicted_files', { repoPath: string })
 
 ---
 
-### `parse_conflicts`
-
-Parses conflict markers in a text (pure function, no repo needed).
-
-```ts
-invoke<ConflictBlock[]>('parse_conflicts', { content: string })
-```
-
----
 
 ## Templates
 

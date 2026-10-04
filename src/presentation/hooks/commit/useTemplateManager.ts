@@ -1,7 +1,7 @@
+import { commitMarkdownUseCase, commitTemplateUseCase } from "../../../data"
 import { useCallback, useMemo, useRef, useState } from "react"
 import type { TemplateDoc } from "../../../domain/entities/commit/commit-markdown"
 import { BUILTIN_DOCS, STANDARD_ID } from "../../../shared/constants/commit/commitMarkdown"
-import { buildVars, formatCommit, renderTemplate } from "../../../main/adapters"
 import type { CommitFields, CommitPreset } from "../../../domain/entities/commit/commit-template"
 import { t } from "../../../i18n"
 import { DEFAULT_TEMPLATE_FOLDER, gitApi } from "../../../infrastructure/git"
@@ -250,15 +250,15 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
     }
 
     if (!draft.pattern) {
-      return formatCommit(sampleFields)
+      return commitTemplateUseCase.formatCommit(sampleFields)
     }
 
-    const vars = buildVars(sampleFields, {
+    const vars = commitMarkdownUseCase.buildVars(sampleFields, {
       branch: "feat/PROJ-1234-templates",
       author: identity.name || "Reflog User",
       email: identity.email || "user@example.com",
     })
-    return renderTemplate(draft.pattern, vars)
+    return commitMarkdownUseCase.renderTemplate(draft.pattern, vars)
   }, [draft, identity])
 
   return {

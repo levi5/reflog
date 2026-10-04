@@ -119,7 +119,13 @@ function StepEditor({ stepIndex, automationStep, onTransformStep, onRemoveStep }
     <div className={styles.step}>
       <div className={styles.stepHead}>
         <strong>#{stepIndex + 1}</strong>
-        <button type="button" className="mini-btn" title={t("deleteRecipe")} onClick={onRemoveStep}>
+        <button
+          type="button"
+          className="mini-btn"
+          title={t("removeStep")}
+          aria-label={t("removeStep")}
+          onClick={onRemoveStep}
+        >
           <Trash2 size={12} />
         </button>
       </div>

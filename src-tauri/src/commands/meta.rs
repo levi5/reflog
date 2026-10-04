@@ -1,12 +1,14 @@
-use crate::runner::{GitRunner, NETWORK_TIMEOUT};
 use crate::commands::validation::{
-    validate_clone_url, validate_clone_path, validate_config_key, validate_config_value,
+    validate_clone_path, validate_clone_url, validate_config_key, validate_config_value,
+    ALLOWED_CONFIG_KEYS,
 };
-use crate::AppState;
-use tauri::State;
+use crate::domain::ConfigEntry;
+use crate::runner::{GitRunner, NETWORK_TIMEOUT};
 
 pub fn version(runner: &dyn GitRunner) -> Result<String, String> {
-    runner.run(None, &["--version"]).map(|s| s.trim().to_string())
+    runner
+        .run(None, &["--version"])
+        .map(|s| s.trim().to_string())
 }
 
 pub fn remote_url(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
@@ -28,17 +30,14 @@ pub fn gpg(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
 pub fn clone(runner: &dyn GitRunner, url: &str, path: &str) -> Result<String, String> {
     validate_clone_url(url)?;
     validate_clone_path(path)?;
-    runner.run_with_timeout(None, &["clone", "--progress", "--", url, path], NETWORK_TIMEOUT)
+    runner.run_with_timeout(
+        None,
+        &["clone", "--progress", "--", url, path],
+        NETWORK_TIMEOUT,
+    )
 }
 
-
-
-fn get_key(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    key: &str,
-    global: bool,
-) -> String {
+fn get_key(runner: &dyn GitRunner, repo_path: &str, key: &str, global: bool) -> String {
     let scoped = if global || repo_path.trim().is_empty() {
         runner.run(None, &["config", "--global", "--get", "--", key])
     } else {
@@ -80,6 +79,23 @@ pub fn config_set(
     runner.run(Some(&root), &["config", "--", key, value])
 }
 
+pub fn config_snapshot(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    global: bool,
+) -> Result<Vec<ConfigEntry>, String> {
+    let mut entries = vec![];
+    for key in ALLOWED_CONFIG_KEYS {
+        let value = get_key(runner, repo_path, key, global);
+        entries.push(ConfigEntry {
+            key: (*key).to_string(),
+            value,
+            allowed: true,
+        });
+    }
+    Ok(entries)
+}
+
 fn unset_key(
     runner: &dyn GitRunner,
     repo_path: &str,
@@ -112,71 +128,21 @@ pub fn identity_of(
     Ok(crate::domain::Identity { name, email })
 }
 
-#[tauri::command]
-pub async fn git_version(state: State<'_, AppState>) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || version(runner.as_ref())).await
-}
+git_command!(git_version, String, version, (), ());
 
-#[tauri::command]
-pub async fn git_remote_url(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || remote_url(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_remote_url, String, remote_url, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_gpg(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || gpg(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_gpg, String, gpg, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_clone(
-    state: State<'_, AppState>,
-    url: String,
-    path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || clone(runner.as_ref(), &url, &path)).await
-}
+git_command!(git_clone, String, clone, (url: String, path: String), ());
 
-#[tauri::command]
-pub async fn git_config_get(
-    state: State<'_, AppState>,
-    repo_path: String,
-    key: String,
-    global: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || config_get(runner.as_ref(), &repo_path, &key, global)).await
-}
+git_command!(git_config_get, String, config_get, (repo_path: String, key: String), (global: bool));
 
-#[tauri::command]
-pub async fn git_config_set(
-    state: State<'_, AppState>,
-    repo_path: String,
-    key: String,
-    value: String,
-    global: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || config_set(runner.as_ref(), &repo_path, &key, &value, global)).await
-}
+git_command!(git_config_snapshot, Vec<ConfigEntry>, config_snapshot, (repo_path: String), (global: bool));
 
-#[tauri::command]
-pub async fn git_identity(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<crate::domain::Identity, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || identity_of(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_config_set, String, config_set, (repo_path: String, key: String, value: String), (global: bool));
+
+git_command!(git_identity, crate::domain::Identity, identity_of, (repo_path: String), ());
 
 #[cfg(test)]
 mod tests {
@@ -188,5 +154,30 @@ mod tests {
         let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
 
         assert_eq!(remote_url(&runner, "/r").unwrap(), "");
+    }
+
+    #[test]
+    fn snapshot_only_reports_allowlisted_keys() {
+        let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
+        let entries = config_snapshot(&runner, "/r", false).unwrap();
+        assert_eq!(entries.len(), ALLOWED_CONFIG_KEYS.len());
+        for entry in &entries {
+            assert!(ALLOWED_CONFIG_KEYS.contains(&entry.key.as_str()));
+            assert!(entry.allowed);
+        }
+    }
+
+    #[test]
+    fn rejects_setting_a_key_outside_the_allowlist() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("config -- user.name Dev", ""),
+            ],
+            &[],
+        );
+        assert!(config_set(&runner, "/r", "core.sshCommand", "sh -c evil", false).is_err());
+        assert!(config_set(&runner, "/r", "credential.helper", "store", false).is_err());
+        assert!(config_set(&runner, "/r", "user.name", "Dev", false).is_ok());
     }
 }

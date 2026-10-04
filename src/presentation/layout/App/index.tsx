@@ -15,7 +15,7 @@ import { Windows } from "../../components/Window"
 
 import { SearchProvider, useMessage, useRepo, useSettingsContext } from "../../context"
 import { t } from "../../../i18n"
-import { useAltShortcut, useProfiles } from "../../hooks"
+import { useAltShortcut, useAutoRefresh, useGlobalShortcuts, useProfiles } from "../../hooks"
 import { VIEW_LABELS, VIEW_TABS } from "../../../shared/constants"
 import type { TabItem } from "../../../types/components"
 import type { View } from "../../hooks"
@@ -33,6 +33,7 @@ export function AppLayout() {
   const [showRebase, setShowRebase] = useState(false)
   const [cloneUrl, setCloneUrl] = useState("")
   const [cloneDir, setCloneDir] = useState("")
+  const [quickOpen, setQuickOpen] = useState(false)
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -115,9 +116,42 @@ export function AppLayout() {
 
   useAltShortcut("p", profiles.cycle)
 
+  useAutoRefresh({
+    repoRoot: repo.repo,
+    busy: repo.busy,
+    opening: repo.opening,
+    refresh: repo.refresh,
+  })
+
+  const focusSearch = useCallback(() => {
+    const input = document.querySelector<HTMLInputElement>('input[type="search"]')
+    if (input) {
+      input.focus()
+      input.select()
+      return
+    }
+    navigate("/staging")
+  }, [navigate])
+
+  const shortcutHandlers = useMemo(
+    () => ({
+      onUndo: () => void repo.undoLast(),
+      onRedo: () => void repo.redoLast(),
+      onFind: focusSearch,
+      onQuickOpen: () => setQuickOpen(true),
+      onRefresh: () => void repo.refresh(repo.repo),
+    }),
+    [repo.undoLast, repo.redoLast, repo.refresh, repo.repo, focusSearch],
+  )
+
+  useGlobalShortcuts(shortcutHandlers)
+
   return (
     <SearchProvider>
       <Windows.Frame>
+        <a className={styles.skipLink} href="#main-content">
+          {t(lang, "skipToContent")}
+        </a>
         <Bar.App />
         {showRepoBar && (
           <Bar.Repo
@@ -204,7 +238,7 @@ export function AppLayout() {
           </div>
         )}
 
-        <main className={styles.mainContent}>
+        <main id="main-content" className={styles.mainContent} tabIndex={-1}>
           <Outlet context={outletContext} />
         </main>
         {repo.repo && !repo.opening && !isWelcome && (
@@ -231,14 +265,15 @@ export function AppLayout() {
             title={pendingConfirm.title}
             onCancel={() => pendingConfirm.resolve(false)}
             onConfirm={() => pendingConfirm.resolve(true)}
-            confirmLabel="Confirmar"
-            cancelLabel="Cancelar"
+            confirmLabel={t(lang, "confirm")}
+            cancelLabel={t(lang, "cancel")}
           >
             {pendingConfirm.message}
           </Dialog.Confirm>
         )}
       </Windows.Frame>
       <Command.Palette />
+      <Command.QuickOpen open={quickOpen} onClose={() => setQuickOpen(false)} />
       <Toast.Container />
       {repo.lastError && (
         <FatalError

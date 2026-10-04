@@ -78,9 +78,9 @@
   color: var(--accent);
 }
 .toggleBtn.active {
-  background: var(--grape);
-  border-color: var(--grape);
-  color: #fff;
+  background: var(--grape-btn);
+  border-color: var(--grape-btn);
+  color: var(--on-accent);
 }
 .toggleBtn svg {
   flex-shrink: 0;
@@ -105,7 +105,7 @@
 }
 .amendPreview {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: var(--muted);
   background: var(--bg-deep);
@@ -125,34 +125,17 @@
   margin-top: 8px;
 }
 
-.loadMoreBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border: 1px solid var(--border-soft);
-  border-radius: 6px;
-  background: var(--bg-panel);
-  color: var(--fg);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 0.12s ease;
-}
-.loadMoreBtn:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--accent);
-}
-.loadMoreBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.loadMoreBtn.loading {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--bg-win);
-}
 
 .spinner {
   animation: spin 1s linear infinite;
+}
+
+.searchError {
+  margin: 0.4rem 0.7rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--red);
+  border-radius: 0.5rem;
+  background: var(--red-dim);
+  color: var(--red);
+  font-size: var(--font-sm);
 }

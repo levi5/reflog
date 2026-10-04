@@ -1,0 +1,134 @@
+.virtualList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--fg);
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.listBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 2px 4px;
+  list-style: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+
+.listItem:hover {
+  background: var(--bg-raised);
+}
+
+.listItem.selected {
+  background: var(--bg-highest);
+  border-color: var(--faint);
+}
+
+.listItem:focus-visible {
+  outline: 2px solid var(--grape);
+  outline-offset: 2px;
+}
+
+.itemContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.listItem:hover .itemActions,
+.itemActions:focus-within {
+  opacity: 1;
+}
+
+.actionBtn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.actionBtn:hover:not(:disabled) {
+  background: var(--bg-raised);
+}
+
+.actionBtn:focus-visible {
+  outline: 2px solid var(--grape);
+  outline-offset: 2px;
+}
+
+.actionBtn.danger:hover:not(:disabled) {
+  color: var(--red);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 560px) {
+  .listHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

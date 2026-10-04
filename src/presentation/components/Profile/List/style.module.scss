@@ -54,7 +54,7 @@
 }
 
 .activeBadge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--green);
   background: var(--bg-deep);
   padding: 1px 6px;
@@ -96,7 +96,7 @@
 }
 
 .actionBtn.danger:hover:not(:disabled) {
-  color: #ff7a7a;
+  color: var(--red);
 }
 
 .actionBtn:focus-visible {

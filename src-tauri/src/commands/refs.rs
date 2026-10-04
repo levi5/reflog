@@ -1,8 +1,6 @@
+use crate::commands::validation::{validate_clone_url, validate_ref_name, validate_remote_name};
 use crate::domain::RemoteInfo;
 use crate::runner::GitRunner;
-use crate::commands::validation::{validate_ref_name, validate_remote_name, validate_clone_url};
-use crate::AppState;
-use tauri::State;
 
 pub fn branch_delete(
     runner: &dyn GitRunner,
@@ -33,10 +31,7 @@ pub fn branch_rename(
     runner.run(Some(&root), &["branch", "-m", "--", old, new])
 }
 
-pub fn tag_list(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-) -> Result<Vec<String>, String> {
+pub fn tag_list(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<String>, String> {
     let root = runner.repo_root(repo_path)?;
     let out = runner.run(Some(&root), &["tag", "--list", "--sort=-creatordate"])?;
     Ok(out
@@ -55,27 +50,18 @@ pub fn tag_create(
     validate_ref_name(name)?;
     let root = runner.repo_root(repo_path)?;
     match message {
-        Some(m) if !m.trim().is_empty() => {
-            runner.run(Some(&root), &["tag", "-a", name, "-m", &m])
-        }
+        Some(m) if !m.trim().is_empty() => runner.run(Some(&root), &["tag", "-a", name, "-m", &m]),
         _ => runner.run(Some(&root), &["tag", "--", name]),
     }
 }
 
-pub fn tag_delete(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    name: &str,
-) -> Result<String, String> {
+pub fn tag_delete(runner: &dyn GitRunner, repo_path: &str, name: &str) -> Result<String, String> {
     validate_ref_name(name)?;
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["tag", "-d", "--", name])
 }
 
-pub fn remote_list(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-) -> Result<Vec<RemoteInfo>, String> {
+pub fn remote_list(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<RemoteInfo>, String> {
     let root = runner.repo_root(repo_path)?;
     let out = runner.run(Some(&root), &["remote", "-v"])?;
     let mut seen = std::collections::HashSet::new();
@@ -120,93 +106,28 @@ pub fn remote_remove(
     runner.run(Some(&root), &["remote", "remove", "--", name])
 }
 
-#[tauri::command]
-pub async fn git_branch_delete(
-    state: State<'_, AppState>,
-    repo_path: String,
-    name: String,
-    force: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || branch_delete(runner.as_ref(), &repo_path, &name, force)).await
-}
+git_command!(git_branch_delete, String, branch_delete, (repo_path: String, name: String), (force: bool));
 
-#[tauri::command]
-pub async fn git_branch_rename(
-    state: State<'_, AppState>,
-    repo_path: String,
-    old: String,
-    new: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || branch_rename(runner.as_ref(), &repo_path, &old, &new)).await
-}
+git_command!(git_branch_rename, String, branch_rename, (repo_path: String, old: String, new: String), ());
 
-#[tauri::command]
-pub async fn git_tag_list(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<Vec<String>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || tag_list(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_tag_list, Vec<String>, tag_list, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_tag_create(
-    state: State<'_, AppState>,
-    repo_path: String,
-    name: String,
-    message: Option<String>,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || tag_create(runner.as_ref(), &repo_path, &name, message)).await
-}
+git_command!(git_tag_create, String, tag_create, (repo_path: String, name: String), (message: Option<String>));
 
-#[tauri::command]
-pub async fn git_tag_delete(
-    state: State<'_, AppState>,
-    repo_path: String,
-    name: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || tag_delete(runner.as_ref(), &repo_path, &name)).await
-}
+git_command!(git_tag_delete, String, tag_delete, (repo_path: String, name: String), ());
 
-#[tauri::command]
-pub async fn git_remote_list(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<Vec<RemoteInfo>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || remote_list(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_remote_list, Vec<RemoteInfo>, remote_list, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_remote_add(
-    state: State<'_, AppState>,
-    repo_path: String,
-    name: String,
-    url: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || remote_add(runner.as_ref(), &repo_path, &name, &url)).await
-}
+git_command!(git_remote_add, String, remote_add, (repo_path: String, name: String, url: String), ());
 
-#[tauri::command]
-pub async fn git_remote_remove(
-    state: State<'_, AppState>,
-    repo_path: String,
-    name: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || remote_remove(runner.as_ref(), &repo_path, &name)).await
-}
+git_command!(git_remote_remove, String, remote_remove, (repo_path: String, name: String), ());
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::runner::mock::MockRunner;
     use crate::runner::ProcessRunner;
+    use crate::test_support::git;
 
     #[test]
     fn remote_list_keeps_fetch_urls_once() {
@@ -236,30 +157,6 @@ mod tests {
             &[],
         );
         assert_eq!(tag_list(&runner, "/r").unwrap(), vec!["v2.0", "v1.0"]);
-    }
-
-    fn git(dir: &str, args: &[&str]) {
-        let out = std::process::Command::new("git")
-            .current_dir(dir)
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .arg("-c")
-            .arg("user.name=demo")
-            .arg("-c")
-            .arg("user.email=demo@demo")
-            .arg("-c")
-            .arg("init.defaultBranch=main")
-            .arg("-c")
-            .arg("commit.gpgsign=false")
-            .args(args)
-            .output()
-            .expect("git binary missing");
-        assert!(
-            out.status.success(),
-            "git {} failed: {}",
-            args.join(" "),
-            String::from_utf8_lossy(&out.stderr)
-        );
     }
 
     #[test]

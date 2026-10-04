@@ -2,9 +2,7 @@ pub mod porcelain;
 
 use crate::domain::StatusResult;
 use crate::runner::GitRunner;
-use crate::AppState;
 use std::path::{Path, PathBuf};
-use tauri::State;
 
 fn short_head(runner: &dyn GitRunner, root: &str) -> String {
     runner
@@ -42,13 +40,12 @@ fn git_state_path(runner: &dyn GitRunner, root: &str, name: &str) -> PathBuf {
     }
 }
 
-pub fn status_of(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-) -> Result<StatusResult, String> {
+pub fn status_of(runner: &dyn GitRunner, repo_path: &str) -> Result<StatusResult, String> {
     let root = runner.repo_root(repo_path)?;
-    let porcelain =
-        runner.run(Some(&root), &["status", "--porcelain=v1", "-z", "-b", "-uall"])?;
+    let porcelain = runner.run(
+        Some(&root),
+        &["status", "--porcelain=v1", "-z", "-b", "-uall"],
+    )?;
     let parsed = porcelain::parse(&porcelain);
     let branch = match parsed.branch_info.is_empty() {
         true => runner
@@ -78,14 +75,7 @@ pub fn status_of(
     })
 }
 
-#[tauri::command]
-pub async fn git_status(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<StatusResult, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || status_of(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_status, StatusResult, status_of, (repo_path: String), ());
 
 #[cfg(test)]
 mod tests {
@@ -98,7 +88,10 @@ mod tests {
                 ("rev-parse --show-toplevel", "/r"),
                 ("rev-parse --abbrev-ref HEAD", "main"),
                 ("rev-parse --git-path MERGE_HEAD", "/r/.git/MERGE_HEAD"),
-                ("rev-parse --git-path CHERRY_PICK_HEAD", "/r/.git/CHERRY_PICK_HEAD"),
+                (
+                    "rev-parse --git-path CHERRY_PICK_HEAD",
+                    "/r/.git/CHERRY_PICK_HEAD",
+                ),
                 ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
                 (
                     "status --porcelain=v1 -z -b -uall",
@@ -128,11 +121,17 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 ("rev-parse --git-path MERGE_HEAD", "/r/.git/MERGE_HEAD"),
-                ("rev-parse --git-path CHERRY_PICK_HEAD", "/r/.git/CHERRY_PICK_HEAD"),
+                (
+                    "rev-parse --git-path CHERRY_PICK_HEAD",
+                    "/r/.git/CHERRY_PICK_HEAD",
+                ),
                 ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
                 ("rev-parse --git-path rebase-merge", "/r/.git/rebase-merge"),
                 ("rev-parse --git-path rebase-apply", "/r/.git/rebase-apply"),
-                ("status --porcelain=v1 -z -b -uall", "## No commits yet on main\0"),
+                (
+                    "status --porcelain=v1 -z -b -uall",
+                    "## No commits yet on main\0",
+                ),
             ],
             &[],
         );
@@ -146,7 +145,10 @@ mod tests {
                 ("rev-parse --show-toplevel", "/r"),
                 ("rev-parse --abbrev-ref HEAD", "main"),
                 ("rev-parse --git-path MERGE_HEAD", "/r/.git/MERGE_HEAD"),
-                ("rev-parse --git-path CHERRY_PICK_HEAD", "/r/.git/CHERRY_PICK_HEAD"),
+                (
+                    "rev-parse --git-path CHERRY_PICK_HEAD",
+                    "/r/.git/CHERRY_PICK_HEAD",
+                ),
                 ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
                 ("rev-parse --git-path rebase-merge", "/r/.git/rebase-merge"),
                 ("rev-parse --git-path rebase-apply", "/r/.git/rebase-apply"),

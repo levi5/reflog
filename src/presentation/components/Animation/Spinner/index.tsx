@@ -1,5 +1,7 @@
+import { useTranslation } from "../../../context"
 import styles from "./styles.module.scss"
 
 export function Spinner() {
-  return <div className={styles.spinner} />
+  const { t } = useTranslation()
+  return <div className={styles.spinner} role="status" aria-label={t("loadingGeneric")} />
 }

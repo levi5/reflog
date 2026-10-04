@@ -12,6 +12,8 @@
 .card {
   pointer-events: all;
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--red-container);
   border-radius: 10px;
   width: 360px;
@@ -125,6 +127,6 @@
 
   &:hover {
     background: var(--red-container);
-    color: white;
+    color: var(--red);
   }
 }

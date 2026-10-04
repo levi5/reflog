@@ -30,8 +30,7 @@ export interface MessageItem {
   action?: ToastAction
 }
 
-export interface MessageContextValue {
-  messages: MessageItem[]
+export interface MessageActions {
   notify: (type: MessageType, text: string, options?: MessageOptions) => string
   error: (text: string, title?: string, options?: MessageOptions) => string
   success: (text: string, title?: string, options?: MessageOptions) => string
@@ -42,6 +41,8 @@ export interface MessageContextValue {
   clear: () => void
 }
 
+export type MessageContextValue = MessageActions & { messages: MessageItem[] }
+
 const DEFAULT_DURATION_BY_TYPE: Record<MessageType, number> = {
   error: 6000,
   success: 3500,
@@ -50,7 +51,8 @@ const DEFAULT_DURATION_BY_TYPE: Record<MessageType, number> = {
   loading: 0,
 }
 
-const MessageContext = createContext<MessageContextValue | null>(null)
+const MessageActionsContext = createContext<MessageActions | null>(null)
+const MessageListContext = createContext<MessageItem[] | null>(null)
 
 let messageSequence = 0
 
@@ -178,28 +180,36 @@ export function MessageProvider({ children }: { children: ReactNode }) {
     [loading, dismiss, success, error],
   )
 
-  const value = useMemo<MessageContextValue>(
-    () => ({
-      messages,
-      notify,
-      error,
-      success,
-      response,
-      loading,
-      runAsync,
-      dismiss,
-      clear,
-    }),
-    [messages, notify, error, success, response, loading, runAsync, dismiss, clear],
+  const actions = useMemo<MessageActions>(
+    () => ({ notify, error, success, response, loading, runAsync, dismiss, clear }),
+    [notify, error, success, response, loading, runAsync, dismiss, clear],
   )
 
-  return <MessageContext.Provider value={value}>{children}</MessageContext.Provider>
+  return (
+    <MessageActionsContext.Provider value={actions}>
+      <MessageListContext.Provider value={messages}>{children}</MessageListContext.Provider>
+    </MessageActionsContext.Provider>
+  )
+}
+
+export function useMessageActions(): MessageActions {
+  const context = useContext(MessageActionsContext)
+  if (!context) {
+    throw new Error("useMessageActions must be used within a MessageProvider")
+  }
+  return context
+}
+
+export function useMessages(): MessageItem[] {
+  const context = useContext(MessageListContext)
+  if (!context) {
+    throw new Error("useMessages must be used within a MessageProvider")
+  }
+  return context
 }
 
 export function useMessage(): MessageContextValue {
-  const context = useContext(MessageContext)
-  if (!context) {
-    throw new Error("useMessage must be used within a MessageProvider")
-  }
-  return context
+  const actions = useMessageActions()
+  const messages = useMessages()
+  return useMemo(() => ({ ...actions, messages }), [actions, messages])
 }

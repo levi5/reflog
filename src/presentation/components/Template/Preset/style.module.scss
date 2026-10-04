@@ -38,7 +38,7 @@
 }
 
 .presetTypeTag {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 600;
   color: var(--grape);
   background: var(--bg-deep);
@@ -58,7 +58,7 @@
 }
 
 .presetScope {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--muted);
   font-family: var(--mono);
 }
@@ -96,10 +96,28 @@
 }
 
 .actionBtn.danger:hover:not(:disabled) {
-  color: #ff7a7a;
+  color: var(--red);
 }
 
 .actionBtn:focus-visible {
   outline: 2px solid var(--grape);
   outline-offset: 2px;
+}
+.emptyPresets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  text-align: center;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.emptyPresets p {
+  margin: 0;
+}
+
+.emptyPresets small {
+  font-size: var(--font-sm);
+  opacity: 0.85;
 }

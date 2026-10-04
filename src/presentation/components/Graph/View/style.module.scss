@@ -116,7 +116,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--bg-card);
     border-color: var(--grape);
   }

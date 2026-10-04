@@ -1,30 +1,70 @@
 use crate::runner::{GitRunner, NETWORK_TIMEOUT};
-use crate::AppState;
-use tauri::State;
 
 const ALLOWED: &[&str] = &[
-    "log", "status", "branch", "checkout", "switch", "merge", "commit", "tag",
-    "fetch", "pull", "push", "show", "rev-parse", "diff", "stash", "reset",
-    "rebase", "revert", "cherry-pick", "reflog", "submodule", "add",
+    "log",
+    "status",
+    "branch",
+    "checkout",
+    "switch",
+    "merge",
+    "commit",
+    "tag",
+    "fetch",
+    "pull",
+    "push",
+    "show",
+    "rev-parse",
+    "diff",
+    "stash",
+    "reset",
+    "rebase",
+    "revert",
+    "cherry-pick",
+    "reflog",
+    "submodule",
+    "add",
 ];
 
 const DENIED: &[&str] = &[
-    "--hard", "--force", "--force-with-lease", "--upload-pack", "--receive-pack", "--exec",
-    "--output", "-c", "credential", "-i", "--interactive", "--config", "-C",
+    "--hard",
+    "--force",
+    "--upload-pack",
+    "--receive-pack",
+    "--exec",
+    "--output",
+    "-c",
+    "credential",
+    "-i",
+    "--interactive",
+    "--config",
+    "-C",
 ];
 
+const CONSOLE_SAFE_FORCE: &str = "--force-with-lease";
+
 const DENIED_PREFIXES: &[&str] = &[
-    "--output", "--upload-pack", "--receive-pack", "--exec", "--config",
+    "--output",
+    "--upload-pack",
+    "--receive-pack",
+    "--exec",
+    "--config",
 ];
 
 const DENIED_EXACT: &[&str] = &["-f", "-c", "-i", "-C"];
 
-const SUBMODULE_ALLOWED: &[&str] =
-    &["status", "summary", "sync", "update", "init", "foreach"];
+const SUBMODULE_ALLOWED: &[&str] = &["status", "summary", "sync", "update", "init", "foreach"];
 
 const FOREACH_VERBS: &[&str] = &[
-    "pull", "fetch", "status", "log", "diff", "checkout", "merge", "branch",
-    "rev-parse", "show",
+    "pull",
+    "fetch",
+    "status",
+    "log",
+    "diff",
+    "checkout",
+    "merge",
+    "branch",
+    "rev-parse",
+    "show",
 ];
 
 const FOREACH_FLAGS: &[&str] = &["--quiet", "--recursive"];
@@ -73,10 +113,15 @@ fn split_shell_words(s: &str) -> Option<Vec<String>> {
 }
 
 fn safe_token(token: &str) -> bool {
+    if token == CONSOLE_SAFE_FORCE {
+        return true;
+    }
     if token.is_empty()
         || DENIED.contains(&token)
         || DENIED_EXACT.contains(&token)
-        || DENIED_PREFIXES.iter().any(|p| token == *p || token.starts_with(&format!("{p}=")))
+        || DENIED_PREFIXES
+            .iter()
+            .any(|p| token == *p || token.starts_with(&format!("{p}=")))
     {
         return false;
     }
@@ -148,11 +193,7 @@ fn validate_submodule(args: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn run_git(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    args: &[String],
-) -> Result<String, String> {
+pub fn run_git(runner: &dyn GitRunner, repo_path: &str, args: &[String]) -> Result<String, String> {
     crate::commands::validation::validate_repo_path(repo_path)?;
     if args.is_empty() {
         return Err("comando vazio".to_string());
@@ -168,15 +209,20 @@ pub fn run_git(
             || a.contains('&')
             || a.contains('`')
             || a.contains('$')
-            || DENIED.contains(&a.as_str())
-            || DENIED_EXACT.contains(&a.as_str())
-            || DENIED_PREFIXES.iter().any(|p| a == *p || a.starts_with(&format!("{p}=")))
+            || (a != CONSOLE_SAFE_FORCE
+                && (DENIED.contains(&a.as_str())
+                    || DENIED_EXACT.contains(&a.as_str())
+                    || DENIED_PREFIXES
+                        .iter()
+                        .any(|p| a == *p || a.starts_with(&format!("{p}=")))))
         {
             return Err(format!("argumento não permitido: {a}"));
         }
     }
     if args[0] == "commit"
-        && !args.iter().any(|a| a == "-m" || a == "--allow-empty-message")
+        && !args
+            .iter()
+            .any(|a| a == "-m" || a == "--allow-empty-message")
     {
         return Err("commit precisa de -m \"mensagem\"".to_string());
     }
@@ -200,7 +246,9 @@ pub fn run_git(
 
     let is_submodule_foreach_network = args[0] == "submodule"
         && args.iter().any(|a| a == "foreach")
-        && args.iter().any(|a| a == "pull" || a == "fetch" || a == "push");
+        && args
+            .iter()
+            .any(|a| a == "pull" || a == "fetch" || a == "push");
     if is_submodule_foreach_network {
         runner.run_env_with_timeout(Some(&root), &refs, &NO_HANG_ENV, NETWORK_TIMEOUT)
     } else {
@@ -208,17 +256,7 @@ pub fn run_git(
     }
 }
 
-#[tauri::command]
-pub async fn git_run(
-    state: State<'_, AppState>,
-    repo_path: String,
-    args: Vec<String>,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    tauri::async_runtime::spawn_blocking(move || run_git(runner.as_ref(), &repo_path, &args))
-        .await
-        .map_err(|error| error.to_string())?
-}
+git_command!(git_run, String, run_git, (repo_path: String, args: Vec<String>), ());
 
 #[cfg(test)]
 mod tests {
@@ -232,6 +270,7 @@ mod tests {
                 ("log --oneline -5", "abc x"),
                 ("reset --soft HEAD~1", ""),
                 ("add -A", ""),
+                ("push --force-with-lease", "ok"),
             ],
             &[],
         )
@@ -287,12 +326,7 @@ mod tests {
             &args(&["submodule", "foreach", "git pull origin master"])
         )
         .is_ok());
-        assert!(run_git(
-            &r,
-            "/r",
-            &args(&["submodule", "foreach", "rm -rf /"])
-        )
-        .is_err());
+        assert!(run_git(&r, "/r", &args(&["submodule", "foreach", "rm -rf /"])).is_err());
         assert!(run_git(
             &r,
             "/r",
@@ -307,5 +341,16 @@ mod tests {
         )
         .is_err());
         assert!(run_git(&r, "/r", &args(&["submodule", "status"])).is_ok());
+    }
+
+    #[test]
+    fn allows_force_with_lease_but_still_blocks_bare_force() {
+        let r = runner();
+        assert_eq!(
+            run_git(&r, "/r", &args(&["push", "--force-with-lease"])).unwrap(),
+            "ok"
+        );
+        assert!(run_git(&r, "/r", &args(&["push", "--force"])).is_err());
+        assert!(run_git(&r, "/r", &args(&["reset", "--hard", "HEAD~1"])).is_err());
     }
 }

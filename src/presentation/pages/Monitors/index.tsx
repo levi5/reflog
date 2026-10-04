@@ -1,13 +1,15 @@
+import { automationsUseCase } from "../../../data"
+import { newId } from "../../../shared/utils/id"
 import { _Either, _Maybe } from "funcio"
-import { FolderOpen, Zap } from "lucide-react"
+import { Zap } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import type { MonitorAutomation } from "../../../domain/entities/automations/automations"
 import { gitApi } from "../../../infrastructure/git"
 import { t } from "../../../i18n"
-import { emptyMonitor, newId } from "../../../main/adapters"
+import { EmptyState } from "../../components/Empty/State"
 import { Monitor } from "../../components/Monitor"
-import { useRepo, useSettingsContext } from "../../context"
+import { useRepoCore, useSettingsContext } from "../../context"
 import { useAutomations } from "../../hooks"
 
 import styles from "./style.module.scss"
@@ -16,7 +18,7 @@ const MONITORS_PER_PAGE = 10
 
 export function Monitors() {
   const { lang } = useSettingsContext()
-  const repo = useRepo()
+  const repo = useRepoCore()
   const auto = useAutomations({
     repoRoot: repo.repo,
     submodulePaths: [],
@@ -40,7 +42,7 @@ export function Monitors() {
 
   const createMonitor = () => {
     setSelectedId(null)
-    setDraft({ ...emptyMonitor(), repoPath: repo.repo })
+    setDraft({ ...automationsUseCase.createEmptyMonitor(), repoPath: repo.repo })
   }
 
   const saveMonitor = (monitor: MonitorAutomation) => {
@@ -51,7 +53,7 @@ export function Monitors() {
 
   const createExampleMonitor = () => {
     const monitor: MonitorAutomation = {
-      ...emptyMonitor(),
+      ...automationsUseCase.createEmptyMonitor(),
       name: t(lang, "repositorySummary"),
       description: t(lang, "repositorySummaryDescription"),
       repoPath: repo.repo,
@@ -82,7 +84,14 @@ export function Monitors() {
     saveMonitor(monitor)
   }
 
-  const deleteMonitor = (id: string) => {
+  const deleteMonitor = async (id: string) => {
+    const target = auto.monitors.find((m) => m.id === id)
+    if (!target) return
+    const confirmed = await repo.requestConfirm(
+      t(lang, "deleteMonitor"),
+      t(lang, "deleteMonitorConfirm").replace("{name}", target.name),
+    )
+    if (!confirmed) return
     const found = auto.monitors.find((m) => m.id !== id)
     const next = _Maybe.of(found).getOrElse(null) as MonitorAutomation | null
     auto.deleteMonitor(id)
@@ -109,12 +118,7 @@ export function Monitors() {
   }
 
   if (!repo.repo) {
-    return (
-      <div className={styles.empty}>
-        <FolderOpen size={20} />
-        <p>{t(lang, "noRepo")}</p>
-      </div>
-    )
+    return <EmptyState message={t(lang, "noRepo")} />
   }
 
   return (
@@ -127,21 +131,21 @@ export function Monitors() {
           onCreateMonitor={createMonitor}
           onCreateExampleMonitor={createExampleMonitor}
           onRunMonitor={(monitor) => void auto.runMonitor(monitor)}
-          onDeleteMonitor={deleteMonitor}
+          onDeleteMonitor={(id) => void deleteMonitor(id)}
           isRunning={auto.running}
           currentPage={monitorPage}
           onPageChange={setMonitorPage}
         />
       </aside>
 
-      <main className={styles.editor}>
+      <div className={styles.editor}>
         {draft ? (
           <Monitor.Editor
             key={draft.id}
             monitor={draft}
             onSave={saveMonitor}
             onRun={(monitor) => void auto.runMonitor(monitor)}
-            onDelete={deleteMonitor}
+            onDelete={(id) => void deleteMonitor(id)}
             onChooseRepository={chooseRepository}
           />
         ) : (
@@ -151,7 +155,7 @@ export function Monitors() {
             <p>{t(lang, "monitorWelcomeHint")}</p>
           </div>
         )}
-      </main>
+      </div>
     </div>
   )
 }

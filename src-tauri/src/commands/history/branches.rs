@@ -1,12 +1,7 @@
 use crate::domain::BranchInfo;
 use crate::runner::GitRunner;
-use crate::AppState;
-use tauri::State;
 
-pub fn branches_of(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-) -> Result<Vec<BranchInfo>, String> {
+pub fn branches_of(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<BranchInfo>, String> {
     let root = runner.repo_root(repo_path)?;
     let out = runner.run(
         Some(&root),
@@ -60,14 +55,7 @@ pub fn branches_of(
     Ok(list)
 }
 
-#[tauri::command]
-pub async fn git_branches(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<Vec<BranchInfo>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || branches_of(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_branches, Vec<BranchInfo>, branches_of, (repo_path: String), ());
 
 #[cfg(test)]
 mod tests {

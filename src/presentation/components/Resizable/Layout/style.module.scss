@@ -12,6 +12,8 @@
   position: relative;
   border-right: 1px solid var(--border-soft);
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   padding: 12px;
   overflow-y: auto;
   display: flex;
@@ -35,6 +37,8 @@
   min-width: 0;
   overflow-y: auto;
   background: var(--bg-win);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   height: 100%;
   padding: 12px 14px;
   box-sizing: border-box;

@@ -58,6 +58,3 @@ export const AUTOMATION_HUB_COPY: Record<Lang, AutomationHubCopy> = {
 }
 
 export const AUTOMATION_HUB_SECTION_IDS: AutomationHubSection[] = ["recipes", "monitors", "templates"]
-
-export const COPY = AUTOMATION_HUB_COPY
-export const SECTION_IDS = AUTOMATION_HUB_SECTION_IDS

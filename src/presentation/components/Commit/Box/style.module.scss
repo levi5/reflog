@@ -3,6 +3,8 @@
   flex-direction: column;
   gap: 8px;
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   padding: 10px;
@@ -10,10 +12,12 @@
 
 .preview {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: var(--muted);
   background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border-soft);
   border-radius: 6px;
   padding: 6px 8px;
@@ -30,6 +34,6 @@
 
 .hint {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }

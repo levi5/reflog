@@ -55,7 +55,7 @@ export function ProfileList({ profiles, activeProfileId, onApplyProfile, onRemov
   )
 
   return (
-    <List.Virtual<GitProfile>
+    <List.Paged<GitProfile>
       items={profiles}
       selectedId={activeProfileId}
       currentPage={0}

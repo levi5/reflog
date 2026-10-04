@@ -35,7 +35,7 @@
 
 .helper kbd {
   font-family: inherit;
-  font-size: 10px;
+  font-size: var(--font-xs);
   background: var(--bg-panel2);
   border: 1px solid var(--border);
   border-radius: 4px;

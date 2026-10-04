@@ -1,9 +1,9 @@
+import { mergeStatsUseCase } from "../../../../data"
 import { History, Trash2 } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { Select, type SelectOption } from "../../Select"
 
-import { repoBaseName } from "../../../../main/adapters"
 import { useTranslation } from "../../../context"
 
 type Props = {
@@ -26,7 +26,7 @@ export function RecentSelect({
   const { t } = useTranslation()
   const options: SelectOption[] = [
     { value: "", label: t("recents") },
-    ...recents.map((r) => ({ value: r, label: repoBaseName(r) })),
+    ...recents.map((r) => ({ value: r, label: mergeStatsUseCase.repoBaseName(r) })),
   ]
 
   return (

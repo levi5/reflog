@@ -56,6 +56,12 @@ export interface CommitInfo {
   refs: string[]
 }
 
+export interface ConfigEntry {
+  key: string
+  value: string
+  allowed: boolean
+}
+
 export interface ReflogEntry {
   hash: string
   short: string
@@ -111,7 +117,9 @@ export interface RebaseOp {
   action: RebaseOpAction
 }
 
-export type Theme = "dark" | "light" | "glass-dark" | "glass-light"
+export type Theme = "dark" | "light"
+
+export type Material = "solid" | "mica" | "acrylic"
 
 export type AccentId = "grape" | "blue" | "teal" | "green" | "amber" | "red" | "orange"
 

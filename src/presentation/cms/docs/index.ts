@@ -15,6 +15,3 @@ export const DOCS_CONTENT: DocsContentByLang = {
   pt: docsPtContent,
   en: docsEnContent,
 }
-
-export const FIG_LABELS = DOCS_FIGURE_LABELS
-export const CONTENT = DOCS_CONTENT

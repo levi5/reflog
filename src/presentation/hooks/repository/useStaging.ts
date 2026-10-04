@@ -1,9 +1,9 @@
+import { blameParserUseCase, commitTemplateUseCase } from "../../../data"
 import { _Either } from "funcio"
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { BlameLine } from "../../../domain/entities/blame/blame"
 import { gitApi } from "../../../infrastructure/git"
-import { t } from "../../../i18n"
-import { getLastCommitOpts, parseBlamePorcelain } from "../../../main/adapters"
+import { formatMessage, t } from "../../../i18n"
 import type { Lang, SubmoduleInfo } from "../../../types"
 
 import { useFileEditor } from "../staging/useFileEditor"
@@ -31,6 +31,9 @@ export function useStaging(deps: StagingDeps) {
   const [newBranch, setNewBranch] = useState("")
   const [blameFile, setBlameFile] = useState("")
   const [blameLines, setBlameLines] = useState<BlameLine[]>([])
+  const [blameLoading, setBlameLoading] = useState(false)
+  const [blameError, setBlameError] = useState<string | null>(null)
+  const blameRequestRef = useRef(0)
   const [trackedFiles, setTrackedFiles] = useState<string[]>([])
   const [submodules, setSubmodules] = useState<SubmoduleInfo[]>([])
 
@@ -71,16 +74,22 @@ export function useStaging(deps: StagingDeps) {
   const loadBlame = useCallback(
     async (file: string) => {
       if (!repo || !file) return
+      const request = blameRequestRef.current + 1
+      blameRequestRef.current = request
       setBlameFile(file)
+      setBlameLines([])
+      setBlameError(null)
+      setBlameLoading(true)
       const result = await _Either.try.async(() => gitApi.blame(repo, file))
+      if (request !== blameRequestRef.current) return
       if (result.isRight()) {
-        setBlameLines(parseBlamePorcelain(result.value as string))
+        setBlameLines(blameParserUseCase.parse(result.value as string))
       } else {
-        setBlameLines([])
-        setMsg(String(result.value))
+        setBlameError(String(result.value))
       }
+      setBlameLoading(false)
     },
-    [repo, setMsg],
+    [repo],
   )
 
   const handleFileSaved = useCallback(
@@ -124,11 +133,16 @@ export function useStaging(deps: StagingDeps) {
     if (repoRef.current === repo) return
     repoRef.current = repo
     diffRequestRef.current += 1
+    blameRequestRef.current += 1
     setSelectedFile("")
     setDiff("")
     setDiffLoaded(false)
     setDiffLoading(false)
     setDiffError(null)
+    setBlameFile("")
+    setBlameLines([])
+    setBlameLoading(false)
+    setBlameError(null)
   }, [repo])
 
   useEffect(() => {
@@ -141,7 +155,7 @@ export function useStaging(deps: StagingDeps) {
   const doCommit = () => {
     if (!repo || !commitMsg.trim()) return Promise.resolve()
     const message = commitMsg
-    const opts = getLastCommitOpts()
+    const opts = commitTemplateUseCase.getLastCommitOpts()
     return runAction(
       () => gitApi.commit(repo, message, opts.signoff, opts.sign),
       () => setCommitMsg(""),
@@ -206,20 +220,17 @@ export function useStaging(deps: StagingDeps) {
         loadingMessage: t(lang, "discardFileLoading"),
         successMessage: t(lang, "discardFileSuccess"),
         successDuration: undoPatch.trim() ? 8000 : undefined,
-        successAction: undoPatch.trim()
-          ? {
-              label: t(lang, "undo"),
-              onAction: () => {
-                void runAction(
-                  () => gitApi.applyPatch(repo, undoPatch, false, false),
-                  () => loadDiff(file, false),
-                  {
-                    loadingMessage: t(lang, "actionProcessing"),
-                    successMessage: t(lang, "actionSuccess"),
-                  },
-                )
-              },
-            }
+        undoLabel: formatMessage(lang, "undoDiscardFile", { file }),
+        undo: undoPatch.trim()
+          ? () =>
+              runAction(
+                () => gitApi.applyPatch(repo, undoPatch, false, false),
+                () => loadDiff(file, false),
+                {
+                  loadingMessage: t(lang, "actionProcessing"),
+                  successMessage: t(lang, "actionSuccess"),
+                },
+              )
           : undefined,
       },
     )
@@ -239,12 +250,69 @@ export function useStaging(deps: StagingDeps) {
     })
   }
 
+  const reloadDiff = useCallback(() => {
+    if (selectedFile) void loadDiff(selectedFile, diffStaged)
+  }, [selectedFile, diffStaged, loadDiff])
+
+  const capturePatches = useCallback(
+    async (files: string[], staged: boolean): Promise<{ file: string; patch: string }[]> => {
+      const captured = await Promise.all(
+        files.map(async (file) => {
+          const result = await _Either.try.async(() => gitApi.diff(repo, file, staged))
+          const patch = result.isRight() ? String(result.value ?? "") : ""
+          return patch.trim() ? { file, patch } : null
+        }),
+      )
+      return captured.filter((entry): entry is { file: string; patch: string } => entry !== null)
+    },
+    [repo],
+  )
+
+  const reapplyPatches = useCallback(
+    (entries: { file: string; patch: string }[], cached: boolean) =>
+      runAction(
+        async () => {
+          const failed: string[] = []
+          for (const entry of entries) {
+            const applied = await _Either.try.async(() => gitApi.applyPatch(repo, entry.patch, cached, false))
+            if (applied.isLeft()) failed.push(entry.file)
+          }
+          if (failed.length > 0) {
+            throw new Error(`${t(lang, "partialRollbackFailed")}: ${failed.join(", ")}`)
+          }
+          return ""
+        },
+        reloadDiff,
+        {
+          loadingMessage: t(lang, "actionProcessing"),
+          successMessage: t(lang, "actionSuccess"),
+        },
+      ),
+    [repo, lang, runAction, reloadDiff],
+  )
+
   const unstageFiles = (files: string[]) => {
     if (!repo || files.length === 0) return Promise.resolve()
+    let undoPatches: { file: string; patch: string }[] = []
     return runAction(
       async () => {
+        const captured = await capturePatches(files, true)
+        undoPatches = captured
+        const failed: string[] = []
         for (const file of files) {
-          await gitApi.unstage(repo, file)
+          const result = await _Either.try.async(() => gitApi.unstage(repo, file))
+          if (result.isLeft()) failed.push(file)
+        }
+        if (failed.length > 0) {
+          const applied = await Promise.allSettled(
+            undoPatches.map((entry) => gitApi.applyPatch(repo, entry.patch, true, true)),
+          )
+          const notRestored = undoPatches.filter((_, i) => applied[i].status === "rejected").map((entry) => entry.file)
+          throw new Error(
+            notRestored.length > 0
+              ? `${t(lang, "partialRollbackFailed")}: ${[...failed, ...notRestored].join(", ")}`
+              : `${t(lang, "partialFailureRolledBack")}: ${failed.join(", ")}`,
+          )
         }
         return ""
       },
@@ -252,6 +320,9 @@ export function useStaging(deps: StagingDeps) {
       {
         loadingMessage: t(lang, "unstaging"),
         successMessage: t(lang, "unstageSuccess"),
+        successDuration: undoPatches.length > 0 ? 8000 : undefined,
+        undoLabel: formatMessage(lang, "undoUnstageFiles", { count: files.length }),
+        undo: undoPatches.length > 0 ? () => reapplyPatches(undoPatches, true) : undefined,
       },
     )
   }
@@ -261,10 +332,26 @@ export function useStaging(deps: StagingDeps) {
     if (!(await requestConfirm(t(lang, "discard"), t(lang, "discardSelectedConfirm")))) {
       return Promise.resolve()
     }
+    let undoPatches: { file: string; patch: string }[] = []
     return runAction(
       async () => {
+        const captured = await capturePatches(files, false)
+        undoPatches = captured
+        const failed: string[] = []
         for (const file of files) {
-          await gitApi.discard(repo, file)
+          const result = await _Either.try.async(() => gitApi.discard(repo, file))
+          if (result.isLeft()) failed.push(file)
+        }
+        if (failed.length > 0) {
+          const applied = await Promise.allSettled(
+            undoPatches.map((entry) => gitApi.applyPatch(repo, entry.patch, false, false)),
+          )
+          const notRestored = undoPatches.filter((_, i) => applied[i].status === "rejected").map((entry) => entry.file)
+          throw new Error(
+            notRestored.length > 0
+              ? `${t(lang, "partialRollbackFailed")}: ${[...failed, ...notRestored].join(", ")}`
+              : `${t(lang, "partialFailureRolledBack")}: ${failed.join(", ")}`,
+          )
         }
         return ""
       },
@@ -272,12 +359,11 @@ export function useStaging(deps: StagingDeps) {
       {
         loadingMessage: t(lang, "discarding"),
         successMessage: t(lang, "discarded"),
+        successDuration: undoPatches.length > 0 ? 8000 : undefined,
+        undoLabel: formatMessage(lang, "undoDiscardFiles", { count: files.length }),
+        undo: undoPatches.length > 0 ? () => reapplyPatches(undoPatches, false) : undefined,
       },
     )
-  }
-
-  const reloadDiff = () => {
-    if (selectedFile) void loadDiff(selectedFile, diffStaged)
   }
 
   const stageHunk = (patch: string) =>
@@ -311,15 +397,12 @@ export function useStaging(deps: StagingDeps) {
       loadingMessage: t(lang, "discardHunkLoading"),
       successMessage: t(lang, "discardHunkSuccess"),
       successDuration: 8000,
-      successAction: {
-        label: t(lang, "undo"),
-        onAction: () => {
-          void runAction(() => gitApi.applyPatch(repo, patch, false, false), reloadDiff, {
-            loadingMessage: t(lang, "actionProcessing"),
-            successMessage: t(lang, "actionSuccess"),
-          })
-        },
-      },
+      undoLabel: t(lang, "undoDiscardHunk"),
+      undo: () =>
+        runAction(() => gitApi.applyPatch(repo, patch, false, false), reloadDiff, {
+          loadingMessage: t(lang, "actionProcessing"),
+          successMessage: t(lang, "actionSuccess"),
+        }),
     })
   }
 
@@ -358,6 +441,8 @@ export function useStaging(deps: StagingDeps) {
     submoduleUpdate,
     blameFile,
     blameLines,
+    blameLoading,
+    blameError,
     trackedFiles,
     selectDiff,
     loadDiff,

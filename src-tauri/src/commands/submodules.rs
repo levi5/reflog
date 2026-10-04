@@ -1,8 +1,6 @@
 use crate::domain::SubmoduleInfo;
 use crate::runner::{GitRunner, NETWORK_TIMEOUT};
-use crate::AppState;
 use std::collections::HashMap;
-use tauri::State;
 
 pub fn parse_submodule_status(out: &str) -> Vec<(String, String, String)> {
     let mut rows = vec![];
@@ -11,11 +9,9 @@ pub fn parse_submodule_status(out: &str) -> Vec<(String, String, String)> {
         if bytes.len() < 42 {
             continue;
         }
-        let (Some(state), Some(hash), Some(rest)) = (
-            bytes.get(0..1),
-            bytes.get(1..41),
-            bytes.get(41..),
-        ) else {
+        let (Some(state), Some(hash), Some(rest)) =
+            (bytes.get(0..1), bytes.get(1..41), bytes.get(41..))
+        else {
             continue;
         };
         let (Ok(state), Ok(hash), Ok(rest)) = (
@@ -26,7 +22,12 @@ pub fn parse_submodule_status(out: &str) -> Vec<(String, String, String)> {
             continue;
         };
         let hash = hash.trim().to_string();
-        let path = rest.trim().split_whitespace().next().unwrap_or("").to_string();
+        let path = rest
+            .trim()
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .to_string();
         if hash.is_empty() || path.is_empty() {
             continue;
         }
@@ -53,11 +54,7 @@ pub fn parse_config_paths(out: &str) -> HashMap<String, String> {
     map
 }
 
-fn config_value(
-    runner: &dyn GitRunner,
-    root: &str,
-    key: &str,
-) -> String {
+fn config_value(runner: &dyn GitRunner, root: &str, key: &str) -> String {
     runner
         .run(Some(root), &["config", "-f", ".gitmodules", "--get", key])
         .map(|s| s.trim().to_string())
@@ -73,7 +70,13 @@ pub fn submodule_list(
     let config_out = runner
         .run(
             Some(&root),
-            &["config", "-f", ".gitmodules", "--get-regexp", "^submodule\\..*\\.path$"],
+            &[
+                "config",
+                "-f",
+                ".gitmodules",
+                "--get-regexp",
+                "^submodule\\..*\\.path$",
+            ],
         )
         .unwrap_or_default();
     let names = parse_config_paths(&config_out);
@@ -81,8 +84,7 @@ pub fn submodule_list(
     for (state, hash, path) in parse_submodule_status(&out) {
         let name = names.get(&path).cloned().unwrap_or_else(|| path.clone());
         let url = config_value(runner, &root, &format!("submodule.{name}.url"));
-        let branch =
-            config_value(runner, &root, &format!("submodule.{name}.branch"));
+        let branch = config_value(runner, &root, &format!("submodule.{name}.branch"));
         list.push(SubmoduleInfo {
             name,
             path,
@@ -107,20 +109,33 @@ pub fn submodule_update(
             let owned = p.trim().to_string();
             runner.run_with_timeout(
                 Some(&root),
-                &["submodule", "update", "--init", "--recursive", "--progress", "--", &owned],
+                &[
+                    "submodule",
+                    "update",
+                    "--init",
+                    "--recursive",
+                    "--progress",
+                    "--",
+                    &owned,
+                ],
                 NETWORK_TIMEOUT,
             )
         }
-        _ => {
-            runner.run_with_timeout(
-                Some(&root),
-                &["submodule", "update", "--init", "--recursive", "--jobs", "4", "--progress"],
-                NETWORK_TIMEOUT,
-            )
-        }
+        _ => runner.run_with_timeout(
+            Some(&root),
+            &[
+                "submodule",
+                "update",
+                "--init",
+                "--recursive",
+                "--jobs",
+                "4",
+                "--progress",
+            ],
+            NETWORK_TIMEOUT,
+        ),
     }
 }
-
 
 pub fn superproject_chain(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<String>, String> {
     let superproject_args = ["rev-parse", "--show-superproject-working-tree"];
@@ -139,33 +154,11 @@ pub fn superproject_chain(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec
     Ok(chain)
 }
 
-#[tauri::command]
-pub async fn git_submodule_list(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<Vec<SubmoduleInfo>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || submodule_list(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_submodule_list, Vec<SubmoduleInfo>, submodule_list, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_submodule_update(
-    state: State<'_, AppState>,
-    repo_path: String,
-    submodule_path: Option<String>,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || submodule_update(runner.as_ref(), &repo_path, submodule_path)).await
-}
+git_command!(git_submodule_update, String, submodule_update, (repo_path: String), (submodule_path: Option<String>));
 
-#[tauri::command]
-pub async fn git_superproject_chain(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<Vec<String>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || superproject_chain(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_superproject_chain, Vec<String>, superproject_chain, (repo_path: String), ());
 
 #[cfg(test)]
 mod tests {
@@ -187,9 +180,7 @@ mod tests {
 
     #[test]
     fn maps_config_paths_to_names() {
-        let map = parse_config_paths(
-            "submodule.libs/a.path libs/a\nsubmodule.other.path libs/b",
-        );
+        let map = parse_config_paths("submodule.libs/a.path libs/a\nsubmodule.other.path libs/b");
         assert_eq!(map.get("libs/a").unwrap(), "libs/a");
         assert_eq!(map.get("libs/b").unwrap(), "other");
     }
@@ -211,7 +202,10 @@ mod tests {
                     "config -f .gitmodules --get submodule.libs/a.url",
                     "https://x/y.git",
                 ),
-                ("config -f .gitmodules --get submodule.libs/a.branch", "main"),
+                (
+                    "config -f .gitmodules --get submodule.libs/a.branch",
+                    "main",
+                ),
             ],
             &[],
         );
@@ -247,37 +241,10 @@ mod tests {
     }
 
     mod demo {
-        use crate::commands::playground::run_git;
         use super::*;
+        use crate::commands::playground::run_git;
         use crate::runner::ProcessRunner;
-        use std::process::Command;
-
-        fn git(dir: &str, args: &[&str]) -> String {
-            let out = Command::new("git")
-                .current_dir(dir)
-                .env("GIT_CONFIG_NOSYSTEM", "1")
-                .env("GIT_CONFIG_GLOBAL", "/dev/null")
-                .arg("-c")
-                .arg("user.name=demo")
-                .arg("-c")
-                .arg("user.email=demo@demo")
-                .arg("-c")
-                .arg("init.defaultBranch=main")
-                .arg("-c")
-                .arg("protocol.file.allow=always")
-                .arg("-c")
-                .arg("commit.gpgsign=false")
-                .args(args)
-                .output()
-                .expect("git binary missing");
-            assert!(
-                out.status.success(),
-                "git {} failed: {}",
-                args.join(" "),
-                String::from_utf8_lossy(&out.stderr)
-            );
-            String::from_utf8_lossy(&out.stdout).to_string()
-        }
+        use crate::test_support::git;
 
         fn fixture() -> (String, String) {
             let base = std::env::temp_dir().join(format!(
@@ -322,14 +289,21 @@ mod tests {
         #[test]
         fn demo_submodule_chain_on_real_repos() {
             let (sup, _lib) = fixture();
-            let sub = canonical(&std::path::Path::new(&sup).join("libs/lib").to_string_lossy());
+            let sub = canonical(
+                &std::path::Path::new(&sup)
+                    .join("libs/lib")
+                    .to_string_lossy(),
+            );
             let runner = ProcessRunner;
 
             assert_eq!(
                 superproject_chain(&runner, &sub).unwrap(),
                 vec![canonical(&sup), sub.clone()]
             );
-            assert_eq!(superproject_chain(&runner, &sup).unwrap(), vec![canonical(&sup)]);
+            assert_eq!(
+                superproject_chain(&runner, &sup).unwrap(),
+                vec![canonical(&sup)]
+            );
         }
 
         #[test]
@@ -373,8 +347,7 @@ mod tests {
             assert_eq!(list[0].state, " ");
 
             let head = git(&sup, &["rev-parse", "--short", "HEAD"]);
-            let out = run_git(&runner, &sup, &s(&["log", "--oneline", "-1"]))
-                .unwrap();
+            let out = run_git(&runner, &sup, &s(&["log", "--oneline", "-1"])).unwrap();
             assert!(out.contains(head.trim()));
 
             let branch = run_git(
@@ -401,7 +374,9 @@ mod tests {
             )
             .unwrap();
             assert!(pulled.contains("Entering 'libs/lib'"));
-            assert!(pulled.split_whitespace().any(|w| w.len() == 7 && w.chars().all(|c| c.is_ascii_hexdigit())));
+            assert!(pulled
+                .split_whitespace()
+                .any(|w| w.len() == 7 && w.chars().all(|c| c.is_ascii_hexdigit())));
 
             let blocked = run_git(
                 &runner,

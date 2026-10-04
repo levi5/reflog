@@ -1,3 +1,4 @@
+import { mergeStatsUseCase } from "../../../../data"
 import classnames from "classnames"
 import { useState, useCallback } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -12,11 +13,11 @@ import {
   Layers,
   RefreshCw,
   Settings as SettingsIcon,
+  Undo2,
 } from "lucide-react"
 
 import { useRepo, useTranslation } from "../../../context"
 import { useAltShortcut, useProfiles, useWindowDrag } from "../../../hooks"
-import { repoBaseName } from "../../../../main/adapters"
 import { Select } from "../../Select"
 import { Repo } from "../../Repo"
 import { SideBar } from "../../SideBar"
@@ -96,6 +97,22 @@ function AppBar() {
   const branchOptions = useBranchOptions(repo.status?.branch ?? "", repo.localBranches)
 
   const toggleRepoSwitch = useCallback(() => setRepoSwitchOpen((prev) => !prev), [])
+  const confirmForcePush = useCallback(async () => {
+    const confirmed = await repo.requestConfirm(t("pushForce"), t("pushForceConfirm"))
+    if (confirmed) await repo.pushForce()
+  }, [repo.requestConfirm, repo.pushForce, t])
+
+  const confirmDeleteRemoteBranch = useCallback(
+    async (remoteBranch: string) => {
+      const confirmed = await repo.requestConfirm(
+        t("deleteRemoteBranchAction"),
+        format("deleteRemoteBranchConfirm", { name: remoteBranch }),
+      )
+      if (confirmed) await repo.deleteRemoteBranch(remoteBranch)
+    },
+    [repo.requestConfirm, repo.deleteRemoteBranch, t, format],
+  )
+
   useAltShortcut(REPO_SWITCH_KEY, toggleRepoSwitch)
 
   const repoTooltip = repo.isSubmodule
@@ -128,7 +145,9 @@ function AppBar() {
             <FolderGit2 size={14} className={styles.repoIcon} />
           )}
           <span className={styles.repoName}>{repo.repoName}</span>
-          {repo.isSubmodule && <span className={styles.repoParent}>↑ {repoBaseName(repo.parentRepo)}</span>}
+          {repo.isSubmodule && (
+            <span className={styles.repoParent}>↑ {mergeStatsUseCase.repoBaseName(repo.parentRepo)}</span>
+          )}
           <ChevronDown size={12} className={styles.repoChevron} />
         </button>
         <Select
@@ -142,12 +161,25 @@ function AppBar() {
         />
         <Status.Pill conflictCount={repo.unmergedCount} changedCount={repo.status?.files.length ?? 0} />
         <div className={styles.spacer} />
+        <button
+          type="button"
+          className="ghost"
+          disabled={!repo.canUndo || repo.busy}
+          onClick={() => void repo.undoLast()}
+          title={repo.undoLabel ? format("undoLastAction", { label: repo.undoLabel }) : t("undo")}
+          aria-label={repo.undoLabel ? format("undoLastAction", { label: repo.undoLabel }) : t("undo")}
+        >
+          <Undo2 size={14} />
+        </button>
         <SyncActions
           busy={repo.busy}
           behindCount={repo.status?.behind ?? 0}
-          onFetch={repo.fetchPrune}
-          onPull={repo.pullIt}
-          onPush={repo.pushIt}
+          onFetch={(prune) => void repo.fetchPrune(prune)}
+          onPull={() => void repo.pullIt()}
+          onPush={() => void repo.pushIt()}
+          onForcePush={() => void confirmForcePush()}
+          onPushTags={() => void repo.pushTags()}
+          onDeleteRemoteBranch={(name) => void confirmDeleteRemoteBranch(name)}
         />
         <ProfileSelect
           className={styles.profileSelect}
@@ -197,7 +229,7 @@ function AppBar() {
           <SettingsIcon size={14} />
         </NavToggleButton>
 
-        <BusyBar visible={repo.busy} />
+        <BusyBar visible={repo.busy} label={repo.busyLabel ?? undefined} startedAt={repo.busyStartedAt} />
       </div>
       <SideBar.QuickActions isOpen={quickActionsOpen} onClose={() => setQuickActionsOpen(false)} />
       <Repo.Switch isOpen={repoSwitchOpen} onClose={() => setRepoSwitchOpen(false)} />

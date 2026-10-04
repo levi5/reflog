@@ -40,7 +40,7 @@ export function Tab<T extends string = string>({
       tabIndex={isSelected ? 0 : -1}
       disabled={disabled}
       title={title}
-      className={classnames(styles.tab, isSelected && styles.active, disabled && styles.disabled, className)}
+      className={classnames(styles.tab, isSelected && styles.active, className)}
       onClick={handleClick}
     >
       {icon && <span className={styles.icon}>{icon}</span>}

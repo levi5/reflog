@@ -1,3 +1,20 @@
+macro_rules! git_command {
+    ($name:ident, $ret:ty, $inner:ident, ($($borrowed:ident: $bty:ty),* $(,)?), ($($owned:ident: $oty:ty),* $(,)?)) => {
+        #[tauri::command]
+        pub async fn $name(
+            state: tauri::State<'_, $crate::AppState>,
+            $($borrowed: $bty,)*
+            $($owned: $oty,)*
+        ) -> Result<$ret, String> {
+            let runner = state.runner.clone();
+            $crate::commands::run_blocking(move || $inner(runner.as_ref(), $(&$borrowed,)* $($owned,)*)).await
+        }
+    };
+    ($name:ident, $ret:ty, $inner:ident, ($($borrowed:ident: $bty:ty),* $(,)?)) => {
+        git_command!($name, $ret, $inner, ($($borrowed: $bty),*), ());
+    };
+}
+
 pub mod files;
 pub mod history;
 pub mod meta;

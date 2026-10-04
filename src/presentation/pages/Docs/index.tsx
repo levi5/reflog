@@ -5,7 +5,7 @@ import { Icon } from "../../components/Icons"
 import { ResizableSplitLayout } from "../../components/Resizable"
 
 import { useSettingsContext } from "../../context"
-import { useIntersectionObserver } from "../../hooks"
+import { scrollIntoViewSafely, useIntersectionObserver } from "../../hooks"
 import { DOCS_CONTENT, DOCS_FIGURE_LABELS } from "../../cms/docs"
 import { t } from "../../../i18n"
 
@@ -26,12 +26,12 @@ export const Docs = () => {
   )
 
   const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
+    scrollIntoViewSafely(document.getElementById(id), { block: "start" })
   }
 
   return (
     <ResizableSplitLayout
-      sidebarWidth={{ initial: 250, min: 200, max: 420, storageKey: "docs.side" }}
+      sidebarWidth={{ initial: 250, min: 200, max: 420, storageKey: "docs.side", label: t(lang, "resizeSidebar") }}
       sidebar={
         <Fragment>
           <p className={styles.summaryTitle}>

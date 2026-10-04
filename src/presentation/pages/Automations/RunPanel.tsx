@@ -1,10 +1,10 @@
+import { automationsUseCase } from "../../../data"
 import { Play } from "lucide-react"
 import type {
   AutomationAlias,
   AutomationLogLine,
   AutomationRecipe,
 } from "../../../domain/entities/automations/automations"
-import { recipeVariables } from "../../../main/adapters"
 import { VariablesEditor, RunLogList } from "../../components/Automations"
 import { PreviewList, ReviewModal } from "../../components/Recipe"
 import { useTranslation } from "../../context"
@@ -28,7 +28,7 @@ function RunPanel({
   onRequestRun,
 }: RunPanelProps) {
   const { t } = useTranslation()
-  const variableNames = recipeVariables(draftRecipe)
+  const variableNames = automationsUseCase.extractRecipeVariables(draftRecipe)
   const isRunDisabled = isRunning || draftRecipe.steps.length === 0
   return (
     <div className={styles.runPanel}>

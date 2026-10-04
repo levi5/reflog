@@ -1,4 +1,4 @@
-import { matchesQuery } from "../../../main/adapters"
+import { mergeStatsUseCase } from "../../../data"
 import type { CommitInfo } from "../../../types"
 import type { SearchScope } from "../../context"
 
@@ -12,9 +12,9 @@ export function normalizeCommitQuery(query: string, scope: SearchScope): string 
 export function commitMatchesQuery(commit: CommitInfo, normalizedQuery: string): boolean {
   if (!normalizedQuery) return true
   return (
-    matchesQuery(commit.message, normalizedQuery) ||
-    matchesQuery(commit.author, normalizedQuery) ||
-    matchesQuery(commit.short, normalizedQuery) ||
+    mergeStatsUseCase.matchesQuery(commit.message, normalizedQuery) ||
+    mergeStatsUseCase.matchesQuery(commit.author, normalizedQuery) ||
+    mergeStatsUseCase.matchesQuery(commit.short, normalizedQuery) ||
     commit.hash.toLowerCase().startsWith(normalizedQuery)
   )
 }

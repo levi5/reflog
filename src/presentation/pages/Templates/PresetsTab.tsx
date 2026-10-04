@@ -28,7 +28,7 @@ export function PresetsTab({
   onToggleStrict,
   onToggleIcons,
 }: PresetsTabProps) {
-  const { t, lang } = useTranslation()
+  const { t } = useTranslation()
   const [newPresetName, setNewPresetName] = useState("")
   const [newPresetType, setNewPresetType] = useState("feat")
   const [newPresetScope, setNewPresetScope] = useState("")
@@ -228,25 +228,25 @@ export function PresetsTab({
             </p>
             <div className={styles.rulesList}>
               <div>
-                <strong>feat:</strong> {lang === "pt" ? "Nova funcionalidade" : "A new feature"}
+                <strong>feat:</strong> {t("conventionalFeat")}
               </div>
               <div>
-                <strong>fix:</strong> {lang === "pt" ? "Correção de bug" : "A bug fix"}
+                <strong>fix:</strong> {t("conventionalFix")}
               </div>
               <div>
-                <strong>docs:</strong> {lang === "pt" ? "Documentação" : "Documentation changes"}
+                <strong>docs:</strong> {t("conventionalDocs")}
               </div>
               <div>
-                <strong>refactor:</strong> {lang === "pt" ? "Refatoração de código" : "Refactoring code"}
+                <strong>refactor:</strong> {t("conventionalRefactor")}
               </div>
               <div>
-                <strong>perf:</strong> {lang === "pt" ? "Melhoria de performance" : "Performance improvement"}
+                <strong>perf:</strong> {t("conventionalPerf")}
               </div>
               <div>
-                <strong>test:</strong> {lang === "pt" ? "Adição ou correção de testes" : "Adding or fixing testes"}
+                <strong>test:</strong> {t("conventionalTest")}
               </div>
               <div>
-                <strong>chore:</strong> {lang === "pt" ? "Tarefas de manutenção" : "Maintenance tasks"}
+                <strong>chore:</strong> {t("conventionalChore")}
               </div>
             </div>
           </div>

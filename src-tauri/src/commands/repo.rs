@@ -24,17 +24,9 @@ pub async fn check_repo(state: State<'_, AppState>, path: String) -> Result<bool
     crate::commands::run_blocking(move || Ok(check(runner.as_ref(), &path))).await
 }
 
-#[tauri::command]
-pub async fn repo_root(state: State<'_, AppState>, path: String) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || root_of(runner.as_ref(), &path)).await
-}
+git_command!(repo_root, String, root_of, (path: String), ());
 
-#[tauri::command]
-pub async fn init_repo(state: State<'_, AppState>, path: String) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || init(runner.as_ref(), &path)).await
-}
+git_command!(init_repo, String, init, (path: String), ());
 
 #[cfg(test)]
 mod tests {
@@ -43,7 +35,13 @@ mod tests {
 
     #[test]
     fn initializes_selected_directory() {
-        let runner = MockRunner::new(&[("init -- /workspace/new-repo", "Initialized empty Git repository")], &[]);
+        let runner = MockRunner::new(
+            &[(
+                "init -- /workspace/new-repo",
+                "Initialized empty Git repository",
+            )],
+            &[],
+        );
         assert!(init(&runner, "/workspace/new-repo").is_ok());
     }
 }

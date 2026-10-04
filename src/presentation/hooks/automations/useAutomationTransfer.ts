@@ -1,9 +1,9 @@
+import { automationsTomlUseCase } from "../../../data"
 import { save } from "@tauri-apps/plugin-dialog"
 import { writeTextFile } from "@tauri-apps/plugin-fs"
 import type { AutomationRecipe } from "../../../domain/entities/automations/automations"
 import { readAutomationImport } from "../../../data/use-cases/automations/automation-import-use-case"
 import { t } from "../../../i18n"
-import { serializeAutomationsToml } from "../../../main/adapters"
 import { EXPORT_AUTOMATIONS_FILE } from "../../../shared/constants/limits"
 import type { Lang } from "../../../types"
 import type { useAutomations } from "./useAutomations"
@@ -27,7 +27,7 @@ export function useAutomationTransfer({
 }: TransferOptions) {
   const exportAutomations = async () => {
     try {
-      const tomlContent = serializeAutomationsToml(automations.recipes, automations.monitors)
+      const tomlContent = automationsTomlUseCase.serializeAutomationsToml(automations.recipes, automations.monitors)
       const targetPath = await save({
         defaultPath: EXPORT_AUTOMATIONS_FILE,
         filters: [{ name: "TOML", extensions: ["toml"] }],

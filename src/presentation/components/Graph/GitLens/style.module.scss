@@ -5,6 +5,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--bg-win);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   outline: none;
   --gitlens-row-h: 28px;
   --gitlens-font: 13px;
@@ -97,7 +99,7 @@
 
 .selected .message,
 .row:hover .message {
-  color: #fff;
+  color: var(--fg);
 }
 
 .author {
@@ -117,7 +119,7 @@
 }
 
 .ref {
-  font-size: 10px;
+  font-size: var(--font-xs);
   line-height: 15px;
   padding: 0 6px;
   border-radius: 9px;
@@ -127,9 +129,9 @@
 }
 
 .refHead {
-  background: var(--grape);
-  border-color: var(--grape);
-  color: #fff;
+  background: var(--grape-btn);
+  border-color: var(--grape-btn);
+  color: var(--on-accent);
 }
 
 .refTag {
@@ -262,7 +264,7 @@
     background 0.2s ease;
 
   &:hover {
-    border-color: var(--grape);
+    border-color: var(--grape-btn);
   }
 }
 

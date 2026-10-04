@@ -1,7 +1,7 @@
 import { _Either } from "funcio"
 import { useCallback, useState } from "react"
 import type { Lang, StashItem } from "../../../types"
-import { t } from "../../../i18n"
+import { formatMessage, t } from "../../../i18n"
 import { gitApi } from "../../../infrastructure/git"
 import type { RunAction } from "../repository/action-types"
 
@@ -66,16 +66,36 @@ export function useStashOps(deps: StashOpsDeps) {
     [repo, lang, runAction, loadStashes],
   )
 
-  const stashDrop = useCallback(
-    async (index: number) => {
-      if (!repo) return Promise.resolve()
-      if (!(await requestConfirm(t(lang, "stashDrop"), t(lang, "stashDropConfirm")))) return Promise.resolve()
-      return runAction(() => gitApi.stashDrop(repo, index), loadStashes, {
+  const restoreStash = useCallback(
+    async (item: StashItem) => {
+      if (!repo) return
+      const patch = await gitApi.stashShow(repo, item.index)
+      if (!patch.trim()) return
+      await runAction(() => gitApi.applyPatch(repo, patch, false, false), loadStashes, {
         loadingMessage: t(lang, "actionProcessing"),
         successMessage: t(lang, "actionSuccess"),
       })
     },
-    [repo, lang, runAction, requestConfirm, loadStashes],
+    [repo, lang, runAction, loadStashes],
+  )
+
+  const stashDrop = useCallback(
+    async (index: number) => {
+      if (!repo) return Promise.resolve()
+      const entry = stashes.find((item) => item.index === index)
+      const warning = t(lang, "stashDropConfirmIrreversible").replace(
+        "{selector}",
+        entry?.selector ?? `stash@{${index}}`,
+      )
+      if (!(await requestConfirm(t(lang, "stashDrop"), warning))) return Promise.resolve()
+      return runAction(() => gitApi.stashDrop(repo, index), loadStashes, {
+        loadingMessage: t(lang, "actionProcessing"),
+        successMessage: t(lang, "actionSuccess"),
+        undoLabel: formatMessage(lang, "undoStashDrop", { selector: entry?.selector ?? `stash@{${index}}` }),
+        undo: entry ? () => restoreStash(entry) : undefined,
+      })
+    },
+    [repo, lang, stashes, runAction, requestConfirm, loadStashes, restoreStash],
   )
 
   const stashShow = useCallback((index: number) => (repo ? gitApi.stashShow(repo, index) : Promise.resolve("")), [repo])

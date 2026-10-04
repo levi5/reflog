@@ -24,7 +24,7 @@
   color: var(--fg);
   border-radius: 4px;
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -47,6 +47,8 @@
 
 .submoduleCard {
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border-soft);
   border-radius: 6px;
   padding: 8px 10px;
@@ -73,7 +75,7 @@
 }
 
 .stateBadge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 6px;
   border-radius: 10px;
   font-family: var(--mono);
@@ -95,13 +97,13 @@
 }
 
 .stateConflict {
-  background: rgba(239, 68, 68, 0.2);
+  background: var(--red-dim);
   color: var(--danger);
 }
 
 .submodulePath {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 
@@ -118,7 +120,7 @@
   color: var(--fg);
   border-radius: 4px;
   padding: 2px 7px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

@@ -3,6 +3,8 @@
   gap: 8px;
   padding: 8px 12px;
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border-bottom: 1px solid var(--border-soft);
   flex-wrap: wrap;
   align-items: center;

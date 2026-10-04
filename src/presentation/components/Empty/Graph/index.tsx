@@ -10,9 +10,9 @@ export const EmptyGraphState = ({ className }: EmptyGraphStateProps) => {
   const { t } = useTranslation()
   return (
     <div className={className}>
-      <main className={classNames("canvasWrap")}>
+      <div className={classNames("canvasWrap")}>
         <EmptyState message={t("noChanges")} />
-      </main>
+      </div>
     </div>
   )
 }

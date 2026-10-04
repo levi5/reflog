@@ -1,5 +1,5 @@
+import { commitTemplateUseCase, conflictResolverUseCase, mergeStatsUseCase } from "../../../data"
 import { useEffect, useRef, useState } from "react"
-import { getLastCommitOpts, parseConflicts, pruneResolved, pushHistory } from "../../../main/adapters"
 import { t } from "../../../i18n"
 import { gitApi } from "../../../infrastructure/git"
 import type { ConflictFile, Lang, StatusResult } from "../../../types"
@@ -46,7 +46,7 @@ export function useMerge(deps: MergeDeps) {
   contentRef.current = editorContent
 
   useEffect(() => {
-    setResolvedMap((prev) => pruneResolved(prev, conflicts))
+    setResolvedMap((prev) => mergeStatsUseCase.pruneResolved(prev, conflicts))
     if (conflicts.length === 0) return
     const keep = conflicts.find((f) => f.path === activeRef.current) ?? conflicts[0]
     if (activeRef.current !== keep.path || !contentRef.current) {
@@ -68,7 +68,7 @@ export function useMerge(deps: MergeDeps) {
     if (!repo || !activeConflict) return Promise.resolve()
     const path = activeConflict
     const content = editorContent
-    if (parseConflicts(content).length > 0) {
+    if (conflictResolverUseCase.parseConflicts(content).length > 0) {
       setMsg(t(lang, "conflictMarkers"))
       return Promise.resolve()
     }
@@ -86,11 +86,12 @@ export function useMerge(deps: MergeDeps) {
     if (!repo || !activeConflict) return Promise.resolve()
     const path = activeConflict
     const content = editorContent
-    if (parseConflicts(content).length > 0) {
+    if (conflictResolverUseCase.parseConflicts(content).length > 0) {
       setMsg(t(lang, "cannotResolve"))
       return Promise.resolve()
     }
-    const before = conflicts.find((f) => f.path === path)?.conflicts.length ?? parseConflicts(content).length
+    const before =
+      conflicts.find((f) => f.path === path)?.conflicts.length ?? conflictResolverUseCase.parseConflicts(content).length
     return runAction(
       () => gitApi.saveContent(repo, path, content).then(() => gitApi.add(repo, [path])),
       () => {
@@ -106,11 +107,11 @@ export function useMerge(deps: MergeDeps) {
 
   const continueMerge = () => {
     const msg = readCommitMessage().trim() || "Merge conflict resolved"
-    const opts = getLastCommitOpts()
+    const opts = commitTemplateUseCase.getLastCommitOpts()
     return runAction(
       () => gitApi.add(repo, []).then(() => gitApi.commit(repo, msg, opts.signoff, opts.sign)),
       () => {
-        pushHistory(msg)
+        commitTemplateUseCase.pushHistory(msg)
         clearCommitMessage()
         setResolvedMap({})
       },

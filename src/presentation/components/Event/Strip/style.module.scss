@@ -10,7 +10,7 @@
 }
 
 .eventsTitle {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -21,7 +21,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-family: var(--mono);
   color: var(--fg);
   background: var(--grape-dim);

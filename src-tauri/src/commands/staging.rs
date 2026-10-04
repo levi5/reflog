@@ -1,17 +1,12 @@
-use crate::runner::GitRunner;
 use crate::commands::validation::{
-    validate_ref_name, validate_commit_oid, validate_repo_relative_path, validate_patch_size,
+    validate_commit_oid, validate_patch_size, validate_ref_name, validate_repo_relative_path,
+    validate_rev_spec,
 };
-use crate::AppState;
-use tauri::State;
+use crate::runner::GitRunner;
 
 const MAX_PATCH_BYTES: usize = 5 * 1024 * 1024;
 
-pub fn add(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    files: &[String],
-) -> Result<String, String> {
+pub fn add(runner: &dyn GitRunner, repo_path: &str, files: &[String]) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
     if files.is_empty() {
         return runner.run(Some(&root), &["add", "-A"]);
@@ -35,8 +30,7 @@ pub fn commit(
     if message.trim().is_empty() {
         return Err("mensagem de commit vazia".to_string());
     }
-    let mut owned: Vec<String> =
-        vec!["commit".to_string(), "-m".to_string(), message.to_string()];
+    let mut owned: Vec<String> = vec!["commit".to_string(), "-m".to_string(), message.to_string()];
     if signoff {
         owned.push("--signoff".to_string());
     }
@@ -79,30 +73,33 @@ pub fn checkout(
     repo_path: &str,
     branch: &str,
     create: bool,
+    from: Option<String>,
 ) -> Result<String, String> {
     validate_ref_name(branch)?;
     let root = runner.repo_root(repo_path)?;
     if create {
-        return runner.run(Some(&root), &["checkout", "-b", branch]);
+        let start = match from.as_deref() {
+            Some(rev) if !rev.trim().is_empty() => {
+                validate_rev_spec(rev)?;
+                Some(rev)
+            }
+            _ => None,
+        };
+        return match start {
+            Some(rev) => runner.run(Some(&root), &["checkout", "-b", branch, "--", rev]),
+            None => runner.run(Some(&root), &["checkout", "-b", branch]),
+        };
     }
     runner.run(Some(&root), &["checkout", branch])
 }
 
-pub fn unstage(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    file: &str,
-) -> Result<String, String> {
+pub fn unstage(runner: &dyn GitRunner, repo_path: &str, file: &str) -> Result<String, String> {
     validate_repo_relative_path(file)?;
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["reset", "HEAD", "--", file])
 }
 
-pub fn discard(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    file: &str,
-) -> Result<String, String> {
+pub fn discard(runner: &dyn GitRunner, repo_path: &str, file: &str) -> Result<String, String> {
     validate_repo_relative_path(file)?;
     let root = runner.repo_root(repo_path)?;
     match runner.run(Some(&root), &["restore", "--", file]) {
@@ -168,7 +165,12 @@ pub fn revert_abort(runner: &dyn GitRunner, repo_path: &str) -> Result<String, S
     runner.run(Some(&root), &["revert", "--abort"])
 }
 
-pub fn reset(runner: &dyn GitRunner, repo_path: &str, target: &str, mode: &str) -> Result<String, String> {
+pub fn reset(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    target: &str,
+    mode: &str,
+) -> Result<String, String> {
     validate_commit_oid(target)?;
     let flag = match mode {
         "soft" => "--soft",
@@ -180,158 +182,52 @@ pub fn reset(runner: &dyn GitRunner, repo_path: &str, target: &str, mode: &str) 
     runner.run(Some(&root), &["reset", flag, target])
 }
 
+git_command!(git_add, String, add, (repo_path: String, files: Vec<String>), ());
 
-use crate::commands::run_blocking;
+git_command!(git_commit, String, commit, (repo_path: String, message: String), (signoff: bool, sign: bool));
 
-#[tauri::command]
-pub async fn git_add(
-    state: State<'_, AppState>,
-    repo_path: String,
-    files: Vec<String>,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || add(runner.as_ref(), &repo_path, &files)).await
-}
+git_command!(
+    git_amend_commit,
+    String,
+    amend_commit,
+    (repo_path: String, message: String),
+    (signoff: bool, sign: bool)
+);
 
-#[tauri::command]
-pub async fn git_commit(
-    state: State<'_, AppState>,
-    repo_path: String,
-    message: String,
-    signoff: bool,
-    sign: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || commit(runner.as_ref(), &repo_path, &message, signoff, sign)).await
-}
+git_command!(
+    git_checkout,
+    String,
+    checkout,
+    (repo_path: String, branch: String),
+    (create: bool, from: Option<String>)
+);
 
-#[tauri::command]
-pub async fn git_amend_commit(
-    state: State<'_, AppState>,
-    repo_path: String,
-    message: String,
-    signoff: bool,
-    sign: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || amend_commit(runner.as_ref(), &repo_path, &message, signoff, sign)).await
-}
+git_command!(git_unstage, String, unstage, (repo_path: String, file: String), ());
 
-#[tauri::command]
-pub async fn git_checkout(
-    state: State<'_, AppState>,
-    repo_path: String,
-    branch: String,
-    create: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || checkout(runner.as_ref(), &repo_path, &branch, create)).await
-}
+git_command!(git_discard, String, discard, (repo_path: String, file: String), ());
 
-#[tauri::command]
-pub async fn git_unstage(
-    state: State<'_, AppState>,
-    repo_path: String,
-    file: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || unstage(runner.as_ref(), &repo_path, &file)).await
-}
+git_command!(git_apply_patch, String, apply_patch, (repo_path: String, patch: String), (cached: bool, reverse: bool));
 
-#[tauri::command]
-pub async fn git_discard(
-    state: State<'_, AppState>,
-    repo_path: String,
-    file: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || discard(runner.as_ref(), &repo_path, &file)).await
-}
+git_command!(git_cherry_pick, String, cherry_pick, (repo_path: String, hash: String), ());
 
-#[tauri::command]
-pub async fn git_apply_patch(
-    state: State<'_, AppState>,
-    repo_path: String,
-    patch: String,
-    cached: bool,
-    reverse: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || apply_patch(runner.as_ref(), &repo_path, &patch, cached, reverse)).await
-}
+git_command!(git_cherry_pick_continue, String, cherry_pick_continue, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_cherry_pick(
-    state: State<'_, AppState>,
-    repo_path: String,
-    hash: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || cherry_pick(runner.as_ref(), &repo_path, &hash)).await
-}
+git_command!(git_cherry_pick_abort, String, cherry_pick_abort, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_cherry_pick_continue(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || cherry_pick_continue(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_revert, String, revert, (repo_path: String, hash: String), ());
 
-#[tauri::command]
-pub async fn git_cherry_pick_abort(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || cherry_pick_abort(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_revert_continue, String, revert_continue, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_revert(
-    state: State<'_, AppState>,
-    repo_path: String,
-    hash: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || revert(runner.as_ref(), &repo_path, &hash)).await
-}
+git_command!(git_revert_abort, String, revert_abort, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_revert_continue(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || revert_continue(runner.as_ref(), &repo_path)).await
-}
-
-#[tauri::command]
-pub async fn git_revert_abort(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || revert_abort(runner.as_ref(), &repo_path)).await
-}
-
-#[tauri::command]
-pub async fn git_reset(
-    state: State<'_, AppState>,
-    repo_path: String,
-    target: String,
-    mode: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || reset(runner.as_ref(), &repo_path, &target, &mode)).await
-}
+git_command!(git_reset, String, reset, (repo_path: String, target: String, mode: String), ());
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::runner::mock::MockRunner;
     use crate::runner::ProcessRunner;
+    use crate::test_support::git;
 
     #[test]
     fn checks_out_existing_and_new_branches_as_refs() {
@@ -339,48 +235,16 @@ mod tests {
             &[
                 ("rev-parse --show-toplevel", "/r"),
                 ("checkout fix/c", "Switched to branch 'fix/c'"),
-                ("checkout -b feature/new", "Switched to a new branch 'feature/new'"),
+                (
+                    "checkout -b feature/new",
+                    "Switched to a new branch 'feature/new'",
+                ),
             ],
             &[],
         );
 
-        assert!(checkout(&runner, "/r", "fix/c", false).is_ok());
-        assert!(checkout(&runner, "/r", "feature/new", true).is_ok());
-    }
-
-    fn git(dir: &str, args: &[&str]) {
-        let out = std::process::Command::new("git")
-            .current_dir(dir)
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .arg("-c")
-            .arg("user.name=demo")
-            .arg("-c")
-            .arg("user.email=demo@demo")
-            .arg("-c")
-            .arg("init.defaultBranch=main")
-            .arg("-c")
-            .arg("commit.gpgsign=false")
-            .args(args)
-            .output()
-            .expect("git binary missing");
-        assert!(
-            out.status.success(),
-            "git {} failed: {}",
-            args.join(" "),
-            String::from_utf8_lossy(&out.stderr)
-        );
-    }
-
-    fn git_out(dir: &str, args: &[&str]) -> String {
-        let out = std::process::Command::new("git")
-            .current_dir(dir)
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .args(args)
-            .output()
-            .expect("git binary missing");
-        String::from_utf8_lossy(&out.stdout).to_string()
+        assert!(checkout(&runner, "/r", "fix/c", false, None).is_ok());
+        assert!(checkout(&runner, "/r", "feature/new", true, None).is_ok());
     }
 
     fn fixture() -> (tempfile::TempDir, String) {
@@ -399,12 +263,15 @@ mod tests {
         let runner = ProcessRunner;
         git(&dir, &["branch", "side"]);
 
-        checkout(&runner, &dir, "side", false).unwrap();
-        assert_eq!(git_out(&dir, &["rev-parse", "--abbrev-ref", "HEAD"]).trim(), "side");
-
-        checkout(&runner, &dir, "feature/new", true).unwrap();
+        checkout(&runner, &dir, "side", false, None).unwrap();
         assert_eq!(
-            git_out(&dir, &["rev-parse", "--abbrev-ref", "HEAD"]).trim(),
+            git(&dir, &["rev-parse", "--abbrev-ref", "HEAD"]).trim(),
+            "side"
+        );
+
+        checkout(&runner, &dir, "feature/new", true, None).unwrap();
+        assert_eq!(
+            git(&dir, &["rev-parse", "--abbrev-ref", "HEAD"]).trim(),
             "feature/new"
         );
     }
@@ -418,7 +285,7 @@ mod tests {
         git(&dir, &["commit", "-m", "two"]);
 
         reset(&runner, &dir, "HEAD~1", "soft").unwrap();
-        assert_eq!(git_out(&dir, &["rev-list", "--count", "HEAD"]).trim(), "1");
-        assert!(git_out(&dir, &["status", "--porcelain"]).contains("g.txt"));
+        assert_eq!(git(&dir, &["rev-list", "--count", "HEAD"]).trim(), "1");
+        assert!(git(&dir, &["status", "--porcelain"]).contains("g.txt"));
     }
 }

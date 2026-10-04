@@ -13,8 +13,10 @@ interface BranchPanelProps {
   onNewBranchNameChange: (branchName: string) => void
   onCreateBranch: () => void
   onCheckoutBranch: (branchName: string) => void
-  onDeleteBranch: (branchName: string) => void
+  onDeleteBranch: (branchName: string, force?: boolean) => void
   onRenameBranch: (oldName: string, newName: string) => void
+  onCreateBranchFrom?: (branchName: string, from: string) => void
+  busy?: boolean
 }
 
 interface BranchCreateFormProps {
@@ -51,9 +53,14 @@ export function BranchPanel({
   onCheckoutBranch,
   onDeleteBranch,
   onRenameBranch,
+  onCreateBranchFrom,
+  busy = false,
 }: BranchPanelProps) {
+  const { t } = useTranslation()
   const [renamingBranchName, setRenamingBranchName] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState("")
+  const [fromDraft, setFromDraft] = useState("")
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   const startRename = (branchName: string) => {
     setRenamingBranchName(branchName)
@@ -75,17 +82,47 @@ export function BranchPanel({
 
   return (
     <>
-      <BranchCreateForm
-        newBranchName={newBranchName}
-        onNewBranchNameChange={onNewBranchNameChange}
-        onCreateBranch={onCreateBranch}
-      />
-      {branches.length === 0 && <span className={styles.hint}>{currentBranchName}</span>}
+      {onCreateBranchFrom ? null : (
+        <BranchCreateForm
+          newBranchName={newBranchName}
+          onNewBranchNameChange={onNewBranchNameChange}
+          onCreateBranch={onCreateBranch}
+        />
+      )}
+      {branches.length === 0 && <span className={styles.hint}>{currentBranchName || t("noBranches")}</span>}
+      {onCreateBranchFrom && (
+        <InlineForm
+          onSubmit={() => {
+            const name = newBranchName.trim()
+            if (!name) return
+            onCreateBranchFrom(name, fromDraft.trim())
+            onNewBranchNameChange("")
+            setFromDraft("")
+          }}
+          submitLabel={t("newBranchFrom")}
+          submitIcon={<GitBranchPlus size={14} />}
+          disabled={!newBranchName.trim()}
+        >
+          <input
+            aria-label={t("newBranch")}
+            placeholder={t("newBranch")}
+            value={newBranchName}
+            onChange={(event) => onNewBranchNameChange(event.target.value)}
+          />
+          <input
+            aria-label={t("branchFromLabel")}
+            placeholder={t("branchFromPlaceholder")}
+            value={fromDraft}
+            onChange={(event) => setFromDraft(event.target.value)}
+          />
+        </InlineForm>
+      )}
       {branches.map((branch, index) => (
         <BranchCard
           key={branch.name}
           branch={branch}
           index={index}
+          busy={busy}
           isRenaming={renamingBranchName === branch.name}
           draftName={renameDraft}
           onDraftNameChange={setRenameDraft}
@@ -94,6 +131,8 @@ export function BranchPanel({
           onCheckoutBranch={onCheckoutBranch}
           onDeleteBranch={onDeleteBranch}
           onStartRename={startRename}
+          onConfirmDelete={setConfirmDelete}
+          confirmingDelete={confirmDelete === branch.name}
         />
       ))}
     </>

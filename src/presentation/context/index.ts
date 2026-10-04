@@ -1,6 +1,7 @@
 export * from "./accent"
 export * from "./commit"
 export * from "./filter"
+export * from "./material"
 export * from "./message"
 export * from "./profile"
 export * from "./repository"

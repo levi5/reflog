@@ -1,24 +1,17 @@
-use crate::domain::{parse_conflict_text, ConflictBlock, ConflictFile};
+use crate::domain::{parse_conflict_text, ConflictFile};
 use crate::runner::GitRunner;
 use crate::AppState;
 use std::path::Path;
 use tauri::State;
 
 fn is_safe_repo_path(file: &str) -> bool {
-    if file.is_empty()
-        || file.starts_with('/')
-        || file.contains("..")
-        || file.contains('\0')
-    {
+    if file.is_empty() || file.starts_with('/') || file.contains("..") || file.contains('\0') {
         return false;
     }
     true
 }
 
-pub fn conflicted_of(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-) -> Result<Vec<ConflictFile>, String> {
+pub fn conflicted_of(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<ConflictFile>, String> {
     let root = runner.repo_root(repo_path)?;
     let canonical_root = std::fs::canonicalize(&root).map_err(|e| e.to_string())?;
     let out = runner.run(Some(&root), &["diff", "--name-only", "--diff-filter=U"])?;
@@ -53,11 +46,6 @@ pub fn get_conflicted_files(
     repo_path: String,
 ) -> Result<Vec<ConflictFile>, String> {
     conflicted_of(state.runner.as_ref(), &repo_path)
-}
-
-#[tauri::command]
-pub fn parse_conflicts(content: String) -> Vec<ConflictBlock> {
-    parse_conflict_text(&content)
 }
 
 #[cfg(test)]

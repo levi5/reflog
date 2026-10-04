@@ -1,9 +1,6 @@
-use crate::runner::GitRunner;
-use crate::domain::CommitFileChange;
 use crate::commands::validation::{validate_commit_oid, validate_repo_relative_path};
-
-use crate::AppState;
-use tauri::State;
+use crate::domain::CommitFileChange;
+use crate::runner::GitRunner;
 
 const MAX_DIFF_OUTPUT_BYTES: usize = 2 * 1024 * 1024;
 const MAX_FILE_LIST_OUTPUT_BYTES: usize = 512 * 1024;
@@ -26,16 +23,6 @@ pub fn diff_of(
     runner.run_limited(Some(&root), &args, MAX_DIFF_OUTPUT_BYTES)
 }
 
-pub fn show_of(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    rev: &str,
-) -> Result<String, String> {
-    validate_commit_oid(rev)?;
-    let root = runner.repo_root(repo_path)?;
-    runner.run_limited(Some(&root), &["show", "--stat", "--", rev], MAX_FILE_LIST_OUTPUT_BYTES)
-}
-
 pub fn commit_files_of(
     runner: &dyn GitRunner,
     repo_path: &str,
@@ -45,7 +32,16 @@ pub fn commit_files_of(
     let root = runner.repo_root(repo_path)?;
     let out = runner.run_limited(
         Some(&root),
-        &["diff-tree", "--no-commit-id", "--name-status", "-z", "--root", "--first-parent", "-r", rev],
+        &[
+            "diff-tree",
+            "--no-commit-id",
+            "--name-status",
+            "-z",
+            "--root",
+            "--first-parent",
+            "-r",
+            rev,
+        ],
         MAX_FILE_LIST_OUTPUT_BYTES,
     )?;
     let mut files = vec![];
@@ -59,7 +55,11 @@ pub fn commit_files_of(
             (first_path, None)
         };
         if !path.is_empty() {
-            files.push(CommitFileChange { status, path, old_path });
+            files.push(CommitFileChange {
+                status,
+                path,
+                old_path,
+            });
         }
     }
     Ok(files)
@@ -76,20 +76,21 @@ pub fn commit_diff_of(
     match file {
         Some(f) if !f.trim().is_empty() => {
             validate_repo_relative_path(f.trim())?;
-            runner.run_limited(Some(&root), &["show", "--first-parent", "--", rev, "--", f.trim()], MAX_DIFF_OUTPUT_BYTES)
+            runner.run_limited(
+                Some(&root),
+                &["show", "--first-parent", "--", rev, "--", f.trim()],
+                MAX_DIFF_OUTPUT_BYTES,
+            )
         }
-        _ => {
-            runner.run_limited(Some(&root), &["show", "--first-parent", "--", rev], MAX_DIFF_OUTPUT_BYTES)
-        }
+        _ => runner.run_limited(
+            Some(&root),
+            &["show", "--first-parent", "--", rev],
+            MAX_DIFF_OUTPUT_BYTES,
+        ),
     }
 }
 
-
-pub fn blame_of(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-    file: &str,
-) -> Result<String, String> {
+pub fn blame_of(runner: &dyn GitRunner, repo_path: &str, file: &str) -> Result<String, String> {
     validate_repo_relative_path(file)?;
     let root = runner.repo_root(repo_path)?;
     runner.run_limited(
@@ -99,10 +100,7 @@ pub fn blame_of(
     )
 }
 
-pub fn ls_files_of(
-    runner: &dyn GitRunner,
-    repo_path: &str,
-) -> Result<Vec<String>, String> {
+pub fn ls_files_of(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<String>, String> {
     let root = runner.repo_root(repo_path)?;
     let out = runner.run_limited(Some(&root), &["ls-files"], MAX_FILE_LIST_OUTPUT_BYTES)?;
     Ok(out
@@ -112,66 +110,15 @@ pub fn ls_files_of(
         .collect())
 }
 
-#[tauri::command]
-pub async fn git_diff(
-    state: State<'_, AppState>,
-    repo_path: String,
-    file: String,
-    staged: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || diff_of(runner.as_ref(), &repo_path, &file, staged)).await
-}
+git_command!(git_diff, String, diff_of, (repo_path: String, file: String), (staged: bool));
 
-#[tauri::command]
-pub async fn git_show(
-    state: State<'_, AppState>,
-    repo_path: String,
-    rev: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || show_of(runner.as_ref(), &repo_path, &rev)).await
-}
+git_command!(git_blame, String, blame_of, (repo_path: String, file: String), ());
 
-#[tauri::command]
-pub async fn git_blame(
-    state: State<'_, AppState>,
-    repo_path: String,
-    file: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || blame_of(runner.as_ref(), &repo_path, &file)).await
-}
+git_command!(git_ls_files, Vec<String>, ls_files_of, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_ls_files(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<Vec<String>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || ls_files_of(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_commit_files, Vec<CommitFileChange>, commit_files_of, (repo_path: String, rev: String), ());
 
-#[tauri::command]
-pub async fn git_commit_files(
-    state: State<'_, AppState>,
-    repo_path: String,
-    rev: String,
-) -> Result<Vec<CommitFileChange>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || commit_files_of(runner.as_ref(), &repo_path, &rev)).await
-}
-
-#[tauri::command]
-pub async fn git_commit_diff(
-    state: State<'_, AppState>,
-    repo_path: String,
-    rev: String,
-    file: Option<String>,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || commit_diff_of(runner.as_ref(), &repo_path, &rev, file)).await
-}
+git_command!(git_commit_diff, String, commit_diff_of, (repo_path: String, rev: String), (file: Option<String>));
 
 #[cfg(test)]
 mod tests {
@@ -222,7 +169,10 @@ mod tests {
         let runner = MockRunner::new(
             &[
                 ("rev-parse --show-toplevel", "/r"),
-                ("show --first-parent -- merge123 -- src/file.ts", "diff --git a/src/file.ts b/src/file.ts"),
+                (
+                    "show --first-parent -- merge123 -- src/file.ts",
+                    "diff --git a/src/file.ts b/src/file.ts",
+                ),
             ],
             &[],
         );

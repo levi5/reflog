@@ -8,6 +8,7 @@ interface Options {
   min: number
   max: number
   storageKey: string
+  label?: string
   invert?: boolean
 }
 
@@ -48,7 +49,7 @@ function persistSize(key: string, value: number): void {
   }
 }
 
-export function useResizable({ axis, initial, min, max, storageKey, invert }: Options) {
+export function useResizable({ axis, initial, min, max, storageKey, invert, label }: Options) {
   const [size, setSize] = useState(() => loadSize(storageKey, initial, min, max))
 
   const reset = useCallback(() => {
@@ -113,7 +114,7 @@ export function useResizable({ axis, initial, min, max, storageKey, invert }: Op
     "aria-valuenow": Math.round(size),
     "aria-valuemin": min,
     "aria-valuemax": max,
-    "aria-label": storageKey,
+    "aria-label": label ?? storageKey,
     onPointerDown,
     onDoubleClick: reset,
     onKeyDown,

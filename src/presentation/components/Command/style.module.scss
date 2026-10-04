@@ -37,7 +37,11 @@
   left: 24px;
   right: 0;
   z-index: 60;
-  background: var(--bg-panel2);
+  background: var(--glass-strong);
+  backdrop-filter: var(--glass-filter);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 4px;
@@ -51,7 +55,7 @@
 
 .cmdSection {
   margin: 2px 6px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -90,7 +94,7 @@
 }
 
 .consoleHint {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--faint);
   font-family: var(--mono);
 }
@@ -99,7 +103,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--grape);
 }
 
@@ -114,7 +118,7 @@
   border-radius: 6px;
   padding: 8px 10px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
   white-space: pre-wrap;
   word-break: break-word;
@@ -138,7 +142,7 @@
 }
 
 .outTitle {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--muted);
   text-transform: uppercase;
@@ -155,15 +159,15 @@
   color: var(--muted);
   border-radius: 4px;
   padding: 2px 7px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-family: inherit;
   cursor: pointer;
   transition: all 0.15s ease;
 
   &:hover {
-    background: var(--bg-hover);
-    color: #ff7a7a;
-    border-color: rgba(255, 122, 122, 0.35);
+    background: var(--red-dim);
+    color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 45%, transparent);
   }
 }
 
@@ -172,7 +176,7 @@
 }
 
 .cmdErr {
-  color: #ff7a7a;
+  color: var(--red);
 }
 
 .cmdLine {
@@ -229,7 +233,7 @@
 
 .catCount {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--font-xs);
   background: var(--grape-dim);
   color: var(--grape);
   border-radius: 9999px;

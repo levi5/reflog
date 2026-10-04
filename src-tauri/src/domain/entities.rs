@@ -49,6 +49,13 @@ pub struct CommitInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct ConfigEntry {
+    pub key: String,
+    pub value: String,
+    pub allowed: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct ReflogEntry {
     pub hash: String,
     pub short: String,
@@ -76,7 +83,6 @@ pub struct CommitFileChange {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub old_path: Option<String>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ConflictBlock {
@@ -116,10 +122,10 @@ pub struct RemoteInfo {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SubmoduleInfo {
-  pub name: String,
-  pub path: String,
-  pub url: String,
-  pub branch: String,
-  pub hash: String,
-  pub state: String,
+    pub name: String,
+    pub path: String,
+    pub url: String,
+    pub branch: String,
+    pub hash: String,
+    pub state: String,
 }

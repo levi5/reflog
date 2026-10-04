@@ -14,6 +14,7 @@ interface StashPanelProps {
   onApply?: (index: number) => void
   onDrop?: (index: number) => void
   onShowDiff?: (index: number) => Promise<string>
+  busy?: boolean
 }
 
 export function StashPanel({
@@ -25,6 +26,7 @@ export function StashPanel({
   onApply,
   onDrop,
   onShowDiff,
+  busy = false,
 }: StashPanelProps) {
   const { t } = useTranslation()
   const [activeDiffIndex, setActiveDiffIndex] = useState<number | null>(null)
@@ -42,7 +44,7 @@ export function StashPanel({
       setLoadingDiff(true)
       try {
         const text = await onShowDiff(index)
-        setDiffText(text || "No diff")
+        setDiffText(text || t("noDiff"))
       } catch (e: unknown) {
         setDiffText(String(e))
       } finally {
@@ -56,15 +58,16 @@ export function StashPanel({
       <div className={styles.rowFlex}>
         <input
           placeholder={`${t("stash")}...`}
+          aria-label={t("stashMessage")}
           value={stashMessage}
           onChange={(event) => onStashMessageChange(event.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onStash()}
         />
-        <button type="button" onClick={onStash} title={t("saveStash")}>
+        <button type="button" onClick={onStash} disabled={busy} title={t("saveStash")}>
           {t("saveStash")}
         </button>
-        <button type="button" onClick={onPop} title="Pop latest">
-          Pop
+        <button type="button" onClick={onPop} disabled={busy} title={t("stashPop")}>
+          {t("stashPop")}
         </button>
       </div>
 
@@ -84,6 +87,7 @@ export function StashPanel({
                     type="button"
                     className={styles.actionBtn}
                     onClick={() => onApply(stash.index)}
+                    disabled={busy}
                     title={t("stashApply")}
                   >
                     <Play size={11} /> {t("stashApply")}
@@ -104,6 +108,7 @@ export function StashPanel({
                     type="button"
                     className={`${styles.actionBtn} ${styles.dangerBtn}`}
                     onClick={() => onDrop(stash.index)}
+                    disabled={busy}
                     title={t("stashDrop")}
                   >
                     <Trash2 size={11} /> {t("stashDrop")}

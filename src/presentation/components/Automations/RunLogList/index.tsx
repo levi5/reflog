@@ -1,5 +1,5 @@
+import { gitCommandParserUseCase } from "../../../../data"
 import { useTranslation } from "../../../context"
-import { stripGitPrefix } from "../../../../main/adapters"
 import type { AutomationLogLine } from "../../../../domain/entities/automations/automations"
 import styles from "./style.module.scss"
 
@@ -20,13 +20,13 @@ export function RunLogList({ logLines, draftRepoPath, currentRepoPath }: RunLogL
   return (
     <>
       <strong>{t("runLog")}</strong>
-      <div className={styles.log}>
+      <div className={styles.log} role="log" aria-live="polite" aria-label={t("runLog")}>
         {logLines.map((logLine) => (
           <div key={logLine.at} className={logLine.err ? styles.logErr : undefined}>
             <span className={styles.logTarget}>
               [{getLogTargetLabel(logLine.target, draftRepoPath, currentRepoPath)}]
             </span>{" "}
-            <span className={styles.logCmd}>$ git {stripGitPrefix(logLine.cmd)}</span>
+            <span className={styles.logCmd}>$ git {gitCommandParserUseCase.stripGitPrefix(logLine.cmd)}</span>
             {"\n"}
             {logLine.out}
           </div>

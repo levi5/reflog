@@ -31,7 +31,7 @@
   align-items: center;
   gap: 7px;
   margin: 0 4px 4px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -168,7 +168,7 @@
 }
 
 :global(.figScope) {
-  fill: rgba(255, 190, 90, 0.12);
+  fill: color-mix(in srgb, var(--amber) 12%, transparent);
   stroke: var(--amber);
 }
 
@@ -184,7 +184,7 @@
 
 :global(.figMuted) {
   fill: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 :global(.figLine) {

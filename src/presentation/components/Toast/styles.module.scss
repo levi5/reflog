@@ -32,7 +32,9 @@
   gap: 1.2rem;
   padding: 1rem 1.4rem;
   border-radius: 0.8rem;
-  background: var(--bg-panel);
+  background: var(--glass);
+  backdrop-filter: var(--glass-filter);
+  -webkit-backdrop-filter: var(--glass-filter);
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-md);
   color: var(--fg);
@@ -72,9 +74,9 @@
 
 .actionButton {
   margin-top: 0.8rem;
-  background: var(--grape);
-  border: 1px solid var(--grape);
-  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: var(--on-primary);
   font-weight: 700;
   border-radius: 0.6rem;
   padding: 0.5rem 1.2rem;
@@ -83,6 +85,8 @@
 }
 
 .actionButton:hover:not(:disabled) {
+  background: var(--primary);
+  color: var(--on-primary);
   filter: brightness(1.08);
 }
 
@@ -107,10 +111,9 @@
   }
 }
 
-/* Variant Styles */
 .error {
   border-color: var(--red-container);
-  background: linear-gradient(135deg, var(--red-dim) 0%, var(--bg-panel) 70%);
+  background: linear-gradient(135deg, var(--red-dim) 0%, transparent 70%), var(--glass);
 
   .iconWrapper {
     color: var(--red);
@@ -122,7 +125,7 @@
 
 .success {
   border-color: var(--green-container);
-  background: linear-gradient(135deg, var(--green-dim) 0%, var(--bg-panel) 70%);
+  background: linear-gradient(135deg, var(--green-dim) 0%, transparent 70%), var(--glass);
 
   .iconWrapper {
     color: var(--green);
@@ -135,7 +138,7 @@
 .response,
 .info {
   border-color: var(--violet-container);
-  background: linear-gradient(135deg, var(--violet-dim) 0%, var(--bg-panel) 70%);
+  background: linear-gradient(135deg, var(--violet-dim) 0%, transparent 70%), var(--glass);
 
   .iconWrapper {
     color: var(--link);
@@ -147,7 +150,7 @@
 
 .loading {
   border-color: var(--violet-container);
-  background: linear-gradient(135deg, var(--violet-dim) 0%, var(--bg-panel) 70%);
+  background: linear-gradient(135deg, var(--violet-dim) 0%, transparent 70%), var(--glass);
 
   .iconWrapper {
     color: var(--violet);

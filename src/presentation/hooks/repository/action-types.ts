@@ -13,6 +13,8 @@ export interface RunActionOptions {
   title?: string
   successDuration?: number
   successAction?: UndoAction
+  undoLabel?: string
+  undo?: () => Promise<unknown> | undefined
 }
 
 export type RunAction = (work: () => Promise<unknown>, after?: () => void, options?: RunActionOptions) => Promise<void>

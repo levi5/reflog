@@ -1,12 +1,12 @@
 import classnames from "classnames"
 import { Info } from "lucide-react"
-import { useRepo, useTranslation } from "../../context"
+import { useRepoCore, useTranslation } from "../../context"
 import { SectionHeading } from "./SettingsCards"
 import styles from "./style.module.scss"
 
 export function AboutSection() {
   const { t } = useTranslation()
-  const { gitVersion } = useRepo()
+  const { gitVersion } = useRepoCore()
 
   return (
     <>

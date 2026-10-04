@@ -2,7 +2,7 @@ import type {
   BranchInfo,
   CommitFileChange,
   CommitInfo,
-  ConflictBlock,
+  ConfigEntry,
   ConflictFile,
   Identity,
   RebaseOp,
@@ -12,6 +12,7 @@ import type {
   StatusResult,
   SubmoduleInfo,
 } from "../../types"
+import type { CompareFileStat, LogFilter, PushOptions } from "./ipc-client"
 
 export interface IGitApi {
   checkRepo(path: string): Promise<boolean>
@@ -29,11 +30,10 @@ export interface IGitApi {
   fileContent(repoPath: string, file: string): Promise<string>
   saveContent(repoPath: string, file: string, content: string): Promise<void>
   conflicted(repoPath: string): Promise<ConflictFile[]>
-  parse(content: string): Promise<ConflictBlock[]>
   add(repoPath: string, files: string[]): Promise<string>
   commit(repoPath: string, message: string, signoff?: boolean, sign?: boolean): Promise<string>
   amendCommit(repoPath: string, message: string, signoff?: boolean, sign?: boolean): Promise<string>
-  checkout(repoPath: string, branch: string, create?: boolean): Promise<string>
+  checkout(repoPath: string, branch: string, create?: boolean, from?: string): Promise<string>
   branchDelete(repoPath: string, name: string, force?: boolean): Promise<string>
   branchRename(repoPath: string, oldName: string, newName: string): Promise<string>
   cherryPick(repoPath: string, hash: string): Promise<string>
@@ -52,6 +52,19 @@ export interface IGitApi {
   fetch(repoPath: string, prune?: boolean): Promise<string>
   pull(repoPath: string): Promise<string>
   push(repoPath: string): Promise<string>
+  pushWith(repoPath: string, options?: PushOptions): Promise<string>
+  setUpstream(repoPath: string, remote: string, branch: string): Promise<string>
+  unsetUpstream(repoPath: string, branch: string): Promise<string>
+  fetchRef(repoPath: string, remote: string, prune?: boolean, tags?: boolean): Promise<string>
+  mergeBase(repoPath: string, base: string, target: string): Promise<string>
+  diffRefs(repoPath: string, base: string, target: string, statOnly?: boolean): Promise<string>
+  diffStatFiles(repoPath: string, base: string, target: string): Promise<CompareFileStat[]>
+  commitsAhead(repoPath: string, base: string, target: string, limit?: number): Promise<CommitInfo[]>
+  commitsBehind(repoPath: string, base: string, target: string, limit?: number): Promise<CommitInfo[]>
+  compareGraph(repoPath: string, base: string, target: string, limit?: number): Promise<CommitInfo[]>
+  searchLog(repoPath: string, filter: LogFilter, limit?: number, skip?: number): Promise<CommitInfo[]>
+  searchGraph(repoPath: string, filter: LogFilter, limit?: number, skip?: number): Promise<CommitInfo[]>
+  fileHistory(repoPath: string, file: string, limit?: number, follow?: boolean): Promise<CommitInfo[]>
   run(repoPath: string, args: string[]): Promise<string>
   version(): Promise<string>
   remoteUrl(repoPath: string): Promise<string>
@@ -79,6 +92,7 @@ export interface IGitApi {
   stashApply(repoPath: string, index: number): Promise<string>
   applyPatch(repoPath: string, patch: string, cached: boolean, reverse: boolean): Promise<string>
   configGet(repoPath: string, key: string, global?: boolean): Promise<string>
+  configSnapshot(repoPath: string, global?: boolean): Promise<ConfigEntry[]>
   configSet(repoPath: string, key: string, value: string, global?: boolean): Promise<string>
   identity(repoPath: string): Promise<Identity>
 }

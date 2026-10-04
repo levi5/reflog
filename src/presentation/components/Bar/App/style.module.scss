@@ -5,8 +5,11 @@
   gap: 8px;
   min-height: 44px;
   padding: 6px 8px 6px 12px;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border-soft);
+  background: var(--bar-bg);
+  backdrop-filter: var(--bar-filter);
+  -webkit-backdrop-filter: var(--bar-filter);
+  border-bottom: 1px solid var(--bar-border);
+  box-shadow: 0 0.1rem 0.6rem rgba(0, 0, 0, 0.12);
   flex-wrap: nowrap;
   user-select: none;
   min-width: 0;
@@ -69,7 +72,7 @@
   background: var(--bg-deep);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--font-xs);
   max-width: 90px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -88,15 +91,15 @@
 }
 
 .repoPill.alertPill {
-  color: #ff7a7a;
-  border-color: rgba(255, 122, 122, 0.5);
-  background: rgba(255, 122, 122, 0.1);
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 50%, transparent);
+  background: var(--red-dim);
 }
 
 .repoPill.filesPill {
   color: var(--amber);
-  border-color: rgba(255, 190, 90, 0.4);
-  background: rgba(255, 190, 90, 0.08);
+  border-color: color-mix(in srgb, var(--amber) 40%, transparent);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
 }
 
 .branchSelect {

@@ -7,7 +7,7 @@ import { useTranslation } from "../../../context"
 import { Drawer } from "../../Drawer"
 
 import type { AutomationShortcut } from "../../../../domain/entities/automations"
-import { useRepo } from "../../../context"
+import { useRepoCore } from "../../../context"
 import { useAutomations } from "../../../hooks"
 import { matchesSearch, resolveShortcutTarget } from "./shortcutUtils"
 
@@ -147,7 +147,7 @@ function ShortcutItem({
 }
 
 export function QuickActionsSidebar({ isOpen, onClose }: QuickActionsSidebarProps) {
-  const repoContext = useRepo()
+  const repoContext = useRepoCore()
   const { t } = useTranslation()
   const automations = useAutomations({
     repoRoot: repoContext.repo,
@@ -191,6 +191,19 @@ export function QuickActionsSidebar({ isOpen, onClose }: QuickActionsSidebarProp
       block: "nearest",
     })
   }, [isOpen, activeIndex, selectedShortcutId])
+
+  const confirmRemoveShortcut = async (shortcutId: string) => {
+    const target = filteredShortcuts.find((shortcut) => shortcut.id === shortcutId)
+    const { displayName } = target
+      ? resolveShortcutTarget(target, recipesById, monitorsById)
+      : { displayName: shortcutId }
+    const confirmed = await repoContext.requestConfirm(
+      t("deleteShortcutAction"),
+      t("deleteShortcutConfirm").replace("{name}", displayName),
+    )
+    if (!confirmed) return
+    automations.deleteShortcut(shortcutId)
+  }
 
   const handleRunShortcut = (
     shortcut: AutomationShortcut,
@@ -268,7 +281,7 @@ export function QuickActionsSidebar({ isOpen, onClose }: QuickActionsSidebarProp
                   canRemove={!automations.running}
                   onRun={handleRunShortcut}
                   onSelect={() => setSelectedIndex(shortcutIndex)}
-                  onRemove={automations.deleteShortcut}
+                  onRemove={(shortcutId) => void confirmRemoveShortcut(shortcutId)}
                 />
               )
             })}

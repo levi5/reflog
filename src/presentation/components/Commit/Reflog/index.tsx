@@ -19,8 +19,7 @@ export function ReflogList({ entries, selectedHash, onSelect, onCheckout, onRese
   const { t } = useTranslation()
   const [copiedHash, setCopiedHash] = useState<string | null>(null)
 
-  const handleCopy = (hash: string, event: React.MouseEvent) => {
-    event.stopPropagation()
+  const handleCopy = (hash: string) => {
     void navigator.clipboard.writeText(hash)
     setCopiedHash(hash)
     setTimeout(() => setCopiedHash(null), 1500)
@@ -31,26 +30,31 @@ export function ReflogList({ entries, selectedHash, onSelect, onCheckout, onRese
   }
 
   return (
-    <div className={styles.reflogList}>
+    <ul className={styles.reflogList} aria-label={t("reflog")}>
       {entries.map((entry) => {
         const isSelected = selectedHash === entry.hash
         const isCopied = copiedHash === entry.hash
 
         return (
-          // biome-ignore lint/a11y/noStaticElementInteractions: clickable reflog row
-          // biome-ignore lint/a11y/useKeyWithClickEvents: clickable reflog row
-          <div
+          <li
             key={`${entry.selector}-${entry.hash}`}
             className={classnames(styles.reflogItem, isSelected && styles.selected)}
-            onClick={() => onSelect?.(entry)}
           >
-            <div className={styles.topRow}>
-              <span className={styles.selector}>{entry.selector}</span>
-              <code className={styles.shortHash}>{entry.short}</code>
-              <span className={styles.action} title={entry.action}>
-                {entry.action}
-              </span>
-            </div>
+            <button
+              type="button"
+              className={styles.reflogMain}
+              aria-pressed={isSelected}
+              aria-label={`${entry.selector} ${entry.short} ${entry.action}`}
+              onClick={() => onSelect?.(entry)}
+            >
+              <div className={styles.topRow}>
+                <span className={styles.selector}>{entry.selector}</span>
+                <code className={styles.shortHash}>{entry.short}</code>
+                <span className={styles.action} title={entry.action}>
+                  {entry.action}
+                </span>
+              </div>
+            </button>
             <div className={styles.metaRow}>
               <div className={styles.metaInfo}>
                 <span>{entry.author}</span>
@@ -61,8 +65,9 @@ export function ReflogList({ entries, selectedHash, onSelect, onCheckout, onRese
                 <button
                   type="button"
                   className={styles.actionBtn}
-                  onClick={(e) => handleCopy(entry.hash, e)}
+                  onClick={() => handleCopy(entry.hash)}
                   title={t("copyHash")}
+                  aria-label={`${t("copyHash")}: ${entry.short}`}
                 >
                   {isCopied ? <Check size={11} /> : <Copy size={11} />}
                   {isCopied ? t("copied") : entry.short}
@@ -71,11 +76,9 @@ export function ReflogList({ entries, selectedHash, onSelect, onCheckout, onRese
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onCheckout(entry.hash)
-                    }}
+                    onClick={() => onCheckout(entry.hash)}
                     title={t("checkout")}
+                    aria-label={`${t("checkout")}: ${entry.short}`}
                   >
                     <GitBranch size={11} />
                     {t("checkout")}
@@ -85,34 +88,30 @@ export function ReflogList({ entries, selectedHash, onSelect, onCheckout, onRese
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onReset(entry.hash, "mixed")
-                    }}
+                    onClick={() => onReset(entry.hash, "mixed")}
                     title={t("resetMixed")}
+                    aria-label={`${t("resetMixed")}: ${entry.short}`}
                   >
                     <RotateCcw size={11} />
-                    Reset
+                    {t("reset")}
                   </button>
                 )}
                 {onCherryPick && (
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onCherryPick(entry.hash)
-                    }}
+                    onClick={() => onCherryPick(entry.hash)}
                     title={t("cherryPick")}
+                    aria-label={`${t("cherryPick")}: ${entry.short}`}
                   >
                     {t("cherryPick")}
                   </button>
                 )}
               </div>
             </div>
-          </div>
+          </li>
         )
       })}
-    </div>
+    </ul>
   )
 }

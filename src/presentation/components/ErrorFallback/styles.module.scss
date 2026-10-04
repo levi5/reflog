@@ -12,6 +12,8 @@
 .card {
   width: min(520px, 100%);
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow-lg);
@@ -76,13 +78,15 @@
   border-radius: 8px;
   border: 1px solid transparent;
   background: var(--blue);
-  color: #fff;
+  color: var(--on-primary);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: filter 120ms, transform 120ms;
 
   &:hover {
+    background: var(--blue);
+    color: var(--on-primary);
     filter: brightness(1.08);
   }
 
@@ -116,6 +120,8 @@
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
 
   summary {
     padding: 8px 12px;
@@ -133,7 +139,7 @@
   max-height: 180px;
   overflow: auto;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: var(--fg-muted);
   white-space: pre-wrap;
@@ -142,7 +148,7 @@
 
 .hint {
   margin: 14px 0 0;
-  font-size: 11px;
+  font-size: var(--font-sm);
   line-height: 1.5;
   color: var(--fg-muted);
   opacity: 0.85;

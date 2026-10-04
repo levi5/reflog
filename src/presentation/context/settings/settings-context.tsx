@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useContext, useMemo } from "react"
-import type { AccentId, FontSize, Lang, Theme } from "../../../types"
+import type { AccentId, FontSize, Lang, Material, Theme } from "../../../types"
 import { AccentProvider, useAccent } from "../accent/accent-context"
+import { MaterialProvider, useMaterial } from "../material/material-context"
 import { ThemeProvider, useTheme } from "../theme/theme-context"
 import { TranslationProvider, useTranslation } from "../translation/translation-context"
 import { UiProvider, useUi } from "../ui/ui-context"
@@ -11,6 +12,8 @@ export interface SettingsContextValue {
   setLang: (l: Lang) => void
   theme: Theme
   setTheme: (t: Theme) => void
+  material: Material
+  setMaterial: (m: Material) => void
   accent: AccentId
   setAccent: (a: AccentId) => void
   fontSize: FontSize
@@ -23,6 +26,7 @@ const SettingsContext = createContext<SettingsContextValue | null>(null)
 
 function SettingsBridge({ children }: { children: ReactNode }) {
   const { theme, setTheme } = useTheme()
+  const { material, setMaterial } = useMaterial()
   const { accent, setAccent } = useAccent()
   const { fontSize, setFontSize } = useUi()
   const { lang, setLang } = useTranslation()
@@ -34,6 +38,8 @@ function SettingsBridge({ children }: { children: ReactNode }) {
       setLang,
       theme,
       setTheme,
+      material,
+      setMaterial,
       accent,
       setAccent,
       fontSize,
@@ -41,7 +47,20 @@ function SettingsBridge({ children }: { children: ReactNode }) {
       reopenLastRepo,
       setReopenLastRepo,
     }),
-    [lang, setLang, theme, setTheme, accent, setAccent, fontSize, setFontSize, reopenLastRepo, setReopenLastRepo],
+    [
+      lang,
+      setLang,
+      theme,
+      setTheme,
+      material,
+      setMaterial,
+      accent,
+      setAccent,
+      fontSize,
+      setFontSize,
+      reopenLastRepo,
+      setReopenLastRepo,
+    ],
   )
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>
@@ -51,13 +70,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   return (
     <TranslationProvider>
       <ThemeProvider>
-        <AccentProvider>
-          <UiProvider>
-            <StartupProvider>
-              <SettingsBridge>{children}</SettingsBridge>
-            </StartupProvider>
-          </UiProvider>
-        </AccentProvider>
+        <MaterialProvider>
+          <AccentProvider>
+            <UiProvider>
+              <StartupProvider>
+                <SettingsBridge>{children}</SettingsBridge>
+              </StartupProvider>
+            </UiProvider>
+          </AccentProvider>
+        </MaterialProvider>
       </ThemeProvider>
     </TranslationProvider>
   )

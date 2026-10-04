@@ -29,3 +29,18 @@
   );
   animation: busySlide 1.4s ease-in-out infinite;
 }
+
+.busyReadout {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.4rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: var(--font-xs);
+  line-height: 1.6;
+  pointer-events: none;
+}

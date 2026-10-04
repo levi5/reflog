@@ -1,11 +1,12 @@
+import { commitGraphUseCase } from "../../../../data"
 import classnames from "classnames"
 import { Edit } from "lucide-react"
 import { memo, useMemo } from "react"
 import type { GraphRow } from "../../../../domain/entities/graph/commit-graph"
-import { layoutCommitGraph as layoutGraph, parseRefs } from "../../../../main/adapters"
 import { useTranslation } from "../../../context"
 import type { CommitInfo } from "../../../../types"
 import { EmptyState } from "../../Empty/State"
+import { Skeleton } from "../../Skeleton"
 import { Icon } from "../../Icons"
 import styles from "./style.module.scss"
 
@@ -14,6 +15,8 @@ interface CommitListProps {
   currentBranchName: string
   showGraph: boolean
   selectedHash?: string
+  query?: string
+  loading?: boolean
   onSelect?: (commit: CommitInfo) => void
   onAmend?: (commit: CommitInfo) => void
 }
@@ -69,7 +72,7 @@ function CommitItem({
         {showGraph && <Icon.Graph.Cell row={row} lanes={laneCount} className={styles.graph} />}
         <div className={classnames(styles.info, !showGraph && styles.infoNoGraph)}>
           <div className={styles.first}>
-            {parseRefs(row.commit.refs).map((ref) => (
+            {commitGraphUseCase.parseRefs(row.commit.refs).map((ref) => (
               <CommitRefBadge
                 key={`${ref.kind}-${ref.label}`}
                 refKind={ref.kind}
@@ -109,14 +112,25 @@ export function CommitList({
   currentBranchName,
   showGraph,
   selectedHash,
+  query = "",
+  loading = false,
   onSelect,
   onAmend,
 }: CommitListProps) {
-  const { t } = useTranslation()
-  const commitLayout = useMemo(() => layoutGraph(commits), [commits])
+  const { t, format } = useTranslation()
+  const commitLayout = useMemo(() => commitGraphUseCase.layoutGraph(commits), [commits])
+
+  if (loading) {
+    return <Skeleton.Commits count={8} label={t("loading")} />
+  }
 
   if (commits.length === 0) {
-    return <EmptyState message={t("noChanges")} />
+    return (
+      <EmptyState
+        message={query.trim() ? format("searchNoCommits", { query: query.trim() }) : t("noCommits")}
+        hint={query.trim() ? undefined : t("noCommitsHint")}
+      />
+    )
   }
 
   return (

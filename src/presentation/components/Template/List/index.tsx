@@ -87,7 +87,7 @@ export function TemplateList({
   }
 
   return (
-    <List.Virtual<TemplateDoc>
+    <List.Paged<TemplateDoc>
       items={docs}
       selectedId={selectedId}
       currentPage={currentPage}

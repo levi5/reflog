@@ -78,9 +78,9 @@ export const Visualize = () => {
     if (graphLoading) {
       return (
         <div className={styles.simpleLayout}>
-          <main className="canvasWrap">
+          <div className="canvasWrap">
             <Skeleton.Commits count={12} label={t(lang, "loading")} />
-          </main>
+          </div>
         </div>
       )
     }

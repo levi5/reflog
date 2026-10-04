@@ -1,10 +1,10 @@
+import { graphLayoutUseCase } from "../../../../data"
 import classnames from "classnames"
 import { memo, type SVGProps } from "react"
 
 import { Dot } from "./Dot"
 
 import type { GraphNode } from "../../../../domain/entities/graph/graph-layout"
-import { laneColor } from "../../../../main/adapters"
 
 export interface CanvasNodeClasses {
   group?: string
@@ -116,7 +116,7 @@ export const CanvasNode = memo(function CanvasNode({
               cy={y}
               r={11}
               fill="none"
-              stroke={laneColor(node.lane)}
+              stroke={graphLayoutUseCase.laneColor(node.lane)}
               strokeWidth={2}
               className={classes?.halo}
             />
@@ -125,7 +125,7 @@ export const CanvasNode = memo(function CanvasNode({
               cy={y}
               r={6}
               fill="none"
-              stroke={laneColor(node.lane)}
+              stroke={graphLayoutUseCase.laneColor(node.lane)}
               strokeWidth={2}
               className={classes?.ripple}
               style={{ animationDelay: waveDelay }}
@@ -135,7 +135,7 @@ export const CanvasNode = memo(function CanvasNode({
               cy={y}
               r={8}
               fill="none"
-              stroke={laneColor(node.lane)}
+              stroke={graphLayoutUseCase.laneColor(node.lane)}
               strokeWidth={3}
               className={classes?.shockwave}
               style={{ animationDelay: waveDelay }}
@@ -145,7 +145,7 @@ export const CanvasNode = memo(function CanvasNode({
               cy={y}
               r={8}
               fill="none"
-              stroke={laneColor(node.lane)}
+              stroke={graphLayoutUseCase.laneColor(node.lane)}
               strokeWidth={3}
               className={classes?.shockwave}
               style={{ animationDelay: waveLateDelay }}
@@ -159,7 +159,7 @@ export const CanvasNode = memo(function CanvasNode({
               cy={y}
               r={17}
               fill="none"
-              stroke={laneColor(node.lane)}
+              stroke={graphLayoutUseCase.laneColor(node.lane)}
               strokeWidth={1.5}
               className={classes?.lens}
             />
@@ -184,7 +184,7 @@ export const CanvasNode = memo(function CanvasNode({
             cy={y}
             r={11}
             fill="none"
-            stroke={laneColor(node.lane)}
+            stroke={graphLayoutUseCase.laneColor(node.lane)}
             strokeWidth={2}
             className={classes?.halo}
           />
@@ -210,7 +210,7 @@ export const CanvasNode = memo(function CanvasNode({
           cx={x}
           cy={y}
           r={isSelected ? 8 : emphasized ? 7 : 5.5}
-          fill={laneColor(node.lane)}
+          fill={graphLayoutUseCase.laneColor(node.lane)}
           stroke={emphasized ? "#fff" : "none"}
           strokeWidth={emphasized ? 2 : 0}
           className={classnames(

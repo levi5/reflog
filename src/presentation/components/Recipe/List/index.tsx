@@ -38,10 +38,22 @@ export function RecipeList({
     <div className={styles.listHead}>
       <strong>{t("automations")}</strong>
       <div className={styles.listActions}>
-        <button type="button" className="mini-btn" title={t("newRecipe")} onClick={onCreateRecipe}>
+        <button
+          type="button"
+          className="mini-btn"
+          title={t("newRecipe")}
+          aria-label={t("newRecipe")}
+          onClick={onCreateRecipe}
+        >
           <Plus size={12} />
         </button>
-        <button type="button" className="mini-btn" title={t("loadExample")} onClick={onLoadExample}>
+        <button
+          type="button"
+          className="mini-btn"
+          title={t("loadExample")}
+          aria-label={t("loadExample")}
+          onClick={onLoadExample}
+        >
           <Zap size={12} />
         </button>
       </div>
@@ -90,7 +102,7 @@ export function RecipeList({
   )
 
   return (
-    <List.Virtual<AutomationRecipe>
+    <List.Paged<AutomationRecipe>
       items={recipes}
       selectedId={selectedRecipeId}
       currentPage={currentPage}

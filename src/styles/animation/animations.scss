@@ -1,9 +1,3 @@
-/* Global CSS animations — single source of truth for @keyframes.
- * Component modules must NOT redeclare these; just use `animation: <name> ...`.
- * Names are global (defined once via globals.scss). Renamed generics to avoid
- * collisions: Drawer `slideIn` -> `drawerSlideIn`, FatalError `slideIn` ->
- * `toastSlideIn`, BusyBar `slide` -> `busySlide`.
- */
 
 @keyframes spin {
   from {
@@ -411,5 +405,7 @@
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

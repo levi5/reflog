@@ -1,14 +1,6 @@
+import { commitTemplateUseCase } from "../../../data"
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react"
 import type { CommitPrefs, CommitPreset } from "../../../domain/entities/commit/commit-template"
-import {
-  clearHistory as clearHistoryUseCase,
-  loadHistory,
-  loadPrefs,
-  loadPresets,
-  pushHistory as pushHistoryUseCase,
-  savePrefs as savePrefsUseCase,
-  savePresets as savePresetsUseCase,
-} from "../../../main/adapters"
 
 export interface CommitConfigContextValue {
   prefs: CommitPrefs
@@ -23,28 +15,28 @@ export interface CommitConfigContextValue {
 export const CommitConfigContext = createContext<CommitConfigContextValue | null>(null)
 
 export function CommitConfigProvider({ children }: { children: ReactNode }) {
-  const [prefs, setPrefs] = useState<CommitPrefs>(loadPrefs)
-  const [presets, setPresets] = useState<CommitPreset[]>(loadPresets)
-  const [history, setHistory] = useState<string[]>(loadHistory)
+  const [prefs, setPrefs] = useState<CommitPrefs>(() => commitTemplateUseCase.loadPrefs())
+  const [presets, setPresets] = useState<CommitPreset[]>(() => commitTemplateUseCase.loadPresets())
+  const [history, setHistory] = useState<string[]>(() => commitTemplateUseCase.loadHistory())
 
   const savePrefs = useCallback((nextPrefs: CommitPrefs) => {
-    savePrefsUseCase(nextPrefs)
+    commitTemplateUseCase.savePrefs(nextPrefs)
     setPrefs(nextPrefs)
   }, [])
 
   const savePresets = useCallback((nextPresets: CommitPreset[]) => {
-    savePresetsUseCase(nextPresets)
+    commitTemplateUseCase.savePresets(nextPresets)
     setPresets(nextPresets)
   }, [])
 
   const pushHistory = useCallback((msg: string) => {
-    const updated = pushHistoryUseCase(msg)
+    const updated = commitTemplateUseCase.pushHistory(msg)
     setHistory(updated)
     return updated
   }, [])
 
   const clearHistory = useCallback(() => {
-    clearHistoryUseCase()
+    commitTemplateUseCase.clearHistory()
     setHistory([])
   }, [])
 

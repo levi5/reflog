@@ -81,6 +81,7 @@ export function RepoBar(props: Props) {
           onClick={() => setMode("open")}
           title={t("open")}
           aria-label={t("open")}
+          aria-pressed={mode === "open"}
         >
           <FolderOpen size={14} />
         </button>
@@ -90,6 +91,7 @@ export function RepoBar(props: Props) {
           onClick={() => setMode("clone")}
           title={t("clone")}
           aria-label={t("clone")}
+          aria-pressed={mode === "clone"}
         >
           <GitFork size={14} />
         </button>
@@ -108,6 +110,7 @@ export function RepoBar(props: Props) {
             value={openPath}
             onChange={(e) => onOpenPath(e.target.value)}
             placeholder={t("repoPath")}
+            aria-label={t("repoPath")}
             onKeyDown={(e) => e.key === "Enter" && open()}
           />
           <button
@@ -138,12 +141,14 @@ export function RepoBar(props: Props) {
             value={cloneUrl}
             onChange={(e) => onCloneUrl(e.target.value)}
             placeholder={t("cloneUrl")}
+            aria-label={t("cloneUrl")}
             onKeyDown={(e) => e.key === "Enter" && clone()}
           />
           <input
             value={cloneDir}
             onChange={(e) => onCloneDir(e.target.value)}
             placeholder={t("cloneDir")}
+            aria-label={t("cloneDir")}
             onKeyDown={(e) => e.key === "Enter" && clone()}
           />
           <button

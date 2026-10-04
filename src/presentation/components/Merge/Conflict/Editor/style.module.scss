@@ -6,6 +6,8 @@
 
 .inlineEditor {
   background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   overflow: hidden;
@@ -29,7 +31,7 @@
   color: var(--faint);
   opacity: 0.55;
   user-select: none;
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding-top: 2px;
 }
 .codeRow .lc {
@@ -47,5 +49,5 @@
 }
 .inlineFooter .hint {
   color: var(--faint);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }

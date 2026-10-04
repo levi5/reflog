@@ -145,14 +145,14 @@ export function RecipeEditor({
 }: RecipeEditorProps) {
   if (!draftRecipe || !selectedRecipe) {
     return (
-      <main className={styles.editor}>
+      <div className={styles.editor}>
         <RecipeWelcomePanel />
-      </main>
+      </div>
     )
   }
 
   return (
-    <main className={styles.editor}>
+    <div className={styles.editor}>
       <RecipeEditorHeader
         draftRecipe={draftRecipe}
         currentRepoPath={currentRepoPath}
@@ -172,6 +172,6 @@ export function RecipeEditor({
         onSaveDraft={onSaveDraft}
         onDeleteDraft={onDeleteDraft}
       />
-    </main>
+    </div>
   )
 }

@@ -1,14 +1,5 @@
+import { commandSuggestionUseCase, gitCommandParserUseCase, graphAnimUseCase } from "../../../data"
 import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  diffGraphs,
-  intentOf,
-  isDangerousCmd,
-  splitArgs,
-  splitChain,
-  spotlightForCommand,
-  stripGitPrefix,
-  suggestCommands,
-} from "../../../main/adapters"
 import type { ConsoleLine, Intent } from "../../../domain/entities/git/git-console"
 import type { GraphChange } from "../../../domain/entities/graph/graph-anim"
 import { t } from "../../../i18n"
@@ -17,7 +8,7 @@ import type { IGitApi } from "../../../infrastructure/git/types"
 import { EMPTY_OUTPUT_PLACEHOLDER, FRESH_TTL_MS, NO_ACTIVE_SUGGESTION } from "../../../shared/constants/limits"
 import type { CommitInfo, Lang } from "../../../types"
 import type { ConsoleMode, ConsoleSession } from "../../../types/components/console"
-import { useMessage } from "../../context"
+import { useMessageActions } from "../../context"
 import type { Repository } from "../repository/useRepository"
 import { appendConsoleLine, buildConsoleLine, isReadOnlyCommand, recordCommandHistory } from "./consoleHistory"
 
@@ -28,7 +19,7 @@ interface UseConsoleSessionOptions {
 }
 
 export function useConsoleSession({ language, repo, git = defaultGitApi }: UseConsoleSessionOptions): ConsoleSession {
-  const messageService = useMessage()
+  const messageService = useMessageActions()
   const [mode, setMode] = useState<ConsoleMode>("term")
   const [history, setHistory] = useState<string[]>([])
   const [lines, setLines] = useState<ConsoleLine[]>([])
@@ -69,7 +60,7 @@ export function useConsoleSession({ language, repo, git = defaultGitApi }: UseCo
   }
 
   const applySpotlight = (verb: string, output: string) => {
-    const spotlight = spotlightForCommand(verb, output, repo.graph)
+    const spotlight = graphAnimUseCase.spotlightForCommand(verb, output, repo.graph)
     if (!spotlight) return
     setChanges(spotlight.changes)
     scheduleFreshClear(spotlight.fresh)
@@ -79,7 +70,7 @@ export function useConsoleSession({ language, repo, git = defaultGitApi }: UseCo
     async (graphBefore: CommitInfo[]) => {
       try {
         const graphAfter = await git.graph(repo.repo)
-        const graphDiff = diffGraphs(graphBefore, graphAfter)
+        const graphDiff = graphAnimUseCase.diffGraphs(graphBefore, graphAfter)
         setChanges(graphDiff.changes)
         scheduleFreshClear(graphDiff.fresh)
       } catch (graphError) {
@@ -90,16 +81,16 @@ export function useConsoleSession({ language, repo, git = defaultGitApi }: UseCo
   )
 
   const runCommand = async (rawCommand: string) => {
-    const commandText = stripGitPrefix(rawCommand)
+    const commandText = gitCommandParserUseCase.stripGitPrefix(rawCommand)
     if (!commandText || !repo.repo) return
 
-    const steps = splitChain(commandText)
+    const steps = gitCommandParserUseCase.splitChain(commandText)
     if (steps.length > 1) {
       await runChain(steps)
       return
     }
 
-    const args = splitArgs(commandText)
+    const args = gitCommandParserUseCase.splitArgs(commandText)
     if (args.length === 0) return
     const verb = args[0] ?? ""
 
@@ -142,8 +133,8 @@ export function useConsoleSession({ language, repo, git = defaultGitApi }: UseCo
   }
 
   const executeStep = async (stepText: string): Promise<boolean> => {
-    const step = stripGitPrefix(stepText)
-    const args = splitArgs(step)
+    const step = gitCommandParserUseCase.stripGitPrefix(stepText)
+    const args = gitCommandParserUseCase.splitArgs(step)
     if (args.length === 0) return true
     try {
       const output = await git.run(repo.repo, args)
@@ -186,9 +177,13 @@ export function useConsoleSession({ language, repo, git = defaultGitApi }: UseCo
   }
 
   const requestRun = (rawCommand: string) => {
-    const commandText = stripGitPrefix(rawCommand)
+    const commandText = gitCommandParserUseCase.stripGitPrefix(rawCommand)
     if (!commandText) return
-    if (splitChain(commandText).some((step) => isDangerousCmd(stripGitPrefix(step)))) {
+    if (
+      gitCommandParserUseCase
+        .splitChain(commandText)
+        .some((step) => gitCommandParserUseCase.isDangerousCmd(gitCommandParserUseCase.stripGitPrefix(step)))
+    ) {
       setPendingCommand(commandText)
       return
     }
@@ -210,11 +205,11 @@ export function useConsoleSession({ language, repo, git = defaultGitApi }: UseCo
     clearInputAndRun(suggestion)
   }
 
-  const suggestionItems = useMemo(() => suggestCommands(command, history), [command, history])
+  const suggestionItems = useMemo(() => commandSuggestionUseCase.suggest(command, history), [command, history])
   const currentIndex = Math.min(activeIndex, suggestionItems.length - 1)
   const currentItem: string | undefined = suggestionItems[currentIndex]
 
-  const intent: Intent | null = intentOf(command)
+  const intent: Intent | null = gitCommandParserUseCase.intentOf(command)
 
   const keyHandlers: Record<string, () => void> = {
     ArrowDown: () => {

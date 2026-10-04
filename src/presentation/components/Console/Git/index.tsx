@@ -19,6 +19,7 @@ export function GitConsole({ session, blocksView }: GitConsoleProps) {
           <button
             type="button"
             className={classnames("mini-btn", isTerminalMode && "primary-t")}
+            aria-pressed={isTerminalMode}
             onClick={() => session.onModeChange(TERMINAL_MODE)}
           >
             <SquareTerminal size={12} /> {t("modeTerminal")}
@@ -26,6 +27,7 @@ export function GitConsole({ session, blocksView }: GitConsoleProps) {
           <button
             type="button"
             className={classnames("mini-btn", !isTerminalMode && "primary-t")}
+            aria-pressed={!isTerminalMode}
             onClick={() => session.onModeChange("blocks")}
           >
             <LayoutGrid size={12} /> {t("modeBlocks")}

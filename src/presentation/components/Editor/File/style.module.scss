@@ -3,6 +3,8 @@
   min-height: 50vh;
   resize: vertical;
   background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--fg);

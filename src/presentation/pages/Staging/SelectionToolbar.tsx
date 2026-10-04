@@ -8,21 +8,29 @@ interface SelectionToolbarProps {
   onUnstage: () => void
   onDiscard: () => void
   onClear: () => void
+  busy?: boolean
 }
 
-export function SelectionToolbar({ count, onStage, onUnstage, onDiscard, onClear }: SelectionToolbarProps) {
+export function SelectionToolbar({
+  count,
+  onStage,
+  onUnstage,
+  onDiscard,
+  onClear,
+  busy = false,
+}: SelectionToolbarProps) {
   const { lang } = useSettingsContext()
   return count === 0 ? null : (
     <div className={styles.selBar} role="toolbar" aria-label={t(lang, "selectedFiles")}>
       <span className={styles.selCount}>{formatMessage(lang, "selectedFilesCount", { count })}</span>
       <div className={styles.selActions}>
-        <button type="button" className="mini-btn" onClick={onStage}>
+        <button type="button" className="mini-btn" disabled={busy} onClick={onStage}>
           {t(lang, "stageSelected")}
         </button>
-        <button type="button" className="mini-btn" onClick={onUnstage}>
+        <button type="button" className="mini-btn" disabled={busy} onClick={onUnstage}>
           {t(lang, "unstageSelected")}
         </button>
-        <button type="button" className="mini-btn danger" onClick={onDiscard}>
+        <button type="button" className="mini-btn danger" disabled={busy} onClick={onDiscard}>
           {t(lang, "discardSelected")}
         </button>
         <button type="button" className="mini-btn" onClick={onClear} aria-label={t(lang, "clearSelection")}>

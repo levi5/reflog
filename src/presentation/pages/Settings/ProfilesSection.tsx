@@ -1,7 +1,7 @@
 import { UserPlus, UserRound } from "lucide-react"
 import { useEffect, useState } from "react"
 import { EmojiPicker } from "../../components/Picker/Emoji"
-import { useRepo, useTranslation } from "../../context"
+import { useRepoCore, useTranslation } from "../../context"
 import { useProfiles } from "../../hooks"
 import type { StringKey } from "../../../i18n"
 import { gitApi } from "../../../infrastructure/git"
@@ -33,7 +33,7 @@ function IdentitySettings() {
   const [profileEmoji, setProfileEmoji] = useState("")
   const [statusMessage, setStatusMessage] = useState("")
   const [isSaving, setIsSaving] = useState(false)
-  const { repo: repoRoot } = useRepo()
+  const { repo: repoRoot, requestConfirm } = useRepoCore()
   const profilesApi = useProfiles()
   const isGlobalScope = !repoRoot
   const canAddProfile = identityName.trim() !== "" && identityEmail.trim() !== ""
@@ -52,6 +52,14 @@ function IdentitySettings() {
       isAlive = false
     }
   }, [repoRoot])
+
+  const confirmRemoveProfile = async (profileId: string) => {
+    const target = profilesApi.profiles.find((profile) => profile.id === profileId)
+    if (!target) return
+    const confirmed = await requestConfirm(t("removeProfile"), t("removeProfileConfirm").replace("{name}", target.name))
+    if (!confirmed) return
+    profilesApi.remove(profileId)
+  }
 
   const handleSaveIdentity = async () => {
     setIsSaving(true)
@@ -114,7 +122,11 @@ function IdentitySettings() {
           <UserPlus size={12} /> {t("addProfile")}
         </button>
       </div>
-      {statusMessage && <p className={styles.muted}>{statusMessage}</p>}
+      {statusMessage && (
+        <p className={styles.muted} role="status">
+          {statusMessage}
+        </p>
+      )}
       <p className={styles.miniHead}>
         {t("profiles")} · {t("profilesHint")}
       </p>
@@ -122,7 +134,7 @@ function IdentitySettings() {
         profiles={profilesApi.profiles}
         activeProfileId={profilesApi.activeId}
         onApplyProfile={handleApplyProfile}
-        onRemoveProfile={profilesApi.remove}
+        onRemoveProfile={(profileId) => void confirmRemoveProfile(profileId)}
       />
     </WideCard>
   )

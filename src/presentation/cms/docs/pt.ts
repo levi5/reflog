@@ -156,8 +156,8 @@ export const docsPtContent: DocsContent = {
       id: "themes",
       title: "Temas",
       steps: [
-        "Em Configurações → Interface, escolha entre Escuro, Claro, Glass escuro e Glass claro.",
-        "Os temas glass usam blur e translucidez sobre o papel de parede.",
+        "Em Configurações → Interface, escolha entre Escuro e Claro.",
+        "Os temas usam superfícies sólidas com bordas finas, sem translucidez.",
       ],
     },
     {

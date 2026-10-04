@@ -50,7 +50,7 @@
 }
 
 .itemContent small {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
   font-family: var(--mono);
 }

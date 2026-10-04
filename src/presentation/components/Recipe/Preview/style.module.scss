@@ -25,7 +25,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 
@@ -35,7 +35,7 @@
 }
 
 .invalid {
-  font-size: 11px;
-  color: #ff7a7a;
+  font-size: var(--font-sm);
+  color: var(--red);
   flex-shrink: 0;
 }

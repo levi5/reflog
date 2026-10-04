@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { Dispatch, SetStateAction } from "react"
-import type { z } from "zod"
 
-export const STORAGE_VERSION = "v1" as const
-export const STORAGE_PREFIX = `reflog:${STORAGE_VERSION}:` as const
-export const DEBOUNCE_MS = 300 as const
+const STORAGE_VERSION = "v1" as const
+const STORAGE_PREFIX = `reflog:${STORAGE_VERSION}:` as const
+const DEBOUNCE_MS = 300 as const
 
 export function versionedKey(key: string): string {
   if (key.startsWith("reflog:")) {
@@ -90,46 +88,6 @@ export function writeVersionedRaw(key: string, value: string): void {
   safeSet(versionedKey(key), value)
 }
 
-export function removeVersioned(key: string): void {
-  safeRemove(versionedKey(key))
-}
-
-export function readVersioned<T>(key: string, schema: z.ZodType<T>, fallback: T): T {
-  const raw = readVersionedRaw(key)
-  if (raw === null) return fallback
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    const result = schema.safeParse(parsed)
-    return result.success ? result.data : fallback
-  } catch {
-    const result = schema.safeParse(raw as unknown)
-    return result.success ? result.data : fallback
-  }
-}
-
-export function readVersionedString(key: string, fallback = ""): string {
-  const raw = readVersionedRaw(key)
-  if (raw === null) return fallback
-  try {
-    const parsed: unknown = JSON.parse(raw)
-    return typeof parsed === "string" ? parsed : raw
-  } catch {
-    return raw
-  }
-}
-
-export function writeVersioned<T>(key: string, value: T): void {
-  try {
-    writeVersionedRaw(key, JSON.stringify(value))
-  } catch {
-    return
-  }
-}
-
-export function writeVersionedString(key: string, value: string): void {
-  writeVersionedRaw(key, value)
-}
-
 export function debounce<F extends (...args: never[]) => void>(fn: F, wait = DEBOUNCE_MS) {
   let timer: ReturnType<typeof setTimeout> | undefined
   const debounced = (...args: Parameters<F>) => {
@@ -142,91 +100,63 @@ export function debounce<F extends (...args: never[]) => void>(fn: F, wait = DEB
   return debounced
 }
 
-export function useVersionedState<T>(
-  key: string,
-  initial: T,
-  schema: z.ZodType<T>,
-  options: { debounceMs?: number } = {},
-): [T, Dispatch<SetStateAction<T>>] {
-  const { debounceMs = DEBOUNCE_MS } = options
-  const [value, setValue] = useState<T>(() => readVersioned(key, schema, initial))
-  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  useEffect(() => {
-    if (timerRef.current) clearTimeout(timerRef.current)
-    const snapshot = value
-    timerRef.current = setTimeout(() => {
-      writeVersioned(key, snapshot)
-    }, debounceMs)
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [key, value, debounceMs])
-
-  useEffect(() => {
-    const onStorage = (storageEvent: StorageEvent) => {
-      if (storageEvent.key !== versionedKey(key)) return
-      if (storageEvent.newValue === null) {
-        setValue(initial)
-        return
-      }
-      try {
-        const parsed: unknown = JSON.parse(storageEvent.newValue)
-        const result = schema.safeParse(parsed)
-        if (result.success) setValue(result.data)
-      } catch {
-        return
-      }
-    }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [key, initial, schema])
-
-  return [value, setValue]
+export interface PersistentSettingOptions<T> {
+  parse: (raw: string) => T
+  serialize?: (value: T) => string
+  normalize?: (value: T) => T
+  apply?: (value: T) => void
 }
 
-export function useVersionedString(
+export function usePersistentSetting<T>(
   key: string,
-  initial: string,
-  options: { debounceMs?: number } = {},
-): [string, (next: string | ((previous: string) => string)) => void] {
-  const { debounceMs = DEBOUNCE_MS } = options
-  const [value, setValue] = useState<string>(() => {
-    const raw = readVersionedRaw(key)
-    return raw ?? initial
+  fallback: T,
+  { parse, serialize = String, normalize, apply }: PersistentSettingOptions<T>,
+): [T, (next: T) => void] {
+  const [value, setValue] = useState<T>(() => {
+    const stored = readVersionedRaw(key)
+    return stored === null ? fallback : normalizeStored(stored, parse, fallback)
   })
+  const first = useRef(true)
+  const optionsRef = useRef({ parse, serialize, normalize, apply })
+  optionsRef.current = { parse, serialize, normalize, apply }
 
-  useEffect(() => {
-    const snapshot = value
-    const timeoutId = setTimeout(() => {
-      writeVersionedRaw(key, snapshot)
-    }, debounceMs)
-    return () => clearTimeout(timeoutId)
-  }, [key, value, debounceMs])
-
-  useEffect(() => {
-    const onStorage = (storageEvent: StorageEvent) => {
-      if (storageEvent.key !== versionedKey(key) || storageEvent.newValue === null) return
-      setValue(storageEvent.newValue)
-    }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [key])
-
-  const setStringValue = useCallback((next: string | ((previous: string) => string)) => {
-    setValue((previous) => (typeof next === "function" ? (next as (previous: string) => string)(previous) : next))
+  const set = useCallback((next: T) => {
+    const { normalize: normalizeOption } = optionsRef.current
+    setValue(normalizeOption ? normalizeOption(next) : next)
   }, [])
 
-  return [value, setStringValue]
+  useEffect(() => {
+    const write = () => writeVersionedRaw(key, optionsRef.current.serialize(value))
+    if (first.current) {
+      first.current = false
+      write()
+      return
+    }
+    const timer = setTimeout(write, DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [key, value])
+
+  useEffect(() => {
+    optionsRef.current.apply?.(value)
+  }, [value])
+
+  useEffect(() => {
+    const storageKey = versionedKey(key)
+    const onStorage = (storageEvent: StorageEvent) => {
+      if (storageEvent.key !== storageKey || storageEvent.newValue === null) return
+      setValue(normalizeStored(storageEvent.newValue, optionsRef.current.parse, fallback))
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [key, fallback])
+
+  return [value, set]
 }
 
-export const versionedStorage = {
-  key: versionedKey,
-  readRaw: readVersionedRaw,
-  writeRaw: writeVersionedRaw,
-  remove: removeVersioned,
-  read: readVersioned,
-  write: writeVersioned,
-  readString: readVersionedString,
-  writeString: writeVersionedString,
+function normalizeStored<T>(raw: string, parse: (raw: string) => T, fallback: T): T {
+  try {
+    return parse(raw)
+  } catch {
+    return fallback
+  }
 }

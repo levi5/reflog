@@ -25,6 +25,7 @@ export function CommandLog({ lines, onClear }: CommandLogProps) {
     min: MIN_LOG_HEIGHT,
     max: MAX_LOG_HEIGHT,
     storageKey: LOG_HEIGHT_STORAGE_KEY,
+    label: t("resizeConsole"),
   })
 
   if (lines.length === 0) return null
@@ -44,7 +45,13 @@ export function CommandLog({ lines, onClear }: CommandLogProps) {
           <span>{t("clearConsole")}</span>
         </button>
       </div>
-      <pre className={styles.consoleOut} style={{ height: logHeight.size, maxHeight: "none" } as CSSProperties}>
+      <pre
+        className={styles.consoleOut}
+        role="log"
+        aria-live="polite"
+        aria-label={t("gitConsole")}
+        style={{ height: logHeight.size, maxHeight: "none" } as CSSProperties}
+      >
         {lines.map((line, index) => (
           <div
             key={`${line.at}-${line.cmd}`}

@@ -1,10 +1,8 @@
 use crate::commands::validation::validate_commit_oid;
 use crate::domain::CommitInfo;
 use crate::runner::GitRunner;
-use crate::AppState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use tauri::State;
 
 const MAX_REBASE_OUTPUT_BYTES: usize = 512 * 1024;
 
@@ -79,19 +77,19 @@ pub fn rebase_commits(
 }
 
 fn first_line(message: &str) -> String {
-    message
-        .lines()
-        .next()
-        .unwrap_or("")
-        .trim()
-        .to_string()
+    message.lines().next().unwrap_or("").trim().to_string()
 }
 
 fn build_todo(ops: &[RebaseOp], subjects: &std::collections::HashMap<String, String>) -> String {
     let mut todo = String::new();
     for op in ops {
         let subject = subjects.get(&op.hash).map(|s| s.as_str()).unwrap_or("");
-        todo.push_str(&format!("{} {} {}\n", op.action.todo_verb(), op.hash, subject));
+        todo.push_str(&format!(
+            "{} {} {}\n",
+            op.action.todo_verb(),
+            op.hash,
+            subject
+        ));
     }
     todo
 }
@@ -99,7 +97,10 @@ fn build_todo(ops: &[RebaseOp], subjects: &std::collections::HashMap<String, Str
 #[cfg(unix)]
 fn write_sequence_editor(todo_path: &std::path::Path) -> Result<std::path::PathBuf, String> {
     let script_path = todo_path.with_extension("sh");
-    let script = format!("#!/bin/sh\ncat \"{}\" > \"$1\"\n", todo_path.to_string_lossy());
+    let script = format!(
+        "#!/bin/sh\ncat \"{}\" > \"$1\"\n",
+        todo_path.to_string_lossy()
+    );
     std::fs::write(&script_path, script).map_err(|e| e.to_string())?;
     use std::os::unix::fs::PermissionsExt;
     std::fs::set_permissions(&script_path, std::fs::Permissions::from_mode(0o700))
@@ -182,52 +183,21 @@ pub fn rebase_abort(runner: &dyn GitRunner, repo_path: &str) -> Result<String, S
     runner.run(Some(&root), &["rebase", "--abort"])
 }
 
-#[tauri::command]
-pub async fn git_rebase_commits(
-    state: State<'_, AppState>,
-    repo_path: String,
-    onto: String,
-) -> Result<Vec<CommitInfo>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || rebase_commits(runner.as_ref(), &repo_path, &onto)).await
-}
+git_command!(git_rebase_commits, Vec<CommitInfo>, rebase_commits, (repo_path: String, onto: String), ());
 
-#[tauri::command]
-pub async fn git_rebase_start(
-    state: State<'_, AppState>,
-    repo_path: String,
-    onto: String,
-    ops: Vec<RebaseOp>,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || rebase_start(runner.as_ref(), &repo_path, &onto, ops)).await
-}
+git_command!(git_rebase_start, String, rebase_start, (repo_path: String, onto: String), (ops: Vec<RebaseOp>));
 
-#[tauri::command]
-pub async fn git_rebase_continue(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || rebase_continue(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_rebase_continue, String, rebase_continue, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_rebase_abort(
-    state: State<'_, AppState>,
-    repo_path: String,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || rebase_abort(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_rebase_abort, String, rebase_abort, (repo_path: String), ());
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::runner::mock::MockRunner;
     use crate::runner::ProcessRunner;
+    use crate::test_support::git;
     use std::collections::HashMap;
-    use std::process::Command;
 
     fn mock() -> MockRunner {
         MockRunner::new(
@@ -276,67 +246,29 @@ mod tests {
     #[test]
     fn rejects_duplicate_all_drop_and_stale_ops() {
         assert!(rebase_start(&mock(), "/r", "main", vec![op("bbb", RebaseAction::Drop)]).is_err());
-        assert!(
-            rebase_start(
-                &mock(),
-                "/r",
-                "main",
-                vec![op("bbb", RebaseAction::Pick), op("bbb", RebaseAction::Pick)]
-            )
-            .is_err()
-        );
-        assert!(
-            rebase_start(
-                &mock(),
-                "/r",
-                "main",
-                vec![op("bbb", RebaseAction::Pick), op("zzz", RebaseAction::Pick)]
-            )
-            .is_err()
-        );
+        assert!(rebase_start(
+            &mock(),
+            "/r",
+            "main",
+            vec![op("bbb", RebaseAction::Pick), op("bbb", RebaseAction::Pick)]
+        )
+        .is_err());
+        assert!(rebase_start(
+            &mock(),
+            "/r",
+            "main",
+            vec![op("bbb", RebaseAction::Pick), op("zzz", RebaseAction::Pick)]
+        )
+        .is_err());
     }
 
     #[test]
     fn builds_todo_lines_with_subjects() {
-        let subjects: HashMap<String, String> =
-            [("bbb".to_string(), "second".to_string())].into_iter().collect();
+        let subjects: HashMap<String, String> = [("bbb".to_string(), "second".to_string())]
+            .into_iter()
+            .collect();
         let todo = build_todo(&[op("bbb", RebaseAction::Squash)], &subjects);
         assert_eq!(todo, "squash bbb second\n");
-    }
-
-    fn git(dir: &str, args: &[&str]) {
-        let out = Command::new("git")
-            .current_dir(dir)
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .arg("-c")
-            .arg("user.name=demo")
-            .arg("-c")
-            .arg("user.email=demo@demo")
-            .arg("-c")
-            .arg("init.defaultBranch=main")
-            .arg("-c")
-            .arg("commit.gpgsign=false")
-            .args(args)
-            .output()
-            .expect("git binary missing");
-        assert!(
-            out.status.success(),
-            "git {} failed: {}",
-            args.join(" "),
-            String::from_utf8_lossy(&out.stderr)
-        );
-    }
-
-    fn git_out(dir: &str, args: &[&str]) -> String {
-        let out = Command::new("git")
-            .current_dir(dir)
-            .env("GIT_CONFIG_NOSYSTEM", "1")
-            .env("GIT_CONFIG_GLOBAL", "/dev/null")
-            .args(args)
-            .output()
-            .expect("git binary missing");
-        String::from_utf8_lossy(&out.stdout).to_string()
     }
 
     #[test]
@@ -367,7 +299,7 @@ mod tests {
         }
 
         let runner = ProcessRunner;
-        let base_hash = git_out(&dir, &["rev-parse", "main~3"]).trim().to_string();
+        let base_hash = git(&dir, &["rev-parse", "main~3"]).trim().to_string();
         let commits = rebase_commits(&runner, &dir, "main~3").unwrap();
         assert_eq!(commits.len(), 3);
         let hashes: HashMap<&str, &str> = commits
@@ -385,7 +317,10 @@ mod tests {
         ];
         rebase_start(&runner, &dir, "main~3", ops).unwrap();
 
-        let log = git_out(&dir, &["log", "--pretty=format:%s", &format!("{base_hash}..HEAD")]);
+        let log = git(
+            &dir,
+            &["log", "--pretty=format:%s", &format!("{base_hash}..HEAD")],
+        );
         let subjects: Vec<&str> = log.lines().collect();
         assert_eq!(subjects, vec!["one", "three"]);
 

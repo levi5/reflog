@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core"
 import type {
   BranchInfo,
+  ConfigEntry,
   CommitFileChange,
   CommitInfo,
-  ConflictBlock,
   ConflictFile,
   Identity,
   RebaseOp,
@@ -15,6 +15,28 @@ import type {
 } from "../../types"
 
 export const DEFAULT_TEMPLATE_FOLDER = ".reflog/templates"
+
+export interface PushOptions {
+  force?: boolean
+  tags?: boolean
+  deleteRemoteBranch?: string
+}
+
+export interface LogFilter {
+  author?: string
+  grep?: string
+  path?: string
+  since?: string
+  until?: string
+  pickaxe?: string
+  follow?: boolean
+}
+
+export interface CompareFileStat {
+  path: string
+  added: number
+  removed: number
+}
 
 export class GitApiError extends Error {
   constructor(
@@ -58,20 +80,49 @@ export const gitApi = {
   saveContent: (repoPath: string, file: string, content: string) =>
     invokeTyped<void>("save_file_content", { repoPath, file, content }),
   conflicted: (repoPath: string) => invokeTyped<ConflictFile[]>("get_conflicted_files", { repoPath }),
-  parse: (content: string) => invokeTyped<ConflictBlock[]>("parse_conflicts", { content }),
   add: (repoPath: string, files: string[]) => invokeTyped<string>("git_add", { repoPath, files }),
   commit: (repoPath: string, message: string, signoff = false, sign = false) =>
     invokeTyped<string>("git_commit", { repoPath, message, signoff, sign }),
   amendCommit: (repoPath: string, message: string, signoff = false, sign = false) =>
     invokeTyped<string>("git_amend_commit", { repoPath, message, signoff, sign }),
-  checkout: (repoPath: string, branch: string, create = false) =>
-    invokeTyped<string>("git_checkout", { repoPath, branch, create }),
+  checkout: (repoPath: string, branch: string, create = false, from?: string) =>
+    invokeTyped<string>("git_checkout", { repoPath, branch, create, from: from ?? null }),
   mergeOpts: (repoPath: string, branch: string, squash: boolean, noFf: boolean) =>
     invokeTyped<string>("git_merge_opts", { repoPath, branch, squash, noFf }),
   mergeAbort: (repoPath: string) => invokeTyped<string>("git_merge_abort", { repoPath }),
   fetch: (repoPath: string, prune = false) => invokeTyped<string>("git_fetch", { repoPath, prune }),
   pull: (repoPath: string) => invokeTyped<string>("git_pull", { repoPath }),
   push: (repoPath: string) => invokeTyped<string>("git_push", { repoPath }),
+  pushWith: (repoPath: string, options: PushOptions = {}) =>
+    invokeTyped<string>("git_push_with", {
+      repoPath,
+      force: options.force ?? false,
+      pushTags: options.tags ?? false,
+      deleteRemoteBranch: options.deleteRemoteBranch ?? null,
+    }),
+  setUpstream: (repoPath: string, remote: string, branch: string) =>
+    invokeTyped<string>("git_set_upstream", { repoPath, remote, branch }),
+  unsetUpstream: (repoPath: string, branch: string) => invokeTyped<string>("git_unset_upstream", { repoPath, branch }),
+  fetchRef: (repoPath: string, remote: string, prune = false, tags = false) =>
+    invokeTyped<string>("git_fetch_ref", { repoPath, remote, prune, tags }),
+  mergeBase: (repoPath: string, base: string, target: string) =>
+    invokeTyped<string>("git_merge_base", { repoPath, base, target }),
+  diffRefs: (repoPath: string, base: string, target: string, statOnly = false) =>
+    invokeTyped<string>("git_diff_refs", { repoPath, base, target, statOnly }),
+  diffStatFiles: (repoPath: string, base: string, target: string) =>
+    invokeTyped<CompareFileStat[]>("git_diff_stat_files", { repoPath, base, target }),
+  commitsAhead: (repoPath: string, base: string, target: string, limit?: number) =>
+    invokeTyped<CommitInfo[]>("git_commits_ahead", { repoPath, base, target, limit }),
+  commitsBehind: (repoPath: string, base: string, target: string, limit?: number) =>
+    invokeTyped<CommitInfo[]>("git_commits_behind", { repoPath, base, target, limit }),
+  compareGraph: (repoPath: string, base: string, target: string, limit?: number) =>
+    invokeTyped<CommitInfo[]>("git_compare_graph", { repoPath, base, target, limit }),
+  searchLog: (repoPath: string, filter: LogFilter, limit?: number, skip?: number) =>
+    invokeTyped<CommitInfo[]>("git_search_log", { repoPath, filter, limit, skip }),
+  searchGraph: (repoPath: string, filter: LogFilter, limit?: number, skip?: number) =>
+    invokeTyped<CommitInfo[]>("git_search_graph", { repoPath, filter, limit, skip }),
+  fileHistory: (repoPath: string, file: string, limit?: number, follow = true) =>
+    invokeTyped<CommitInfo[]>("git_file_history", { repoPath, file, limit, follow }),
   stash: (repoPath: string, message?: string) => invokeTyped<string>("git_stash", { repoPath, message }),
   stashPop: (repoPath: string) => invokeTyped<string>("git_stash_pop", { repoPath }),
   stashList: (repoPath: string) => invokeTyped<StashItem[]>("git_stash_list", { repoPath }),
@@ -98,6 +149,8 @@ export const gitApi = {
     invokeTyped<string>("git_apply_patch", { repoPath, patch, cached, reverse }),
   configGet: (repoPath: string, key: string, global = false) =>
     invokeTyped<string>("git_config_get", { repoPath, key, global }),
+  configSnapshot: (repoPath: string, global = false) =>
+    invokeTyped<ConfigEntry[]>("git_config_snapshot", { repoPath, global }),
   configSet: (repoPath: string, key: string, value: string, global = false) =>
     invokeTyped<string>("git_config_set", { repoPath, key, value, global }),
   identity: (repoPath: string) => invokeTyped<Identity>("git_identity", { repoPath }),

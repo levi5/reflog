@@ -73,7 +73,7 @@
   gap: 8px;
   align-items: baseline;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .second code {
@@ -82,7 +82,7 @@
 }
 
 .ref {
-  font-size: 10px;
+  font-size: var(--font-xs);
   line-height: 16px;
   padding: 0 6px;
   border-radius: 10px;
@@ -92,9 +92,9 @@
 }
 
 .ref.head {
-  background: var(--grape);
-  border-color: var(--grape);
-  color: #fff;
+  background: var(--grape-btn);
+  border-color: var(--grape-btn);
+  color: var(--on-accent);
 }
 
 .ref.branch {
@@ -115,7 +115,7 @@
 .ref.current {
   background: var(--green);
   border-color: var(--green);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .infoNoGraph {

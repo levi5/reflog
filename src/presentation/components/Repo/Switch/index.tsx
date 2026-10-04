@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom"
 
 import { gitApi } from "../../../../infrastructure/git"
 import type { SubmoduleInfo } from "../../../../types"
-import { useRepo, useTranslation } from "../../../context"
+import { useRepoCore, useStagingSlice, useTranslation } from "../../../context"
 import { Drawer } from "../../Drawer"
 import {
   buildScopeGroups,
@@ -181,7 +181,8 @@ export function ScopeGroupSection({
 }
 
 export function RepoSwitcher({ isOpen, onClose }: RepoSwitchProps) {
-  const repo = useRepo()
+  const repo = useRepoCore()
+  const { submodules } = useStagingSlice()
   const { t, lang } = useTranslation()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState("")
@@ -219,11 +220,11 @@ export function RepoSwitcher({ isOpen, onClose }: RepoSwitchProps) {
         lang,
         repo: repo.repo,
         chain: repo.repoChain,
-        submodules: repo.submodules,
+        submodules,
         siblingModules,
         recents: repo.recents,
       }),
-    [lang, repo.repo, repo.repoChain, repo.submodules, siblingModules, repo.recents],
+    [lang, repo.repo, repo.repoChain, submodules, siblingModules, repo.recents],
   )
 
   const visibleGroups = useMemo(() => filterScopeGroups(groups, searchQuery), [groups, searchQuery])

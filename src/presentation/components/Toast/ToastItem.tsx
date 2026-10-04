@@ -35,9 +35,10 @@ export function ToastItemView({ message, onDismiss }: ToastItemProps) {
   const { id, type, title, text, action } = message
   const { t } = useTranslation()
   const role = type === "error" ? "alert" : "status"
+  const live = type === "error" || type === "success" ? "assertive" : "polite"
 
   return (
-    <div className={classnames(styles.toastItem, styles[type])} role={role} aria-live="polite">
+    <div className={classnames(styles.toastItem, styles[type])} role={role} aria-live={live} aria-atomic="true">
       <div className={styles.iconWrapper}>
         <ToastIcon type={type} />
       </div>

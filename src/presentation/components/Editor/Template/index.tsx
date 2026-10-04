@@ -141,6 +141,7 @@ export function TemplateEditor({
             className={styles.patternTextarea}
             value={draft.pattern}
             placeholder={t("templatePatternPlaceholder")}
+            aria-label={t("templatePattern")}
             onChange={(e) => onDraftChange((prev) => ({ ...prev, pattern: e.target.value }))}
           />
         </div>

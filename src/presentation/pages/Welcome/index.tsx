@@ -8,7 +8,7 @@ import { LogoMark } from "../../components/Brand/Logo"
 import { RecentCard } from "../../components/Recent"
 
 import { t } from "../../../i18n"
-import { useRepo, useSettingsContext } from "../../context"
+import { useRepoCore, useSettingsContext } from "../../context"
 import type { Lang } from "../../../types"
 
 import styles from "./style.module.scss"
@@ -30,7 +30,7 @@ interface Props {
 
 export function Welcome(props: Props) {
   const { lang: contextLang, reopenLastRepo } = useSettingsContext()
-  const repo = useRepo()
+  const repo = useRepoCore()
   const lang = props.lang ?? contextLang
   const busy = props.busy ?? repo.busy
   const recents = props.recents ?? repo.recents
@@ -136,6 +136,7 @@ export function Welcome(props: Props) {
               value={cloneUrl}
               onChange={(e) => onCloneUrl(e.target.value)}
               placeholder={t(lang, "cloneUrl")}
+              aria-label={t(lang, "cloneUrl")}
               onKeyDown={(e) => e.key === "Enter" && canClone && handleClone()}
             />
             <div className={styles.cloneRow}>
@@ -143,6 +144,7 @@ export function Welcome(props: Props) {
                 value={cloneDir}
                 onChange={(e) => onCloneDir(e.target.value)}
                 placeholder={t(lang, "cloneDir")}
+                aria-label={t(lang, "cloneDir")}
                 onKeyDown={(e) => e.key === "Enter" && canClone && handleClone()}
               />
               <button

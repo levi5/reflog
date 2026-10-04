@@ -2,18 +2,51 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .reflogItem {
+  list-style: none;
   padding: 8px 10px;
   border-bottom: 1px solid var(--border-soft);
   display: flex;
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  cursor: pointer;
   border-radius: 4px;
   transition: background 0.12s ease;
+}
+
+.reflogItem:has(.reflogMain:focus-visible) {
+  outline: 0.2rem solid var(--grape);
+  outline-offset: -0.2rem;
+}
+
+.reflogMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0.4rem;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reflogMain:hover:not(:disabled) {
+  background: transparent;
+  border: 0;
+}
+
+.reflogMain:focus-visible {
+  outline: 0.2rem solid var(--grape);
+  outline-offset: 0.2rem;
 }
 
 .reflogItem:hover {
@@ -33,11 +66,11 @@
 }
 
 .selector {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   font-family: var(--mono);
-  background: var(--grape);
-  color: #fff;
+  background: var(--grape-btn);
+  color: var(--on-accent);
   padding: 1px 7px;
   border-radius: 10px;
   flex-shrink: 0;
@@ -46,7 +79,7 @@
 .shortHash {
   font-family: var(--mono);
   color: var(--amber);
-  font-size: 11px;
+  font-size: var(--font-sm);
   flex-shrink: 0;
 }
 
@@ -63,7 +96,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 
@@ -84,7 +117,7 @@
   color: var(--fg);
   border-radius: 4px;
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

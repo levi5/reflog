@@ -3,6 +3,8 @@
   min-width: 220px;
   border-left: 1px solid var(--border-soft);
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   padding: 12px;
   overflow-y: auto;
   display: flex;
@@ -50,14 +52,14 @@
 
 .nodeGraphLabel {
   fill: var(--fg);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   font-weight: 700;
 }
 
 .nodeGraphSublabel {
   fill: var(--muted);
-  font-size: 9px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
 }
 
@@ -76,14 +78,14 @@
 
 .hash {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
   word-break: break-all;
 }
 
 .meta {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 
@@ -97,7 +99,7 @@
 
 .refs {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--grape);
   font-family: var(--mono);
 }
@@ -115,7 +117,7 @@
   color: var(--fg);
   border-radius: 4px;
   padding: 3px 7px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -129,7 +131,7 @@
 }
 
 .sectionTitle {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   text-transform: uppercase;
   color: var(--muted);
@@ -148,6 +150,8 @@
   border-radius: 4px;
   padding: 4px;
   background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
 }
 
 .fileItem {
@@ -156,7 +160,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-family: var(--mono);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -171,7 +175,7 @@
 
 .badge {
   font-weight: 700;
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 0 4px;
   border-radius: 2px;
 }
@@ -187,7 +191,7 @@
 }
 
 .badgeD {
-  background: rgba(239, 68, 68, 0.2);
+  background: var(--red-dim);
   color: var(--danger);
 }
 
@@ -274,4 +278,27 @@
     border-left: none;
     border-top: 1px solid var(--border-soft);
   }
+}
+
+.resetMode {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--font-sm);
+  color: var(--muted);
+}
+
+.resetModeSelect {
+  gap: 4px !important;
+  padding: 3px 7px !important;
+  font-size: var(--font-sm) !important;
+  border-radius: 4px !important;
+  background: var(--bg-deep) !important;
+  border-color: var(--border-soft) !important;
+  max-width: 140px !important;
+}
+
+.dangerBtn {
+  color: var(--red);
+  border-color: var(--red);
 }

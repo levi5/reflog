@@ -1,14 +1,17 @@
+import { mergeStatsUseCase } from "../../../data"
 import { _Either, _pipe } from "funcio"
 import { useCallback, useMemo, useState } from "react"
 import { t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
 import type { IGitApi } from "../../../infrastructure/git/types"
-import { repoBaseName } from "../../../main/adapters"
-import type { CommitFileChange, Lang } from "../../../types"
-import { useMessage } from "../../context"
+import type { CommitInfo, CommitFileChange, Lang } from "../../../types"
+import type { LogFilter } from "../../../infrastructure/git/ipc-client"
+import type { CompareRefsResult } from "./useRepository"
+import { useMessageActions } from "../../context"
 import { useBranchOps } from "../branch/useBranchOps"
 import type { RunAction } from "./action-types"
 import { useGitAction } from "./useGitAction"
+import { useUndoStack } from "../ui/useUndoStack"
 import { useRepositoryData } from "./useRepositoryData"
 import { useGitActions } from "./useGitActions"
 import { useRecents } from "./useRecents"
@@ -22,6 +25,7 @@ export type View =
   | "staging"
   | "merge"
   | "blame"
+  | "compare"
   | "visualize"
   | "automation"
   | "monitors"
@@ -34,6 +38,8 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
   const [repo, setRepo] = useState("")
   const { recents, pushRecent, clearRecents, removeRecent } = useRecents()
   const [busy, setBusy] = useState(false)
+  const [busyStartedAt, setBusyStartedAt] = useState<number | null>(null)
+  const [busyLabel, setBusyLabel] = useState<string | null>(null)
   const [opening, setOpening] = useState(false)
   const [msg, setMsg] = useState("")
 
@@ -44,7 +50,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     resolve: (value: boolean) => void
   } | null>(null)
 
-  const messageService = useMessage()
+  const messageService = useMessageActions()
 
   const requestConfirm = useCallback((title: string, message: string): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -85,6 +91,16 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
   })
 
   const scope = useRepoScope(repo, git)
+  const undoStack = useUndoStack()
+
+  const runUndo = useCallback(
+    async (direction: "undo" | "redo") => {
+      const entry = direction === "undo" ? undoStack.undo() : undoStack.redo()
+      if (!entry) return
+      await entry.run()
+    },
+    [undoStack],
+  )
 
   const runAction: RunAction = useCallback(
     async (work, after, options) => {
@@ -92,6 +108,8 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
       const loadingText = options?.loadingMessage ?? t(lang, "actionProcessing")
       const loadingId = messageService.loading(loadingText, options?.title)
       setBusy(true)
+      setBusyStartedAt(Date.now())
+      setBusyLabel(loadingText)
 
       const result = await _Either.try.async(work)
 
@@ -100,10 +118,15 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
         messageService.dismiss(loadingId)
         const successText =
           options?.successMessage ?? (typeof out === "string" && out.trim() ? out : t(lang, "actionSuccess"))
+        if (options?.undo) {
+          undoStack.push(options.undoLabel ?? t(lang, "undo"), options.undo)
+        }
         if (successText) {
           messageService.success(successText, options?.title, {
             duration: options?.successDuration,
-            action: options?.successAction,
+            action:
+              options?.successAction ??
+              (options?.undo ? { label: t(lang, "undo"), onAction: () => void options.undo?.() } : undefined),
           })
           if (typeof out === "string") setMsg(out)
         }
@@ -117,8 +140,10 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
       }
 
       setBusy(false)
+      setBusyStartedAt(null)
+      setBusyLabel(null)
     },
-    [repo, lang, messageService, fail, refresh],
+    [repo, lang, messageService, fail, refresh, undoStack],
   )
 
   const actionDeps = { lang, repo, runAction, requestConfirm, git }
@@ -136,6 +161,36 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     [repo, git, gitAction],
   )
 
+  const pushForce = useCallback(
+    () =>
+      gitAction(() => git.pushWith(repo, { force: true }).then((m) => m || "pushed"), "pushing", "pushForceSuccess", {
+        errorMessage: t(lang, "pushForceFailed"),
+      }),
+    [repo, git, gitAction, lang],
+  )
+
+  const pushTags = useCallback(
+    () =>
+      gitAction(() => git.pushWith(repo, { tags: true }).then((m) => m || "pushed"), "pushingTags", "pushTagsSuccess"),
+    [repo, git, gitAction],
+  )
+
+  const deleteRemoteBranch = useCallback(
+    (remoteBranch: string) =>
+      gitAction(
+        () => git.pushWith(repo, { deleteRemoteBranch: remoteBranch }).then((m) => m || "deleted"),
+        "deletingRemoteBranch",
+        "deleteRemoteBranchSuccess",
+      ),
+    [repo, git, gitAction],
+  )
+
+  const setUpstream = useCallback(
+    (remote: string, branch: string) =>
+      gitAction(() => git.setUpstream(repo, remote, branch), "settingUpstream", "setUpstreamSuccess"),
+    [repo, git, gitAction],
+  )
+
   const amendCommit = useCallback(
     (repoPath: string, message: string, signoff = false, sign = false) =>
       gitAction(() => git.amendCommit(repoPath, message, signoff, sign), "amendCommitLoading", "amendCommitSuccess"),
@@ -143,7 +198,22 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
   )
 
   const fetchPrune = useCallback(
-    () => gitAction(() => git.fetch(repo, true).then((m) => m.trim() || "fetched"), "fetchPrune", "fetchCompleted"),
+    (prune = true) =>
+      gitAction(
+        () => git.fetch(repo, prune).then((m) => m.trim() || "fetched"),
+        prune ? "fetchPrune" : "fetch",
+        "fetchCompleted",
+      ),
+    [repo, git, gitAction],
+  )
+
+  const fetchFromRemote = useCallback(
+    (remote: string, prune: boolean, tags: boolean) =>
+      gitAction(
+        () => git.fetchRef(repo, remote, prune, tags).then((m) => m.trim() || "fetched"),
+        "fetch",
+        "fetchCompleted",
+      ),
     [repo, git, gitAction],
   )
 
@@ -154,6 +224,37 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
 
   const loadCommitDiff = useCallback(
     (hash: string, file?: string) => (repo && hash ? git.commitDiff(repo, hash, file) : Promise.resolve("")),
+    [repo, git],
+  )
+
+  const compareRefs = useCallback(
+    async (base: string, target: string): Promise<CompareRefsResult> => {
+      if (!repo) return { base, target, mergeBase: "", files: [], ahead: [], behind: [], diff: "" }
+      const mergeBase = await git.mergeBase(repo, base, target)
+      const [files, ahead, behind, diff] = await Promise.all([
+        git.diffStatFiles(repo, base, target),
+        git.commitsAhead(repo, base, target, 100),
+        git.commitsBehind(repo, base, target, 100),
+        git.diffRefs(repo, base, target, false),
+      ])
+      return {
+        base,
+        target,
+        mergeBase,
+        files: files.map((entry) => ({ path: entry.path, added: entry.added, removed: entry.removed })),
+        ahead,
+        behind,
+        diff,
+      }
+    },
+    [repo, git],
+  )
+
+  const searchHistory = useCallback(
+    async (filter: LogFilter, view: "log" | "graph", limit = 100): Promise<CommitInfo[]> => {
+      if (!repo) return []
+      return view === "graph" ? git.searchGraph(repo, filter, limit) : git.searchLog(repo, filter, limit)
+    },
     [repo, git],
   )
 
@@ -168,7 +269,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
   const repoName = useMemo(
     () =>
       _pipe(status?.root ?? repo, (path: string) => {
-        return path ? repoBaseName(path) : "—"
+        return path ? mergeStatsUseCase.repoBaseName(path) : "—"
       }),
     [status?.root, repo],
   )
@@ -195,6 +296,14 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     conflicts,
     setConflicts,
     busy: busy || opening,
+    busyStartedAt,
+    busyLabel,
+    canUndo: undoStack.canUndo,
+    canRedo: undoStack.canRedo,
+    undoLabel: undoStack.pendingLabel,
+    undoLast: () => runUndo("undo"),
+    redoLast: () => runUndo("redo"),
+    clearUndoStack: undoStack.clear,
     opening,
     setBusy,
     msg,
@@ -213,9 +322,15 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     initRepo,
     runAction,
     checkoutBranch: branchOps.checkoutBranch,
+    createBranchFrom: branchOps.createBranchFrom,
     deleteBranch: branchOps.deleteBranch,
     renameBranch: branchOps.renameBranch,
     fetchPrune,
+    fetchFromRemote,
+    pushForce,
+    pushTags,
+    deleteRemoteBranch,
+    setUpstream,
     createTag: tagOps.createTag,
     deleteTag: tagOps.deleteTag,
     addRemote: remoteOps.addRemote,
@@ -240,6 +355,8 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     rebaseAbort: gitActions.rebaseAbort,
     loadCommitFiles,
     loadCommitDiff,
+    compareRefs,
+    searchHistory,
 
     loadMoreGraph: graphPage.loadMore,
     logLoading: logPage.loading,

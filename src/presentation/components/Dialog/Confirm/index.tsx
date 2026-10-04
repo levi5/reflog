@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { TriangleAlert } from "lucide-react"
+import { useTranslation } from "../../../context"
 import { Modal } from "../../Modal"
 import styles from "./style.module.scss"
 
@@ -24,7 +25,7 @@ export function Confirm({
   onCancel,
   onConfirm,
   confirmLabel,
-  cancelLabel = "Cancelar",
+  cancelLabel,
   danger = true,
   confirmDisabled = false,
   size = "md",
@@ -32,6 +33,7 @@ export function Confirm({
   warning,
   children,
 }: Props) {
+  const { t } = useTranslation()
   return (
     <Modal
       open={open}
@@ -41,7 +43,7 @@ export function Confirm({
       actions={
         <>
           <button type="button" onClick={onCancel}>
-            {cancelLabel}
+            {cancelLabel ?? t("cancel")}
           </button>
           <button
             type="button"

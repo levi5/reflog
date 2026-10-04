@@ -4,6 +4,8 @@
   overflow: hidden;
   margin-bottom: 12px;
   background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
 }
 .hunk.selected {
   border-color: var(--grape);
@@ -75,7 +77,7 @@ button.secHeader.base {
 .secBranch {
   font-family: var(--mono);
   font-weight: 400;
-  font-size: 11px;
+  font-size: var(--font-sm);
   background: var(--bg-raised);
   border-radius: 4px;
   padding: 1px 6px;
@@ -105,7 +107,7 @@ button.secHeader.base {
   color: var(--faint);
   opacity: 0.55;
   user-select: none;
-  font-size: 11px;
+  font-size: var(--font-sm);
   padding-top: 2px;
 }
 .codeRow .lc {

@@ -4,7 +4,8 @@ import { createHashRouter, Navigate } from "react-router-dom"
 import { AppLayout } from "./presentation/layout/App"
 import { MainLayout } from "./presentation/layout/MainLayout"
 import { RouteErrorElement, RouteNotFound } from "./presentation/components/ErrorBoundary/RouteErrorElement"
-import { RepoProvider } from "./presentation/context"
+import { MessageProvider, RepoProvider } from "./presentation/context"
+import { detectLocale, formatMessage } from "./i18n"
 
 const Welcome = lazy(() => import("./presentation/pages/Welcome").then((m) => ({ default: m.Welcome })))
 const Merge = lazy(() => import("./presentation/pages/Merge").then((m) => ({ default: m.MergePage })))
@@ -21,6 +22,7 @@ const AutomationHub = lazy(() =>
     default: m.AutomationHub,
   })),
 )
+const Compare = lazy(() => import("./presentation/pages/Compare").then((m) => ({ default: m.CompareRefsPage })))
 const Docs = lazy(() => import("./presentation/pages/Docs").then((m) => ({ default: m.Docs })))
 const Settings = lazy(() =>
   import("./presentation/pages/Settings").then((m) => ({
@@ -32,7 +34,17 @@ const RepoDeepLink = lazy(() => import("./presentation/pages/RepoDeepLink").then
 export async function repoLoader({ params }: { params: Record<string, string | undefined> }) {
   const splat = params["*"] ?? ""
   const [maybeView, ...rest] = splat.split("/").filter(Boolean)
-  const knownViews = new Set(["staging", "graph", "blame", "merge", "visualize", "monitors", "templates", "automation"])
+  const knownViews = new Set([
+    "staging",
+    "graph",
+    "blame",
+    "merge",
+    "visualize",
+    "monitors",
+    "templates",
+    "automation",
+    "compare",
+  ])
   const hasView = knownViews.has(maybeView)
   const encodedPath = hasView ? rest.join("/") : [maybeView, ...rest].filter(Boolean).join("/")
   const view = hasView ? maybeView : "staging"
@@ -43,19 +55,19 @@ export async function repoLoader({ params }: { params: Record<string, string | u
     repoPath = encodedPath
   }
   if (!repoPath) {
-    throw new Response("Repositório não informado na URL", { status: 400 })
+    throw new Response(formatMessage(detectLocale(), "routeErrorNoRepoPath"), { status: 400 })
   }
   try {
     const { gitApi } = await import("./infrastructure/git")
     const ok = await gitApi.checkRepo(repoPath)
     if (!ok) {
-      throw new Response(`Não é um repositório git: ${repoPath}`, { status: 404 })
+      throw new Response(formatMessage(detectLocale(), "routeErrorNotAGitRepo", { path: repoPath }), { status: 404 })
     }
     const root = await gitApi.repoRoot(repoPath)
     return { repoPath: root || repoPath, view }
   } catch (e) {
     if (e instanceof Response) throw e
-    throw new Response(`Falha ao verificar repositório: ${repoPath}`, { status: 500 })
+    throw new Response(formatMessage(detectLocale(), "routeErrorCheckFailed", { path: repoPath }), { status: 500 })
   }
 }
 
@@ -63,9 +75,11 @@ export const router = createHashRouter([
   {
     path: "/",
     element: (
-      <RepoProvider>
-        <AppLayout />
-      </RepoProvider>
+      <MessageProvider>
+        <RepoProvider>
+          <AppLayout />
+        </RepoProvider>
+      </MessageProvider>
     ),
     errorElement: <RouteErrorElement />,
     children: [
@@ -88,6 +102,7 @@ export const router = createHashRouter([
             loader: repoLoader,
             element: <RepoDeepLink />,
           },
+          { path: "compare", element: <Compare /> },
           { path: "docs", element: <Docs /> },
           { path: "settings", element: <Settings /> },
           { path: "*", element: <RouteNotFound /> },

@@ -1,19 +1,10 @@
-import { _Maybe } from "funcio"
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import type { FontSize } from "../../../types"
+import { createContext, type ReactNode, useContext, useMemo } from "react"
+import { DEFAULT_FONT_SIZE, type FontSize, MAX_FONT_SIZE, MIN_FONT_SIZE } from "../../../types"
 import { clamp } from "../../../shared/utils/number"
-import {
-  debounce,
-  readVersionedRaw,
-  versionedKey,
-  writeVersionedRaw,
-} from "../../../infrastructure/storage/versioned-storage"
+import { usePersistentSetting, versionedKey } from "../../../infrastructure/storage/versioned-storage"
 
 const FONT_SIZE_KEY = "font-size"
 export const FONT_SIZE_STORAGE_KEY = versionedKey(FONT_SIZE_KEY)
-const DEFAULT_FONT_SIZE: FontSize = 13
-const MIN_FONT_SIZE = 10
-const MAX_FONT_SIZE = 20
 
 const FONT_SIZE_PRESETS: Record<string, number> = {
   small: 12,
@@ -21,23 +12,20 @@ const FONT_SIZE_PRESETS: Record<string, number> = {
   large: 15,
 }
 
-function readFontSizeStorage(): FontSize {
-  const stored = readVersionedRaw(FONT_SIZE_KEY)
-  return _Maybe
-    .of(stored)
-    .map((raw) => {
-      if (raw === null) return DEFAULT_FONT_SIZE
-      const preset = FONT_SIZE_PRESETS[raw]
-      const parsed = Number.parseInt(raw, 10)
-      const size = preset ?? (Number.isNaN(parsed) ? DEFAULT_FONT_SIZE : parsed)
-      return clamp(size, MIN_FONT_SIZE, MAX_FONT_SIZE)
-    })
-    .getOrElse(DEFAULT_FONT_SIZE)
+function clampFontSize(size: number): FontSize {
+  return clamp(size, MIN_FONT_SIZE, MAX_FONT_SIZE)
 }
 
-const debouncedWriteFontSize = debounce((fontSize: FontSize) => {
-  writeVersionedRaw(FONT_SIZE_KEY, String(fontSize))
-}, 300)
+function parseFontSize(raw: string): FontSize {
+  const parsed = Number.parseInt(raw, 10)
+  if (Number.isNaN(parsed)) return DEFAULT_FONT_SIZE
+  return clampFontSize(FONT_SIZE_PRESETS[raw] ?? parsed)
+}
+
+function applyFontSizeVars(fontSize: FontSize): void {
+  document.documentElement.style.setProperty("--app-fs", `${fontSize}px`)
+  document.documentElement.style.setProperty("--font-zoom", (fontSize / DEFAULT_FONT_SIZE).toFixed(3))
+}
 
 export interface UiContextValue {
   fontSize: FontSize
@@ -50,28 +38,11 @@ export interface UiContextValue {
 const UiContext = createContext<UiContextValue | null>(null)
 
 export function UiProvider({ children }: { children: ReactNode }) {
-  const [fontSize, setFontSizeState] = useState<FontSize>(readFontSizeStorage)
-
-  const setFontSize = useCallback((nextSize: FontSize) => {
-    const clamped = clamp(nextSize, MIN_FONT_SIZE, MAX_FONT_SIZE)
-    setFontSizeState(clamped)
-  }, [])
-
-  useEffect(() => {
-    debouncedWriteFontSize(fontSize)
-    document.documentElement.style.setProperty("--app-fs", `${fontSize}px`)
-    document.documentElement.style.setProperty("--font-zoom", `${(fontSize / DEFAULT_FONT_SIZE).toFixed(3)}`)
-  }, [fontSize])
-
-  useEffect(() => {
-    const onStorage = (storageEvent: StorageEvent) => {
-      if (storageEvent.key !== FONT_SIZE_STORAGE_KEY || storageEvent.newValue === null) return
-      const parsed = Number.parseInt(storageEvent.newValue, 10)
-      if (!Number.isNaN(parsed)) setFontSizeState(clamp(parsed, MIN_FONT_SIZE, MAX_FONT_SIZE))
-    }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [])
+  const [fontSize, setFontSize] = usePersistentSetting<FontSize>(FONT_SIZE_KEY, DEFAULT_FONT_SIZE, {
+    parse: parseFontSize,
+    normalize: (nextSize) => clampFontSize(nextSize),
+    apply: applyFontSizeVars,
+  })
 
   const value = useMemo<UiContextValue>(
     () => ({

@@ -4,7 +4,7 @@ import { t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
 import type { IGitApi } from "../../../infrastructure/git/types"
 import type { Lang } from "../../../types"
-import type { MessageContextValue } from "../../context/message/message-context"
+import type { MessageActions } from "../../context/message/message-context"
 
 interface RepoOpenerDeps {
   lang: Lang
@@ -18,7 +18,7 @@ interface RepoOpenerDeps {
   setOpening: (opening: boolean) => void
   pushRecent: (root: string) => void
   fail: (error: unknown, message?: string) => void
-  messageService: MessageContextValue
+  messageService: MessageActions
 }
 
 export function useRepoOpener({

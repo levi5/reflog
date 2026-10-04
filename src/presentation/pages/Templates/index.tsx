@@ -4,7 +4,7 @@ import { TemplateEditor } from "../../components/Editor/Template"
 import { TemplateCreateDialog } from "../../components/Template/CreateDialog"
 import { TemplateSidebar } from "../../components/Template/SideBar"
 import { EmptyState } from "../../components/Empty/State"
-import { useRepo, useTranslation } from "../../context"
+import { useRepoCore, useTranslation } from "../../context"
 import { useTemplateManager } from "../../hooks/commit/useTemplateManager"
 import { PresetsTab } from "./PresetsTab"
 
@@ -12,7 +12,7 @@ import styles from "./style.module.scss"
 
 export function Templates() {
   const { t } = useTranslation()
-  const repo = useRepo()
+  const repo = useRepoCore()
   const repoPath = repo.repo
 
   const {
@@ -78,7 +78,7 @@ export function Templates() {
         onEditPreset={handleStartEditPreset}
       />
 
-      <main className={styles.editor}>
+      <div className={styles.editor}>
         {feedback && (
           <div className={styles.bannerSuccess}>
             <Check size={14} /> {feedback}
@@ -124,7 +124,7 @@ export function Templates() {
             onToggleIcons={handleToggleIcons}
           />
         )}
-      </main>
+      </div>
 
       <TemplateCreateDialog open={createOpen} onCancel={() => setCreateOpen(false)} onSelect={handleStartCreate} />
 

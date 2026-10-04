@@ -10,6 +10,7 @@ interface RemotePanelProps {
   remotes: RemoteInfo[]
   onAdd: (remoteName: string, remoteUrl: string) => void
   onRemove: (remoteName: string) => void
+  busy?: boolean
 }
 
 interface RemoteCreateFormProps {
@@ -54,9 +55,10 @@ function RemoteCreateForm({
 interface RemoteCardProps {
   remote: RemoteInfo
   onRemove: (remoteName: string) => void
+  busy?: boolean
 }
 
-function RemoteCard({ remote, onRemove }: RemoteCardProps) {
+function RemoteCard({ remote, onRemove, busy = false }: RemoteCardProps) {
   const { t } = useTranslation()
   return (
     <ListItem
@@ -67,7 +69,14 @@ function RemoteCard({ remote, onRemove }: RemoteCardProps) {
       }
       description={remote.url}
       actions={
-        <button type="button" className="mini-btn" title={t("removeRemote")} onClick={() => onRemove(remote.name)}>
+        <button
+          type="button"
+          className="mini-btn"
+          title={t("removeRemote")}
+          aria-label={`${t("removeRemote")}: ${remote.name}`}
+          disabled={busy}
+          onClick={() => onRemove(remote.name)}
+        >
           <Trash2 size={12} />
         </button>
       }
@@ -75,7 +84,7 @@ function RemoteCard({ remote, onRemove }: RemoteCardProps) {
   )
 }
 
-export function RemotePanel({ remotes, onAdd, onRemove }: RemotePanelProps) {
+export function RemotePanel({ remotes, onAdd, onRemove, busy = false }: RemotePanelProps) {
   const [remoteName, setRemoteName] = useState("")
   const [remoteUrl, setRemoteUrl] = useState("")
 
@@ -98,7 +107,7 @@ export function RemotePanel({ remotes, onAdd, onRemove }: RemotePanelProps) {
         onSubmit={handleAddRemote}
       />
       {remotes.map((remote) => (
-        <RemoteCard key={remote.name} remote={remote} onRemove={onRemove} />
+        <RemoteCard key={remote.name} remote={remote} busy={busy} onRemove={onRemove} />
       ))}
     </div>
   )

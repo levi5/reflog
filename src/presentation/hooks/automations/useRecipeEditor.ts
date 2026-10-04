@@ -1,3 +1,5 @@
+import { automationsUseCase } from "../../../data"
+import { newId } from "../../../shared/utils/id"
 import { useState } from "react"
 import type {
   AutomationRecipe,
@@ -5,7 +7,6 @@ import type {
   AutomationStep,
 } from "../../../domain/entities/automations/automations"
 import { t } from "../../../i18n"
-import { emptyRecipe, emptyStep, newId } from "../../../main/adapters"
 import { DEFAULT_QUICK_ACTION_COLOR } from "../../../shared/constants/theme"
 import type { Lang } from "../../../types"
 import type { useAutomations } from "./useAutomations"
@@ -50,7 +51,7 @@ function exampleRecipe(lang: Lang, repoPath: string): AutomationRecipe {
 }
 
 function createBlankStep(): AutomationStep {
-  return { ...emptyStep(), run: { command: "", target: "repo" } }
+  return { ...automationsUseCase.createEmptyStep(), run: { command: "", target: "repo" } }
 }
 
 export function useRecipeEditor({ lang, currentRepoPath, automations, onSelectionChange }: EditorOptions) {
@@ -75,7 +76,7 @@ export function useRecipeEditor({ lang, currentRepoPath, automations, onSelectio
   }
 
   const createRecipe = () => {
-    const recipe = emptyRecipe()
+    const recipe = automationsUseCase.createEmptyRecipe()
     recipe.name = t(lang, "newRecipe")
     recipe.repoPath = currentRepoPath
     automations.saveRecipe(recipe)

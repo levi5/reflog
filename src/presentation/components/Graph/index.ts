@@ -1,12 +1,12 @@
-import { GraphCanvas } from "./Canvas"
 import { GitLensList } from "./GitLens"
 import { GraphViewer } from "./View"
-import { computeCanvasGeometry, computeVisibleRange, isEdgeVisible } from "./Canvas/canvas-layout"
+import { HistorySearchPanel } from "./HistorySearch"
 
 export const Graph = {
-  Canvas: GraphCanvas,
   GitLens: GitLensList,
   View: GraphViewer,
+  HistorySearch: HistorySearchPanel,
 }
 
-export { computeCanvasGeometry, computeVisibleRange, isEdgeVisible }
+export { HistorySearchPanel }
+export { computeCanvasGeometry, computeVisibleRange, isEdgeVisible } from "./Canvas/canvas-layout"

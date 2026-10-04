@@ -1,7 +1,7 @@
+import { diffParserUseCase } from "../../../../data"
 import classnames from "classnames"
-import { useMemo, useState } from "react"
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ParsedDiff } from "../../../../domain/entities/diff/diff"
-import { buildHunkPatch, buildPartialPatch, lineKind, parseDiff } from "../../../../main/adapters"
 import { MAX_DIFF_LINES, MAX_DIFF_BYTES } from "../../../../shared/constants/limits"
 import { EmptyState } from "../../Empty/State"
 import { useTranslation } from "../../../context"
@@ -55,7 +55,10 @@ function DiffPreamble({ parsedDiff }: { parsedDiff: ParsedDiff }) {
   return (
     <pre className={styles.preamble}>
       {parsedDiff.preamble.map((preambleLine, lineIndex) => (
-        <span key={stableKey(preambleLine, "preamble", lineIndex)} className={styles[lineKind(preambleLine)]}>
+        <span
+          key={stableKey(preambleLine, "preamble", lineIndex)}
+          className={styles[diffParserUseCase.getLineKind(preambleLine)]}
+        >
           {preambleLine}
           {"\n"}
         </span>
@@ -89,7 +92,52 @@ function DiffHunk({
   onStageSelected,
   onDiscardHunk,
 }: DiffHunkProps) {
-  const { t } = useTranslation()
+  const { t, format } = useTranslation()
+  const [activeLine, setActiveLine] = useState(0)
+  const lineRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const selectableIndexes = useMemo(
+    () => hunkLines.map((line, index) => (isSelectableLine(line) ? index : -1)).filter((index) => index >= 0),
+    [hunkLines],
+  )
+
+  const focusLine = useCallback((lineIndex: number) => {
+    setActiveLine(lineIndex)
+    lineRefs.current[lineIndex]?.focus()
+  }, [])
+
+  const moveFocus = useCallback(
+    (from: number, delta: number) => {
+      if (selectableIndexes.length === 0) return
+      const position = selectableIndexes.indexOf(from)
+      const nextPosition = Math.min(Math.max(position + delta, 0), selectableIndexes.length - 1)
+      focusLine(selectableIndexes[nextPosition])
+    },
+    [selectableIndexes, focusLine],
+  )
+
+  const onLineKeyDown = (event: KeyboardEvent<HTMLButtonElement>, lineIndex: number) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault()
+      moveFocus(lineIndex, 1)
+    } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault()
+      moveFocus(lineIndex, -1)
+    } else if (event.key === "Home") {
+      event.preventDefault()
+      moveFocus(selectableIndexes[0], 0)
+    } else if (event.key === "End") {
+      event.preventDefault()
+      moveFocus(selectableIndexes[selectableIndexes.length - 1], 0)
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      setActiveLine(lineIndex)
+      onToggleLine(lineIndex)
+    } else if (event.key === "a" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault()
+      for (const index of selectableIndexes) onToggleLine(index)
+    }
+  }
+
   return (
     <div className={styles.hunkBlock}>
       <div className={styles.hunkHead}>
@@ -114,22 +162,43 @@ function DiffHunk({
         {hunkLines.map((diffLine, lineIndex) => {
           if (!isSelectableLine(diffLine)) {
             return (
-              <span key={stableKey(diffLine, "line", lineIndex)} className={styles[lineKind(diffLine)]}>
+              <span
+                key={stableKey(diffLine, "line", lineIndex)}
+                className={styles[diffParserUseCase.getLineKind(diffLine)]}
+              >
                 {diffLine}
                 {"\n"}
               </span>
             )
           }
           const isSelected = selectedLines.has(lineIndex)
+          const isActive = activeLine === lineIndex
           return (
             <button
               key={stableKey(diffLine, "line", lineIndex)}
+              ref={(element) => {
+                lineRefs.current[lineIndex] = element
+              }}
               type="button"
               aria-pressed={isSelected}
-              aria-label={diffLine}
+              aria-label={
+                isSelected
+                  ? format("diffLineSelected", { line: lineIndex + 1 })
+                  : format("diffSelectableLine", { line: lineIndex + 1 })
+              }
+              tabIndex={isActive ? 0 : -1}
               title={t("selectLinesHint")}
-              className={classnames(styles.lineBtn, styles[lineKind(diffLine)], isSelected && styles.selected)}
-              onClick={() => onToggleLine(lineIndex)}
+              className={classnames(
+                styles.lineBtn,
+                styles[diffParserUseCase.getLineKind(diffLine)],
+                isSelected && styles.selected,
+              )}
+              onFocus={() => setActiveLine(lineIndex)}
+              onKeyDown={(event) => onLineKeyDown(event, lineIndex)}
+              onClick={() => {
+                setActiveLine(lineIndex)
+                onToggleLine(lineIndex)
+              }}
             >
               {diffLine}
               {"\n"}
@@ -212,19 +281,17 @@ export function DiffPanel({
   const diffLineCount = useMemo(() => countLines(diffContent), [diffContent])
   const isLargeDiff = diffSize > MAX_DIFF_BYTES || diffLineCount > MAX_DIFF_LINES
   const parsedDiff = useMemo(
-    () => (loaded && !isLargeDiff ? parseDiff(diffContent) : { preamble: [], hunks: [] }),
+    () => (loaded && !isLargeDiff ? diffParserUseCase.parse(diffContent) : { preamble: [], hunks: [] }),
     [diffContent, isLargeDiff, loaded],
   )
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [visibleLineCount, setVisibleLineCount] = useState(LARGE_DIFF_PAGE_LINES)
-  const [prevDiffRef, setPrevDiffRef] = useState(diffContent)
-  const [prevFileRef, setPrevFileRef] = useState(filePath)
-  if (prevDiffRef !== diffContent || prevFileRef !== filePath) {
-    setPrevDiffRef(diffContent)
-    setPrevFileRef(filePath)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: selecting a new file or a new diff must clear the per-hunk selection
+  useEffect(() => {
     setSelectedKeys(new Set())
     setVisibleLineCount(LARGE_DIFF_PAGE_LINES)
-  }
+  }, [diffContent, filePath])
 
   if (!filePath) {
     return <EmptyState message={t("selectFileHint")} />
@@ -251,7 +318,7 @@ export function DiffPanel({
   const handleToggleHunk = (hunkIndex: number) => {
     const hunk = parsedDiff.hunks[hunkIndex]
     if (!hunk) return
-    const hunkPatch = buildHunkPatch(parsedDiff.preamble, hunk)
+    const hunkPatch = diffParserUseCase.buildHunkPatch(parsedDiff.preamble, hunk)
     if (isStaged) {
       onUnstageHunk(hunkPatch)
     } else {
@@ -262,7 +329,7 @@ export function DiffPanel({
   const handleDiscardHunk = (hunkIndex: number) => {
     const hunk = parsedDiff.hunks[hunkIndex]
     if (!hunk) return
-    onDiscardHunk(buildHunkPatch(parsedDiff.preamble, hunk))
+    onDiscardHunk(diffParserUseCase.buildHunkPatch(parsedDiff.preamble, hunk))
   }
 
   const handleToggleLine = (hunkIndex: number, lineIndex: number) => {
@@ -288,7 +355,7 @@ export function DiffPanel({
         indexes.add(Number(key.slice(separator + 1)))
       }
     })
-    const patch = buildPartialPatch(parsedDiff.preamble, hunk, indexes)
+    const patch = diffParserUseCase.buildPartialPatch(parsedDiff.preamble, hunk, indexes)
     if (!patch) return
     if (isStaged) {
       onUnstageSelected(patch)

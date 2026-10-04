@@ -1,6 +1,7 @@
 import { X } from "lucide-react"
 import { type ReactNode, type RefObject, createContext, useContext, useId, useLayoutEffect, useRef } from "react"
 import { createPortal } from "react-dom"
+import { useTranslation } from "../../context"
 import styles from "./style.module.scss"
 
 interface DrawerContextValue {
@@ -79,7 +80,13 @@ function DrawerRoot({ open, onClose, name, width = 400, ariaLabel, initialFocus,
         onCloseRef.current()
       }}
     >
-      <button type="button" className={styles.backdrop} onClick={onClose} tabIndex={-1} aria-label="close" />
+      <button
+        type="button"
+        className={styles.backdrop}
+        onClick={onClose}
+        tabIndex={-1}
+        aria-label={ariaLabel ?? name}
+      />
       <div ref={panelRef} className={styles.sidebar} style={{ width: `min(${width}px, 100%)` }}>
         <DrawerContext.Provider value={{ closeDrawer: onClose, titleId }}>{children}</DrawerContext.Provider>
       </div>
@@ -97,8 +104,9 @@ interface DrawerContentProps {
   children: ReactNode
 }
 
-function DrawerContent({ title, icon, toolbar, footer, closeLabel = "close", children }: DrawerContentProps) {
+function DrawerContent({ title, icon, toolbar, footer, closeLabel, children }: DrawerContentProps) {
   const { closeDrawer, titleId } = useDrawerContext()
+  const { t } = useTranslation()
 
   return (
     <>
@@ -107,7 +115,7 @@ function DrawerContent({ title, icon, toolbar, footer, closeLabel = "close", chi
           {icon}
           <span>{title}</span>
         </h2>
-        <button type="button" className={styles.closeBtn} onClick={closeDrawer} aria-label={closeLabel}>
+        <button type="button" className={styles.closeBtn} onClick={closeDrawer} aria-label={closeLabel ?? t("close")}>
           <X size={18} />
         </button>
       </div>

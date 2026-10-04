@@ -1,4 +1,5 @@
 import { useNavigate, useRouteError } from "react-router-dom"
+import { detectLocale, formatMessage } from "../../../i18n"
 import { ErrorFallback } from "../ErrorFallback"
 
 export function RouteErrorElement() {
@@ -27,5 +28,14 @@ export function RouteNotFound() {
     }
   }
 
-  return <ErrorFallback error={new Error("404 — página não encontrada")} reset={handleReset} />
+  return (
+    <ErrorFallback
+      error={
+        new Error(
+          `${formatMessage(detectLocale(), "pageNotFound")} — ${formatMessage(detectLocale(), "pageNotFoundHint")}`,
+        )
+      }
+      reset={handleReset}
+    />
+  )
 }

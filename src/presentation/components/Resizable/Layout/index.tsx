@@ -16,6 +16,7 @@ interface ResizableSplitLayoutProps {
     min: number
     max: number
     storageKey: string
+    label?: string
   }
   mainMinHeight?: number
 }
@@ -25,6 +26,7 @@ const DEFAULT_SIDEBAR_WIDTH = {
   min: 220,
   max: 560,
   storageKey: "split.sidebar",
+  label: "resizeSidebar",
 }
 
 export function ResizableSplitLayout({
@@ -60,7 +62,7 @@ export function ResizableSplitLayout({
       data-sidebar-position={sidebarPosition}
     >
       {isLeft && Element}
-      <main className={styles.main}>{main}</main>
+      <div className={styles.main}>{main}</div>
       {!isLeft && Element}
     </div>
   )

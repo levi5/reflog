@@ -83,7 +83,7 @@
 }
 
 .formField label {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   color: var(--muted);
 }
@@ -154,7 +154,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 
@@ -171,7 +171,7 @@
   border: 1px solid var(--border);
   color: var(--grape);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition: all 0.12s ease;
 }

@@ -1,10 +1,12 @@
+import { commitGraphUseCase } from "../../../../data"
 import classnames from "classnames"
-import { type CSSProperties, useEffect, useMemo, useRef } from "react"
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef } from "react"
 import type { CommitInfo } from "../../../../types"
 import type { HeadTravel } from "../../../../types/components/graph"
 import { GITLENS_LANE_W, GITLENS_ROW_H } from "../../Icons/Graph/Cell"
-import { layoutCommitGraph, parseRefs } from "../../../../main/adapters"
+import { useVirtualRows } from "../../../hooks"
 import { Icon } from "../../Icons"
+import { useTranslation } from "../../../context"
 import styles from "./style.module.scss"
 
 export interface GitLensListProps {
@@ -61,7 +63,8 @@ export function GitLensList({
   onZoomIn,
   onZoomOut,
 }: GitLensListProps) {
-  const layout = useMemo(() => layoutCommitGraph(commits), [commits])
+  const { t } = useTranslation()
+  const layout = useMemo(() => commitGraphUseCase.layoutGraph(commits), [commits])
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const freshSet = useMemo(() => new Set(freshHashes), [freshHashes])
 
@@ -102,86 +105,107 @@ export function GitLensList({
     return () => el.removeEventListener("wheel", onWheelNative)
   }, [onZoomIn, onZoomOut])
 
-  useEffect(() => {
-    if (!activeMatchHash) return
-    document.getElementById(`gitlens-row-${activeMatchHash}`)?.scrollIntoView({ block: "nearest" })
-  }, [activeMatchHash])
+  const virtualRows = useVirtualRows({
+    count: layout.rows.length,
+    estimate: rowH,
+    overscan: 12,
+    enabled: layout.rows.length > 150,
+  })
+
+  const scrollToHash = useCallback(
+    (hash: string) => {
+      const index = layout.rows.findIndex((row) => row.commit.hash === hash)
+      if (index < 0) return
+      const el = scrollRef.current
+      if (!el) return
+      el.scrollTop = Math.max(0, index * rowH - el.clientHeight / 2)
+    },
+    [layout.rows, rowH],
+  )
 
   useEffect(() => {
-    if (!headTravel) return
-    document.getElementById(`gitlens-row-${headTravel.toHash}`)?.scrollIntoView({ block: "nearest" })
-  }, [headTravel])
+    if (activeMatchHash) scrollToHash(activeMatchHash)
+  }, [activeMatchHash, scrollToHash])
+
+  useEffect(() => {
+    if (headTravel) scrollToHash(headTravel.toHash)
+  }, [headTravel, scrollToHash])
 
   return (
-    <div ref={scrollRef} className={styles.list} style={listStyle}>
-      {layout.rows.map(({ commit, lane, ...graphRow }, index) => {
-        const hash = commit.hash
-        const isSelected = selectedHash === hash
-        const isHead = headHash !== "" && headHash === hash
-        const refs = parseRefs(commit.refs)
-        const entranceDelay =
-          index <= ENTRANCE_STAGGER_CAP ? Math.min(index * ENTRANCE_STEP_MS, ENTRANCE_MAX_DELAY_MS) : 0
-        return (
-          <button
-            key={hash}
-            id={`gitlens-row-${hash}`}
-            type="button"
-            aria-label={`${commit.short} ${commit.message} ${commit.author}`}
-            title={`${commit.message}\n${commit.author} · ${commit.date} · ${commit.short}`}
-            aria-current={isSelected}
-            style={entranceDelay > 0 ? { animationDelay: `${entranceDelay}ms` } : undefined}
-            className={classnames(
-              styles.row,
-              isSelected && styles.selected,
-              dimmedHashes?.has(hash) && styles.dimmed,
-              matchedHashes?.has(hash) && styles.matched,
-              activeMatchHash === hash && styles.activeMatch,
-              freshSet.has(hash) && styles.fresh,
-              spotlightHashes?.has(hash) && styles.spotlight,
-              isHead && styles.head,
-              headTravel?.fromHash === hash && styles.travelFrom,
-              headTravel?.toHash === hash && styles.travelTo,
-            )}
-            onClick={() => onSelectCommit(isSelected ? "" : hash)}
-          >
-            <Icon.Graph.Cell
-              row={{ commit, lane, ...graphRow }}
-              lanes={Math.max(layout.lanes, 1)}
-              rowHeight={rowH}
-              laneWidth={laneW}
-              className={styles.graph}
-            />
-            <span className={styles.label}>
-              {refs.length > 0 && (
-                <span className={styles.refs}>
-                  {refs.slice(0, 2).map((ref) => (
-                    <span
-                      key={`${ref.kind}-${ref.label}`}
-                      className={classnames(
-                        styles.ref,
-                        ref.kind === "head" && styles.refHead,
-                        ref.kind === "tag" && styles.refTag,
-                      )}
-                    >
-                      {ref.label}
+    <div ref={scrollRef} className={styles.list} style={listStyle} onScroll={virtualRows.onScroll}>
+      <div style={{ height: virtualRows.totalHeight, position: "relative" }}>
+        <div style={{ transform: `translateY(${virtualRows.offsetTop}px)` }}>
+          {virtualRows.items.map(({ index }) => {
+            const { commit, lane, ...graphRow } = layout.rows[index]
+            const hash = commit.hash
+            const isSelected = selectedHash === hash
+            const isHead = headHash !== "" && headHash === hash
+            const refs = commitGraphUseCase.parseRefs(commit.refs)
+            const entranceDelay =
+              index <= ENTRANCE_STAGGER_CAP ? Math.min(index * ENTRANCE_STEP_MS, ENTRANCE_MAX_DELAY_MS) : 0
+            return (
+              <button
+                key={hash}
+                id={`gitlens-row-${hash}`}
+                type="button"
+                aria-label={`${commit.short} ${commit.message} ${commit.author}`}
+                title={`${commit.message}\n${commit.author} · ${commit.date} · ${commit.short}`}
+                aria-current={isSelected}
+                style={entranceDelay > 0 ? { animationDelay: `${entranceDelay}ms` } : undefined}
+                className={classnames(
+                  styles.row,
+                  isSelected && styles.selected,
+                  dimmedHashes?.has(hash) && styles.dimmed,
+                  matchedHashes?.has(hash) && styles.matched,
+                  activeMatchHash === hash && styles.activeMatch,
+                  freshSet.has(hash) && styles.fresh,
+                  spotlightHashes?.has(hash) && styles.spotlight,
+                  isHead && styles.head,
+                  headTravel?.fromHash === hash && styles.travelFrom,
+                  headTravel?.toHash === hash && styles.travelTo,
+                )}
+                onClick={() => onSelectCommit(isSelected ? "" : hash)}
+              >
+                <Icon.Graph.Cell
+                  row={{ commit, lane, ...graphRow }}
+                  lanes={Math.max(layout.lanes, 1)}
+                  rowHeight={rowH}
+                  laneWidth={laneW}
+                  className={styles.graph}
+                />
+                <span className={styles.label}>
+                  {refs.length > 0 && (
+                    <span className={styles.refs}>
+                      {refs.slice(0, 2).map((ref) => (
+                        <span
+                          key={`${ref.kind}-${ref.label}`}
+                          className={classnames(
+                            styles.ref,
+                            ref.kind === "head" && styles.refHead,
+                            ref.kind === "tag" && styles.refTag,
+                          )}
+                        >
+                          {ref.label}
+                        </span>
+                      ))}
                     </span>
-                  ))}
+                  )}
+                  <span className={styles.message}>{firstLine(commit.message)}</span>
+                  <span className={styles.author}>{commit.author}</span>
                 </span>
-              )}
-              <span className={styles.message}>{firstLine(commit.message)}</span>
-              <span className={styles.author}>{commit.author}</span>
-            </span>
-          </button>
-        )
-      })}
-      {hasMore && !isLoading && onLoadMore && (
-        <div className={styles.footer}>
-          <button type="button" className={styles.loadMore} onClick={onLoadMore}>
-            Carregar mais
-          </button>
+              </button>
+            )
+          })}
         </div>
-      )}
-      {isLoading && <div className={styles.loading}>Carregando…</div>}
+        {hasMore && !isLoading && onLoadMore && (
+          <div className={styles.footer}>
+            <button type="button" className={styles.loadMore} onClick={onLoadMore}>
+              {t("loadingMore")}
+            </button>
+          </div>
+        )}
+        {isLoading && <div className={styles.loading}>{t("loadingEllipsis")}</div>}
+      </div>
     </div>
   )
 }

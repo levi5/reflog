@@ -123,13 +123,14 @@ function CommitTypeRow({ api }: { api: CommitTemplateApi }) {
         placeholder={t("commitScope")}
         onChange={(event) => api.setField("scope", event.target.value)}
       />
-      <label className={styles.check} title="BREAKING CHANGE (!)">
+      <label className={styles.check} title={t("breakingChange")}>
         <input
           type="checkbox"
           checked={api.fields.breaking}
+          aria-label={t("breakingChange")}
           onChange={(event) => api.setField("breaking", event.target.checked)}
         />
-        <span>!</span>
+        <span aria-hidden>!</span>
       </label>
       {api.branch && api.canInfer && (
         <button
@@ -280,12 +281,22 @@ export function CommitForm({ api, compact = false }: CommitFormProps) {
       <CommitSubjectRow api={api} />
 
       {!compact && (
-        <button type="button" className={styles.toggle} onClick={() => api.setShowBody((visible) => !visible)}>
+        <button
+          type="button"
+          className={styles.toggle}
+          aria-expanded={showBodyFields}
+          aria-controls={showBodyFields ? "commit-body-fields" : undefined}
+          onClick={() => api.setShowBody((visible) => !visible)}
+        >
           {api.showBody ? t("commitCollapse") : t("commitExpand")}
         </button>
       )}
 
-      {showBodyFields && <CommitBodyFields api={api} />}
+      {showBodyFields && (
+        <div id="commit-body-fields">
+          <CommitBodyFields api={api} />
+        </div>
+      )}
       <CommitHistory api={api} />
       <CommitErrors api={api} />
     </div>

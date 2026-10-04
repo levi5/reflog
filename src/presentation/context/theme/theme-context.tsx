@@ -1,12 +1,6 @@
-import { _Maybe } from "funcio"
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { createContext, type ReactNode, useContext, useMemo } from "react"
 import type { Theme } from "../../../types"
-import {
-  debounce,
-  readVersionedRaw,
-  versionedKey,
-  writeVersionedRaw,
-} from "../../../infrastructure/storage/versioned-storage"
+import { usePersistentSetting, versionedKey } from "../../../infrastructure/storage/versioned-storage"
 
 const THEME_KEY = "theme"
 export const THEME_STORAGE_KEY = versionedKey(THEME_KEY)
@@ -15,21 +9,11 @@ const DEFAULT_THEME: Theme = "dark"
 const VALID_THEMES: Record<string, Theme> = {
   dark: "dark",
   light: "light",
-  "glass-dark": "glass-dark",
-  "glass-light": "glass-light",
 }
 
-function readThemeStorage(): Theme {
-  const stored = readVersionedRaw(THEME_KEY)
-  return _Maybe
-    .of(stored)
-    .map((val) => (val !== null ? (VALID_THEMES[val] ?? DEFAULT_THEME) : DEFAULT_THEME))
-    .getOrElse(DEFAULT_THEME)
+function parseTheme(raw: string): Theme {
+  return VALID_THEMES[raw] ?? DEFAULT_THEME
 }
-
-const debouncedWriteTheme = debounce((theme: Theme) => {
-  writeVersionedRaw(THEME_KEY, theme)
-}, 300)
 
 export interface ThemeContextValue {
   theme: Theme
@@ -39,33 +23,13 @@ export interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(readThemeStorage)
-  const first = useRef(true)
-
-  const setTheme = useCallback((nextTheme: Theme) => {
-    const resolved = VALID_THEMES[nextTheme] ?? DEFAULT_THEME
-    setThemeState(resolved)
-  }, [])
-
-  useEffect(() => {
-    if (first.current) {
-      first.current = false
-      writeVersionedRaw(THEME_KEY, theme)
-    } else {
-      debouncedWriteTheme(theme)
-    }
-    document.documentElement.dataset.theme = theme
-  }, [theme])
-
-  useEffect(() => {
-    const onStorage = (storageEvent: StorageEvent) => {
-      if (storageEvent.key !== THEME_STORAGE_KEY || storageEvent.newValue === null) return
-      const next = VALID_THEMES[storageEvent.newValue] ?? DEFAULT_THEME
-      setThemeState(next)
-    }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [])
+  const [theme, setTheme] = usePersistentSetting<Theme>(THEME_KEY, DEFAULT_THEME, {
+    parse: parseTheme,
+    normalize: parseTheme,
+    apply: (nextTheme) => {
+      document.documentElement.dataset.theme = nextTheme
+    },
+  })
 
   const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme])
 

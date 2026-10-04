@@ -3,6 +3,8 @@
   grid-row: 1 / -1;
   border-left: 1px solid var(--border-soft);
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   padding: 8px 12px;
   display: flex;
   flex-direction: column;

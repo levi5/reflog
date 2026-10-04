@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react"
 import classnames from "classnames"
 
+import { useTranslation } from "../../context"
 import styles from "./style.module.scss"
 
 type PaginationProps = {
@@ -31,6 +32,7 @@ export function Pagination({
   loading = false,
   onPageChange,
 }: PaginationProps) {
+  const { t, format } = useTranslation()
   const safePageSize = Math.max(1, pageSize)
   const knownTotal = Math.max(1, Math.ceil(totalItems / safePageSize))
   const totalPages = knownTotal
@@ -63,7 +65,7 @@ export function Pagination({
       className={classnames("mini-btn", styles.pageBtn, page === currentPage && styles.active)}
       disabled={loading}
       onClick={() => goTo(page)}
-      aria-label={`Page ${page + 1}`}
+      aria-label={format("pageNumber", { page: page + 1 })}
       aria-current={page === currentPage ? "page" : undefined}
     >
       {page + 1}
@@ -71,13 +73,13 @@ export function Pagination({
   )
 
   return (
-    <nav className={styles.pagination} aria-label="Pagination">
+    <nav className={styles.pagination} aria-label={t("pagination")}>
       <button
         type="button"
         className="mini-btn"
         disabled={atFirst || loading}
         onClick={() => goTo(0)}
-        aria-label="First page"
+        aria-label={t("firstPage")}
       >
         <ChevronsLeft size={14} />
       </button>
@@ -86,7 +88,7 @@ export function Pagination({
         className="mini-btn"
         disabled={atFirst || loading}
         onClick={() => onPageChange(currentPage - 1)}
-        aria-label="Previous page"
+        aria-label={t("previousPage")}
       >
         <ChevronLeft size={14} />
       </button>
@@ -110,7 +112,7 @@ export function Pagination({
         className="mini-btn"
         disabled={!canGoNext || loading}
         onClick={() => onPageChange(currentPage + 1)}
-        aria-label="Next page"
+        aria-label={t("nextPage")}
       >
         {loading && isLastPage ? <Loader2 size={14} className={styles.spinner} /> : <ChevronRight size={14} />}
       </button>
@@ -119,7 +121,7 @@ export function Pagination({
         className="mini-btn"
         disabled={atLast || loading || (hasMore && !totalKnown)}
         onClick={() => goTo(lastPage)}
-        aria-label="Last page"
+        aria-label={t("lastPage")}
       >
         <ChevronsRight size={14} />
       </button>

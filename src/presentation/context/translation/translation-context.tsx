@@ -1,5 +1,4 @@
-import { _Maybe } from "funcio"
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react"
 import {
   detectLocale,
   formatCount,
@@ -13,12 +12,7 @@ import {
   type MessageVars,
   type StringKey,
 } from "../../../i18n"
-import {
-  debounce,
-  readVersionedRaw,
-  versionedKey,
-  writeVersionedRaw,
-} from "../../../infrastructure/storage/versioned-storage"
+import { usePersistentSetting, versionedKey } from "../../../infrastructure/storage/versioned-storage"
 import type { Lang } from "../../../types"
 
 const LANG_KEY = "lang"
@@ -30,16 +24,13 @@ const VALID_LANGS: Record<string, Lang> = {
   en: "en",
 }
 
-function readStoredLang(): Lang {
-  const stored = readVersionedRaw(LANG_KEY)
-  if (stored !== null && VALID_LANGS[stored]) return VALID_LANGS[stored]
-  const detected = detectLocale()
-  return VALID_LANGS[detected] ?? DEFAULT_LANG
+function parseLang(raw: string): Lang {
+  return VALID_LANGS[raw] ?? DEFAULT_LANG
 }
 
-const debouncedWriteLang = debounce((lang: Lang) => {
-  writeVersionedRaw(LANG_KEY, lang)
-}, 300)
+function detectLang(): Lang {
+  return VALID_LANGS[detectLocale()] ?? DEFAULT_LANG
+}
 
 export interface TranslationContextValue {
   lang: Lang
@@ -57,31 +48,14 @@ export interface TranslationContextValue {
 const TranslationContext = createContext<TranslationContextValue | null>(null)
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(readStoredLang)
-
-  const setLang = useCallback((nextLang: Lang) => {
-    const resolved = VALID_LANGS[nextLang] ?? DEFAULT_LANG
-    setLangState(resolved)
-  }, [])
-
-  useEffect(() => {
-    debouncedWriteLang(lang)
-    try {
-      document.documentElement.lang = localeTag(lang)
-    } catch {
-      return
-    }
-  }, [lang])
-
-  useEffect(() => {
-    const onStorage = (storageEvent: StorageEvent) => {
-      if (storageEvent.key !== LANG_STORAGE_KEY || storageEvent.newValue === null) return
-      const next = VALID_LANGS[storageEvent.newValue] ?? DEFAULT_LANG
-      setLangState(next)
-    }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [])
+  const [detectedLang] = useState(detectLang)
+  const [lang, setLang] = usePersistentSetting<Lang>(LANG_KEY, detectedLang, {
+    parse: parseLang,
+    normalize: parseLang,
+    apply: (nextLang) => {
+      document.documentElement.lang = localeTag(nextLang)
+    },
+  })
 
   const translate = useCallback((key: StringKey): string => t(lang, key), [lang])
   const format = useCallback(
@@ -132,8 +106,3 @@ export function useTranslation(): TranslationContextValue {
   }
   return context
 }
-
-export const useLang = useTranslation
-export const LangProvider = TranslationProvider
-
-export { _Maybe as _TranslationMaybe }

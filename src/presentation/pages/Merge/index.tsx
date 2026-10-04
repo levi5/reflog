@@ -1,3 +1,4 @@
+import { conflictResolverUseCase, mergeStatsUseCase } from "../../../data"
 import { useCallback, useEffect, useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
@@ -5,7 +6,6 @@ import { Merge } from "../../components/Merge"
 import { EmptyState } from "../../components/Empty/State"
 import { Resizable } from "@/presentation/components/Resizable"
 
-import { applyChoiceToContent, matchesQuery, parseConflicts } from "../../../main/adapters"
 import { t } from "../../../i18n"
 import { gitApi } from "../../../infrastructure/git"
 import { useRepo, useSettingsContext } from "../../context"
@@ -20,9 +20,9 @@ export function MergePage() {
   const [filter, setFilter] = useState("")
   const repo = useRepo()
   const activeFile = repo.conflicts.find((f) => f.path === repo.activeConflict)
-  const activeBlocks = parseConflicts(repo.editorContent)
+  const activeBlocks = conflictResolverUseCase.parseConflicts(repo.editorContent)
   const resolved = Object.entries(repo.resolvedMap)
-    .filter(([p]) => matchesQuery(p, filter))
+    .filter(([p]) => mergeStatsUseCase.matchesQuery(p, filter))
     .map(([path, count]): { path: string; count: number } => ({ path, count }))
 
   const select = (path: string) => {
@@ -82,14 +82,14 @@ export function MergePage() {
   }, [repo])
 
   const applyToActive = (choice: Choice) => {
-    const block = parseConflicts(repo.editorContent)[hunkIndex]
+    const block = conflictResolverUseCase.parseConflicts(repo.editorContent)[hunkIndex]
     if (!block) return
-    repo.setEditorContent(applyChoiceToContent(repo.editorContent, block, choice, true))
+    repo.setEditorContent(conflictResolverUseCase.applyChoiceToContent(repo.editorContent, block, choice, true))
   }
 
   return (
     <Resizable.Layout
-      sidebarWidth={{ initial: 300, min: 220, max: 560, storageKey: "merge.side" }}
+      sidebarWidth={{ initial: 300, min: 220, max: 560, storageKey: "merge.side", label: t(lang, "resizeSidebar") }}
       sidebar={
         <>
           <Merge.Conflict.Sidebar

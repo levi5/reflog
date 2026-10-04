@@ -1,7 +1,7 @@
+import { mergeStatsUseCase } from "../../../data"
 import { Archive, Boxes, Cloud, FileDiff, GitBranch, Tag as TagIcon } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { Navigate } from "react-router-dom"
-import { matchesQuery } from "../../../main/adapters"
 import { t } from "../../../i18n"
 
 import { Branch } from "../../components/Branch"
@@ -45,6 +45,7 @@ export function Staging(_props: Props) {
     min: 160,
     max: 640,
     storageKey: "staging.diff",
+    label: t(lang, "resizeDiff"),
   })
 
   const statusFiles = repo.status?.files
@@ -55,7 +56,9 @@ export function Staging(_props: Props) {
         .map((files) => files)
         .when(scope === "branches" || scope === "commits")
         .then((files: FileStatus[]) =>
-          files.filter((file) => (scope === "branches" || scope === "commits" ? file : matchesQuery(file.path, query))),
+          files.filter((file) =>
+            scope === "branches" || scope === "commits" ? file : mergeStatsUseCase.matchesQuery(file.path, query),
+          ),
         )
         .else((files: FileStatus[]) => files)
         .getOrElse([]) as FileStatus[],
@@ -117,17 +120,19 @@ export function Staging(_props: Props) {
     () =>
       scope === "files" || scope === "commits"
         ? repo.branches
-        : repo.branches.filter((branch) => matchesQuery(branch.name, query)),
+        : repo.branches.filter((branch) => mergeStatsUseCase.matchesQuery(branch.name, query)),
     [repo.branches, query, scope],
   )
   const tags = useMemo(
-    () => (scope === "all" ? repo.tags.filter((tag) => matchesQuery(tag, query)) : repo.tags),
+    () => (scope === "all" ? repo.tags.filter((tag) => mergeStatsUseCase.matchesQuery(tag, query)) : repo.tags),
     [repo.tags, query, scope],
   )
   const remotes = useMemo(
     () =>
       scope === "all"
-        ? repo.remotes.filter((remote) => [remote.name, remote.url].some((value) => matchesQuery(value, query)))
+        ? repo.remotes.filter((remote) =>
+            [remote.name, remote.url].some((value) => mergeStatsUseCase.matchesQuery(value, query)),
+          )
         : repo.remotes,
     [repo.remotes, query, scope],
   )
@@ -187,7 +192,7 @@ export function Staging(_props: Props) {
   return (
     <Resizable.Layout
       className={styles.stagingLayout}
-      sidebarWidth={{ initial: 300, min: 220, max: 560, storageKey: "staging.side" }}
+      sidebarWidth={{ initial: 300, min: 220, max: 560, storageKey: "staging.side", label: t(lang, "resizeSidebar") }}
       sidebar={
         <>
           <Flex.Col>
@@ -199,7 +204,7 @@ export function Staging(_props: Props) {
                 variant="segmented"
                 fullWidth
                 size="sm"
-                ariaLabel="Staging sections"
+                ariaLabel={t(lang, "stagingSections")}
               />
             </div>
             <SearchBox placeholder={t(lang, "searchPh")} />
@@ -210,6 +215,7 @@ export function Staging(_props: Props) {
                 onUnstage={() => runBatch(repo.unstageFiles)}
                 onDiscard={() => runBatch(repo.discardFiles)}
                 onClear={clearSelection}
+                busy={repo.busy}
               />
             )}
           </Flex.Col>
@@ -223,6 +229,7 @@ export function Staging(_props: Props) {
               onUnstage={repo.unstageFile}
               onDiscard={repo.discardFile}
               onEdit={repo.openEditor}
+              busy={repo.busy}
               onStageMany={repo.stageFiles}
               onUnstageMany={repo.unstageFiles}
               onDiscardMany={repo.discardFiles}
@@ -236,8 +243,10 @@ export function Staging(_props: Props) {
               onNewBranchNameChange={repo.setNewBranch}
               onCreateBranch={repo.createBranch}
               onCheckoutBranch={repo.checkoutBranch}
-              onDeleteBranch={(branchName) => repo.deleteBranch(branchName, false)}
+              onDeleteBranch={repo.deleteBranch}
               onRenameBranch={repo.renameBranch}
+              onCreateBranchFrom={repo.createBranchFrom}
+              busy={repo.busy}
             />
           )}
           {tab === "tags" && (
@@ -245,9 +254,12 @@ export function Staging(_props: Props) {
               tags={tags}
               onCreateTag={(tagName, tagMessage) => repo.createTag(tagName, tagMessage)}
               onDeleteTag={repo.deleteTag}
+              busy={repo.busy}
             />
           )}
-          {tab === "remotes" && <Branch.Remote remotes={remotes} onAdd={repo.addRemote} onRemove={repo.removeRemote} />}
+          {tab === "remotes" && (
+            <Branch.Remote remotes={remotes} onAdd={repo.addRemote} onRemove={repo.removeRemote} busy={repo.busy} />
+          )}
           {tab === "stash" && (
             <Branch.Stash
               stashMessage={repo.stashMsg}
@@ -258,6 +270,7 @@ export function Staging(_props: Props) {
               onApply={repo.stashApply}
               onDrop={repo.stashDrop}
               onShowDiff={repo.stashShow}
+              busy={repo.busy}
             />
           )}
           {tab === "submodules" && (
@@ -265,6 +278,7 @@ export function Staging(_props: Props) {
               submodules={repo.submodules}
               onUpdate={repo.submoduleUpdate}
               onOpen={(subPath) => repo.handleOpen(`${repo.repo}/${subPath}`)}
+              busy={repo.busy}
             />
           )}
         </>

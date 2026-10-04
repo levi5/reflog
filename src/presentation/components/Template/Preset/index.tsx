@@ -17,8 +17,13 @@ interface PresetListProps {
 }
 
 export function PresetList({ presets, onDeletePreset, onEditPreset }: PresetListProps) {
-  const emptyState = null
   const { t } = useTranslation()
+  const emptyState = (
+    <div className={styles.emptyPresets}>
+      <p>{t("presetsEmpty")}</p>
+      <small>{t("noPresetsHint")}</small>
+    </div>
+  )
 
   const renderItem = (preset: CommitPreset) => (
     <>
@@ -57,7 +62,7 @@ export function PresetList({ presets, onDeletePreset, onEditPreset }: PresetList
   )
 
   return (
-    <List.Virtual<CommitPreset>
+    <List.Paged<CommitPreset>
       items={presets}
       selectedId={null}
       currentPage={0}

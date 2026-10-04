@@ -22,22 +22,25 @@ interface StatusSectionsProps {
   onStageMany: (paths: string[]) => void
   onUnstageMany: (paths: string[]) => void
   onDiscardMany: (paths: string[]) => void
+  busy?: boolean
 }
 
 interface IconActionProps {
   title: string
   icon: ReactNode
   danger?: boolean
+  disabled?: boolean
   onClick: () => void
 }
 
-function IconAction({ title, icon, danger = false, onClick }: IconActionProps) {
+function IconAction({ title, icon, danger = false, disabled = false, onClick }: IconActionProps) {
   return (
     <button
       type="button"
       className={classnames(styles.action, danger && styles.danger)}
       title={title}
       aria-label={title}
+      disabled={disabled}
       onClick={onClick}
     >
       {icon}
@@ -93,6 +96,7 @@ export function StatusSections({
   onStageMany,
   onUnstageMany,
   onDiscardMany,
+  busy = false,
 }: StatusSectionsProps) {
   const { t } = useTranslation()
   const { collapsed, toggle } = useCollapsedSections<SectionId>("staging.sections")
@@ -111,6 +115,7 @@ export function StatusSections({
             <IconAction
               title={t("resolveAllConflicts")}
               icon={<Plus size={13} />}
+              disabled={busy}
               onClick={() => onStageMany(toPaths(groups.conflicts))}
             />
           ),
@@ -125,6 +130,7 @@ export function StatusSections({
             <IconAction
               title={t("unstageAllChanges")}
               icon={<Minus size={13} />}
+              disabled={busy}
               onClick={() => onUnstageMany(toPaths(groups.staged))}
             />
           ),
@@ -140,38 +146,62 @@ export function StatusSections({
               <IconAction
                 title={t("stageAllChanges")}
                 icon={<Plus size={13} />}
+                disabled={busy}
                 onClick={() => onStageMany(toPaths(groups.changes))}
               />
               <IconAction
                 title={t("discardAllChanges")}
                 icon={<Trash2 size={13} />}
                 danger
+                disabled={busy}
                 onClick={() => onDiscardMany(toPaths(groups.changes))}
               />
             </>
           ),
         },
       ].filter((view) => view.files.length > 0),
-    [groups, t, onStageMany, onUnstageMany, onDiscardMany],
+    [groups, t, busy, onStageMany, onUnstageMany, onDiscardMany],
   )
 
   const rowActions = (file: FileStatus, staged: boolean) =>
     staged ? (
       <>
-        <IconAction title={t("unstageSelected")} icon={<Minus size={13} />} onClick={() => onUnstage(file.path)} />
-        <IconAction title={t("editFile")} icon={<Pencil size={13} />} onClick={() => onEdit(file.path)} />
+        <IconAction
+          title={t("unstageSelected")}
+          icon={<Minus size={13} />}
+          disabled={busy}
+          onClick={() => onUnstage(file.path)}
+        />
+        <IconAction
+          title={t("editFile")}
+          icon={<Pencil size={13} />}
+          disabled={busy}
+          onClick={() => onEdit(file.path)}
+        />
       </>
     ) : (
       <>
         <IconAction
           title={file.unmerged ? t("stageResolved") : t("stageSelected")}
           icon={<Plus size={13} />}
+          disabled={busy}
           onClick={() => onStage(file.path)}
         />
         {!file.unmerged && (
-          <IconAction title={t("discard")} icon={<Trash2 size={13} />} danger onClick={() => onDiscard(file.path)} />
+          <IconAction
+            title={t("discard")}
+            icon={<Trash2 size={13} />}
+            danger
+            disabled={busy}
+            onClick={() => onDiscard(file.path)}
+          />
         )}
-        <IconAction title={t("editFile")} icon={<Pencil size={13} />} onClick={() => onEdit(file.path)} />
+        <IconAction
+          title={t("editFile")}
+          icon={<Pencil size={13} />}
+          disabled={busy}
+          onClick={() => onEdit(file.path)}
+        />
       </>
     )
 

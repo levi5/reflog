@@ -12,13 +12,20 @@ export function useDismiss<T extends HTMLElement>(open: boolean, onClose: () => 
         closeRef.current()
       }
     }
-    const esc = (e: KeyboardEvent) => {
+    const focusLeft = (e: FocusEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        closeRef.current()
+      }
+    }
+    const esc = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") closeRef.current()
     }
     document.addEventListener("mousedown", outside)
+    document.addEventListener("focusin", focusLeft)
     document.addEventListener("keydown", esc)
     return () => {
       document.removeEventListener("mousedown", outside)
+      document.removeEventListener("focusin", focusLeft)
       document.removeEventListener("keydown", esc)
     }
   }, [open])

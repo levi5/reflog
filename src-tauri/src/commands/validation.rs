@@ -1,9 +1,5 @@
 pub fn validate_repo_path(path: &str) -> Result<(), String> {
-    if path.is_empty()
-        || path.contains('\0')
-        || path.contains('\n')
-        || path.len() > 4096
-    {
+    if path.is_empty() || path.contains('\0') || path.contains('\n') || path.len() > 4096 {
         return Err("caminho do repositório inválido".to_string());
     }
     Ok(())
@@ -55,9 +51,9 @@ pub fn validate_commit_oid(oid: &str) -> Result<(), String> {
         || oid.contains('\0')
         || oid.contains('\n')
         || oid.len() > 64
-        || !oid
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '.' || c == '/' || c == '~' || c == '^')
+        || !oid.chars().all(|c| {
+            c.is_ascii_alphanumeric() || c == '_' || c == '.' || c == '/' || c == '~' || c == '^'
+        })
     {
         return Err("OID de commit inválido".to_string());
     }
@@ -120,11 +116,7 @@ pub const ALLOWED_CONFIG_KEYS: &[&str] = &[
 ];
 
 pub fn validate_config_key(key: &str) -> Result<(), String> {
-    if key.is_empty()
-        || key.starts_with('-')
-        || key.contains('\0')
-        || key.contains('\n')
-    {
+    if key.is_empty() || key.starts_with('-') || key.contains('\0') || key.contains('\n') {
         return Err("chave de configuração inválida".to_string());
     }
     if !ALLOWED_CONFIG_KEYS.contains(&key) {
@@ -150,6 +142,25 @@ pub fn validate_stash_message(message: &str) -> Result<(), String> {
 pub fn validate_patch_size(patch: &str, max_bytes: usize) -> Result<(), String> {
     if patch.as_bytes().len() > max_bytes {
         return Err("patch excede tamanho máximo".to_string());
+    }
+    Ok(())
+}
+pub fn validate_rev_spec(rev: &str) -> Result<(), String> {
+    if rev.is_empty()
+        || rev.starts_with('-')
+        || rev.contains(' ')
+        || rev.contains('\0')
+        || rev.contains('\n')
+        || rev.len() > 512
+    {
+        return Err("revisão inválida".to_string());
+    }
+    Ok(())
+}
+
+pub fn validate_search_term(term: &str) -> Result<(), String> {
+    if term.contains('\0') || term.contains('\n') || term.len() > 512 {
+        return Err("termo de busca inválido".to_string());
     }
     Ok(())
 }

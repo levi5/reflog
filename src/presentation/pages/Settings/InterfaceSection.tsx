@@ -1,12 +1,20 @@
 import classnames from "classnames"
-import { Brush, CaseSensitive, History, Languages, Palette, SlidersHorizontal } from "lucide-react"
+import { Brush, CaseSensitive, Check, History, Languages, Layers, Palette, SlidersHorizontal } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Select, type SelectOption } from "../../components/Select"
 import { Switch } from "../../components/Switch"
 import { useSettingsContext, useTranslation } from "../../context"
 import type { StringKey } from "../../../i18n"
 import { clamp } from "../../../shared/utils/number"
-import { type AccentId, DEFAULT_FONT_SIZE, type Lang, MAX_FONT_SIZE, MIN_FONT_SIZE, type Theme } from "../../../types"
+import {
+  type AccentId,
+  DEFAULT_FONT_SIZE,
+  type Lang,
+  type Material,
+  MAX_FONT_SIZE,
+  MIN_FONT_SIZE,
+  type Theme,
+} from "../../../types"
 import { ACCENT_OPTIONS, resolveAccentHex } from "../../../shared/constants/accent"
 import { SectionHeading, SettingCard } from "./SettingsCards"
 import styles from "./style.module.scss"
@@ -29,8 +37,6 @@ function normalizeLanguage(value: string): Lang {
 const THEME_MAP: Record<string, Theme> = {
   light: "light",
   dark: "dark",
-  "glass-dark": "glass-dark",
-  "glass-light": "glass-light",
 }
 function normalizeTheme(value: string): Theme {
   return THEME_MAP[value] ?? "dark"
@@ -47,10 +53,8 @@ function buildThemeOptions(t: (key: StringKey) => string): SelectOption[] {
   const labelByTheme: Record<Theme, StringKey> = {
     dark: "dark",
     light: "light",
-    "glass-dark": "glassDark",
-    "glass-light": "glassLight",
   }
-  const themeValues: Theme[] = ["dark", "light", "glass-dark", "glass-light"]
+  const themeValues: Theme[] = ["dark", "light"]
   return themeValues.map((themeValue) => ({
     value: themeValue,
     label: t(labelByTheme[themeValue]),
@@ -61,11 +65,13 @@ export function InterfaceSection() {
   const {
     lang,
     theme,
+    material,
     accent,
     fontSize,
     reopenLastRepo,
     setLang,
     setTheme,
+    setMaterial,
     setAccent,
     setFontSize,
     setReopenLastRepo,
@@ -85,6 +91,7 @@ export function InterfaceSection() {
       <SectionHeading icon={<SlidersHorizontal size={13} />} title={t("groupInterface")} />
       <LanguageSettingCard currentLanguage={lang} onLanguageChange={handleLanguageChange} />
       <ThemeSettingCard currentTheme={theme} onThemeChange={handleThemeChange} />
+      <MaterialSettingCard currentMaterial={material} onMaterialChange={setMaterial} />
       <AccentSettingCard currentAccent={accent} currentTheme={theme} onAccentChange={setAccent} />
       <FontSizeSettingCard currentFontSize={fontSize} onFontSizeChange={setFontSize} />
       <ReopenLastSettingCard checked={reopenLastRepo} onCheckedChange={setReopenLastRepo} />
@@ -129,6 +136,39 @@ function ThemeSettingCard({
         options={buildThemeOptions(t)}
         onChange={(selectedValue) => onThemeChange(normalizeTheme(selectedValue))}
       />
+    </SettingCard>
+  )
+}
+
+function MaterialSettingCard({
+  currentMaterial,
+  onMaterialChange,
+}: {
+  currentMaterial: Material
+  onMaterialChange: (nextMaterial: Material) => void
+}) {
+  const { t } = useTranslation()
+  const materials: Material[] = ["solid"]
+  return (
+    <SettingCard icon={<Layers size={15} />} title={t("material")} hint={t("materialDesc")}>
+      <div className={styles.materialOptions}>
+        {materials.map((materialValue) => {
+          const selected = materialValue === currentMaterial
+          return (
+            <button
+              key={materialValue}
+              type="button"
+              aria-pressed={selected}
+              aria-label={t(materialValue)}
+              title={t(materialValue)}
+              className={classnames(styles.materialSwatch, styles[materialValue], selected && styles.selected)}
+              onClick={() => onMaterialChange(materialValue)}
+            >
+              {selected && <Check size={13} />}
+            </button>
+          )
+        })}
+      </div>
     </SettingCard>
   )
 }

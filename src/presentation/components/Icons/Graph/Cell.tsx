@@ -1,6 +1,6 @@
+import { graphLayoutUseCase } from "../../../../data"
 import type { SVGProps } from "react"
 import type { GraphRow } from "../../../../domain/entities/graph/commit-graph"
-import { laneColor } from "../../../../main/adapters"
 
 export const GITLENS_LANE_W = 14
 export const GITLENS_ROW_H = 28
@@ -19,13 +19,13 @@ export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svg
   const width = Math.max(lanes, 1) * laneWidth
   const x = (l: number) => l * laneWidth + laneWidth / 2
   const mid = rowHeight / 2
-  const color = laneColor(row.lane)
+  const color = graphLayoutUseCase.laneColor(row.lane)
 
   return (
     <svg width={width} height={rowHeight} aria-hidden="true" {...svgProps}>
       {row.top.map((h, j) => {
         if (h === null || h === undefined) return null
-        const c = laneColor(j)
+        const c = graphLayoutUseCase.laneColor(j)
         if (j === row.lane) {
           return (
             <line
@@ -63,7 +63,7 @@ export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svg
             y1={mid}
             x2={x(l.toLane)}
             y2={rowHeight}
-            stroke={laneColor(l.fromLane)}
+            stroke={graphLayoutUseCase.laneColor(l.fromLane)}
             strokeWidth={2}
             strokeLinecap="round"
           />
@@ -72,7 +72,7 @@ export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svg
             key={`link-${l.fromLane}-${l.toLane}`}
             d={`M ${x(l.fromLane)} ${mid} C ${x(l.fromLane)} ${mid + rowHeight / 4}, ${x(l.toLane)} ${rowHeight - rowHeight / 4}, ${x(l.toLane)} ${rowHeight}`}
             fill="none"
-            stroke={laneColor(l.fromLane)}
+            stroke={graphLayoutUseCase.laneColor(l.fromLane)}
             strokeWidth={2}
             strokeLinecap="round"
           />

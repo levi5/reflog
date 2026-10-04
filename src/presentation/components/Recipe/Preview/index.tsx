@@ -1,12 +1,6 @@
+import { automationsUseCase, gitCommandParserUseCase } from "../../../../data"
 import { TriangleAlert } from "lucide-react"
 import { useTranslation } from "../../../context"
-import {
-  expandAlias,
-  isDangerousCmd,
-  resolveVariables,
-  stripGitPrefix,
-  validateAction,
-} from "../../../../main/adapters"
 import type { StringKey } from "../../../../i18n"
 import type { AutomationAlias, AutomationStep } from "../../../../domain/entities/automations/automations"
 import styles from "./style.module.scss"
@@ -17,7 +11,7 @@ const INVALID_MESSAGE_KEYS: Record<string, StringKey> = {
 }
 
 function getInvalidMessageKey(command: string, aliases: AutomationAlias[]): StringKey | null {
-  const validationResult = validateAction(command, aliases)
+  const validationResult = automationsUseCase.validateAction(command, aliases)
   if (!validationResult) return null
   return INVALID_MESSAGE_KEYS[validationResult] ?? null
 }
@@ -27,9 +21,9 @@ function resolvePreviewCommand(
   aliases: AutomationAlias[],
   variableValues: Record<string, string>,
 ): string {
-  const expandedCommand = expandAlias(rawCommand, aliases)
-  const resolvedCommand = resolveVariables(expandedCommand, variableValues)
-  return stripGitPrefix(resolvedCommand)
+  const expandedCommand = automationsUseCase.expandAlias(rawCommand, aliases)
+  const resolvedCommand = automationsUseCase.resolveVariables(expandedCommand, variableValues)
+  return gitCommandParserUseCase.stripGitPrefix(resolvedCommand)
 }
 
 interface PreviewListRowProps {
@@ -45,7 +39,7 @@ function PreviewListRow({ automationStep, aliases, variableValues }: PreviewList
   return (
     <div className={styles.previewRow}>
       <code>$ git {previewCommand || "…"}</code>
-      {isDangerousCmd(previewCommand) && <TriangleAlert size={12} />}
+      {gitCommandParserUseCase.isDangerousCmd(previewCommand) && <TriangleAlert size={12} />}
       {invalidMessageKey && <span className={styles.invalid}>{t(invalidMessageKey)}</span>}
     </div>
   )

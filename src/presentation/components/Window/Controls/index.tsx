@@ -1,6 +1,7 @@
 import { getCurrentWindow, type Window as TauriWindow } from "@tauri-apps/api/window"
 import classnames from "classnames"
 import { Minus, Square, X } from "lucide-react"
+import { useTranslation } from "../../../context"
 import styles from "./style.module.scss"
 
 type Action = "minimize" | "toggleMaximize" | "close"
@@ -25,7 +26,14 @@ const run = (action: Action) => () => {
   }
 }
 
+const ACTION_LABELS: Record<Action, "minimizeWindow" | "maximizeWindow" | "closeWindow"> = {
+  minimize: "minimizeWindow",
+  toggleMaximize: "maximizeWindow",
+  close: "closeWindow",
+}
+
 export function WindowControls() {
+  const { t } = useTranslation()
   return (
     <div className={styles.controls}>
       {BUTTONS.map(({ action, close, Icon }) => (
@@ -34,8 +42,8 @@ export function WindowControls() {
           key={action}
           className={classnames(styles.btn, close && styles.close)}
           onClick={run(action)}
-          aria-label={action}
-          title={action}
+          aria-label={t(ACTION_LABELS[action])}
+          title={t(ACTION_LABELS[action])}
         >
           <Icon size={13} />
         </button>

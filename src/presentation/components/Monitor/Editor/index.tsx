@@ -1,5 +1,5 @@
 import { Play, Plus, Save, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import type { MonitorAutomation, MonitorBlock } from "../../../../domain/entities/automations"
 import { MONITOR_BLOCK_TEMPLATES } from "../../../../shared/constants/automations"
 import { newId } from "../../../../shared/utils/id"
@@ -10,7 +10,7 @@ export interface MonitorEditorProps {
   monitor: MonitorAutomation
   onSave: (monitor: MonitorAutomation) => void
   onRun: (monitor: MonitorAutomation) => void
-  onDelete: (id: string) => void
+  onDelete: (id: string) => void | Promise<void>
   onChooseRepository: () => Promise<string | null>
 }
 
@@ -21,6 +21,17 @@ export function MonitorEditor({ monitor, onSave, onRun, onDelete, onChooseReposi
   const [repoPath, setRepoPath] = useState(monitor.repoPath)
   const [pathValue, setPathValue] = useState(monitor.path)
   const [blocks, setBlocks] = useState<MonitorBlock[]>(monitor.blocks)
+  const commandIdsRef = useRef(new Map<string, string>())
+
+  const commandKey = (blockId: string, commandIndex: number) => {
+    const map = commandIdsRef.current
+    const mapKey = `${blockId}:${commandIndex}`
+    const existing = map.get(mapKey)
+    if (existing) return existing
+    const created = newId("cmd")
+    map.set(mapKey, created)
+    return created
+  }
 
   const buildMonitor = (): MonitorAutomation => ({
     ...monitor,
@@ -29,7 +40,7 @@ export function MonitorEditor({ monitor, onSave, onRun, onDelete, onChooseReposi
     repoPath,
     path: pathValue,
     trigger: { kind: "manual" },
-    blocks,
+    blocks: blocks.map((block) => ({ ...block, commands: block.commands.map((command) => command.trim()) })),
   })
 
   const removeBlock = (blockId: string) => {
@@ -184,8 +195,9 @@ export function MonitorEditor({ monitor, onSave, onRun, onDelete, onChooseReposi
                 </header>
                 {block.commands.map((command, commandIndex) => (
                   <input
-                    key={`${block.id}-${command}`}
+                    key={commandKey(block.id, commandIndex)}
                     value={command}
+                    aria-label={`${t("addCommand")} — ${block.label} #${commandIndex + 1}`}
                     placeholder="git pull --rebase"
                     onChange={(event) => updateBlockCommand(block.id, commandIndex, event.target.value)}
                   />
@@ -200,12 +212,12 @@ export function MonitorEditor({ monitor, onSave, onRun, onDelete, onChooseReposi
       </div>
 
       <footer className={styles.footer}>
-        <button type="button" onClick={() => onDelete(monitor.id)}>
-          <Trash2 size={13} /> {t("remove")}
+        <button type="button" onClick={() => void onDelete(monitor.id)}>
+          <Trash2 size={13} /> {t("deleteMonitor")}
         </button>
         <div className={styles.footerActions}>
           <button type="button" onClick={() => onSave(buildMonitor())}>
-            <Save size={13} /> Salvar
+            <Save size={13} /> {t("saveChanges")}
           </button>
           <button
             type="button"

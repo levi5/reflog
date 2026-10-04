@@ -17,9 +17,11 @@ export function SearchBox({ className, placeholder }: SearchBoxProps) {
     <div className={classnames(styles.searchBox, className)}>
       <SearchIcon size={13} className={styles.searchIcon} />
       <input
+        type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={placeholder ?? t("searchPh")}
+        aria-label={placeholder ?? t("search")}
       />
       {query && (
         <button

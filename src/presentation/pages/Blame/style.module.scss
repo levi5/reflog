@@ -70,7 +70,7 @@
   color: var(--muted);
   font-weight: 400;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .mainHead {
@@ -103,6 +103,28 @@
 .filter:focus {
   border-color: var(--grape);
   outline: none;
+}
+
+.truncated {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  font-size: var(--font-sm);
+  line-height: 1.4;
+  color: var(--faint);
+}
+
+.error {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--red);
+  border-radius: 0.6rem;
+  background: var(--red-dim);
+  color: var(--red);
+  font-size: 12px;
+}
+
+.skeleton {
+  padding: 1.2rem;
 }
 
 .blameRow {
@@ -199,7 +221,7 @@
 }
 
 .code :global(.hljs-deletion) {
-  color: #ff7a7a;
+  color: var(--red);
 }
 
 .code {

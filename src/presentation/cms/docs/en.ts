@@ -155,8 +155,8 @@ export const docsEnContent: DocsContent = {
       id: "themes",
       title: "Themes",
       steps: [
-        "Under Settings → Interface, pick Dark, Light, Glass dark or Glass light.",
-        "Glass themes use blur and translucency over the wallpaper.",
+        "Under Settings → Interface, pick Dark or Light.",
+        "Themes use solid surfaces with hairline borders, no translucency.",
       ],
     },
     {

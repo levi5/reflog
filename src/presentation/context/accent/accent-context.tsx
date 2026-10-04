@@ -1,40 +1,34 @@
-import { _Maybe } from "funcio"
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, type ReactNode, useContext, useEffect, useMemo } from "react"
 import type { AccentId, Theme } from "../../../types"
-import { DEFAULT_ACCENT_ID, isAccentId, resolveAccentHex } from "../../../shared/constants/accent"
 import {
-  debounce,
-  readVersionedRaw,
-  versionedKey,
-  writeVersionedRaw,
-} from "../../../infrastructure/storage/versioned-storage"
+  DEFAULT_ACCENT_ID,
+  ensureContrast,
+  isAccentId,
+  MIN_TEXT_CONTRAST,
+  readableTextOn,
+  resolveAccentHex,
+} from "../../../shared/constants/accent"
+import { usePersistentSetting, versionedKey } from "../../../infrastructure/storage/versioned-storage"
 import { useTheme } from "../theme/theme-context"
 
 const ACCENT_KEY = "accent"
 export const ACCENT_STORAGE_KEY = versionedKey(ACCENT_KEY)
 
-function readAccentStorage(): AccentId {
-  const stored = readVersionedRaw(ACCENT_KEY)
-  return _Maybe
-    .of(stored)
-    .map((val) => (val !== null && isAccentId(val) ? val : DEFAULT_ACCENT_ID))
-    .getOrElse(DEFAULT_ACCENT_ID)
+function parseAccent(raw: string): AccentId {
+  return isAccentId(raw) ? raw : DEFAULT_ACCENT_ID
 }
-
-const debouncedWriteAccent = debounce((accent: AccentId) => {
-  writeVersionedRaw(ACCENT_KEY, accent)
-}, 300)
 
 function applyAccentVars(accent: AccentId, theme: Theme): void {
   const hex = resolveAccentHex(accent, theme)
+  const onAccent = readableTextOn(hex)
+  const fill = ensureContrast(hex, onAccent, MIN_TEXT_CONTRAST)
   const root = document.documentElement
   root.style.setProperty("--accent", hex)
   root.style.setProperty("--grape", hex)
-  root.style.setProperty("--grape-deep", `color-mix(in srgb, ${hex} 82%, black)`)
+  root.style.setProperty("--grape-btn", fill)
+  root.style.setProperty("--on-accent", onAccent)
+  root.style.setProperty("--grape-deep", `color-mix(in srgb, ${fill} 84%, black)`)
   root.style.setProperty("--grape-dim", `color-mix(in srgb, ${hex} 16%, transparent)`)
-  if (theme === "glass-dark" || theme === "glass-light") {
-    root.style.setProperty("--aurora-1", `color-mix(in srgb, ${hex} 22%, transparent)`)
-  }
 }
 
 export interface AccentContextValue {
@@ -46,25 +40,14 @@ const AccentContext = createContext<AccentContextValue | null>(null)
 
 export function AccentProvider({ children }: { children: ReactNode }) {
   const { theme } = useTheme()
-  const [accent, setAccentState] = useState<AccentId>(readAccentStorage)
-
-  const setAccent = useCallback((nextAccent: AccentId) => {
-    setAccentState(isAccentId(nextAccent) ? nextAccent : DEFAULT_ACCENT_ID)
-  }, [])
+  const [accent, setAccent] = usePersistentSetting<AccentId>(ACCENT_KEY, DEFAULT_ACCENT_ID, {
+    parse: parseAccent,
+    normalize: parseAccent,
+  })
 
   useEffect(() => {
-    debouncedWriteAccent(accent)
     applyAccentVars(accent, theme)
   }, [accent, theme])
-
-  useEffect(() => {
-    const onStorage = (storageEvent: StorageEvent) => {
-      if (storageEvent.key !== ACCENT_STORAGE_KEY || storageEvent.newValue === null) return
-      if (isAccentId(storageEvent.newValue)) setAccentState(storageEvent.newValue)
-    }
-    window.addEventListener("storage", onStorage)
-    return () => window.removeEventListener("storage", onStorage)
-  }, [])
 
   const value = useMemo(() => ({ accent, setAccent }), [accent, setAccent])
 

@@ -1,5 +1,7 @@
 .diff {
   background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border-soft);
   padding: 12px;
   border-radius: 8px;
@@ -34,12 +36,14 @@
   justify-content: space-between;
   gap: 8px;
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   padding: 4px 8px;
   border-bottom: 1px solid var(--border-soft);
 }
 .hunkHead code {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--grape);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -94,8 +98,8 @@
 }
 
 .del {
-  background: rgba(255, 122, 122, 0.12);
-  color: #ff7a7a;
+  background: var(--red-dim);
+  color: var(--red);
   display: block;
 }
 
@@ -121,6 +125,8 @@
   gap: 8px;
   padding: 8px 12px;
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border-soft);
   border-radius: 6px;
   color: var(--muted);

@@ -7,7 +7,6 @@ import { useGitActions } from "../../../src/presentation/hooks/repository/useGit
 import { useRemoteOps } from "../../../src/presentation/hooks/repository/useRemoteOps"
 import { useTagOps } from "../../../src/presentation/hooks/repository/useTagOps"
 
-// These hooks only expose callbacks; no DOM or effect lifecycle is needed.
 function renderActions(confirmed = true) {
   const git = {
     ...gitApi,

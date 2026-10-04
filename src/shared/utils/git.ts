@@ -1,3 +1,5 @@
 export function stripGitPrefix(text: string): string {
-  return text.trim().replace(/^git\s+/i, "")
+  const trimmed = text.trim()
+  if (/^git$/i.test(trimmed)) return ""
+  return trimmed.replace(/^git\s+/i, "")
 }

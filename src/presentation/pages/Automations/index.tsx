@@ -3,7 +3,7 @@ import { t } from "../../../i18n"
 import { gitApi } from "../../../infrastructure/git"
 import { EmptyState } from "../../components/Empty/State"
 import { Recipe } from "../../components/Recipe"
-import { useRepo, useSettingsContext } from "../../context"
+import { useRepoCore, useSettingsContext } from "../../context"
 import { useAutomations } from "../../hooks"
 import { useAutomationTransfer } from "../../hooks/automations/useAutomationTransfer"
 import { useRecipeEditor } from "../../hooks/automations/useRecipeEditor"
@@ -12,7 +12,7 @@ import styles from "./style.module.scss"
 
 export function Automations() {
   const { lang } = useSettingsContext()
-  const repository = useRepo()
+  const repository = useRepoCore()
   const currentRepoPath = repository.repo
   const automations = useAutomations({
     repoRoot: currentRepoPath,
@@ -64,6 +64,17 @@ export function Automations() {
     })
   }
 
+  const confirmDeleteRecipe = async (recipeId: string) => {
+    const target = automations.recipes.find((recipe) => recipe.id === recipeId)
+    if (!target) return
+    const confirmed = await repository.requestConfirm(
+      t(lang, "deleteRecipeAction"),
+      t(lang, "deleteRecipeConfirm").replace("{name}", target.name),
+    )
+    if (!confirmed) return
+    editor.deleteRecipeAndClearSelection(recipeId)
+  }
+
   if (!currentRepoPath) {
     return <EmptyState message={t(lang, "noRepo")} />
   }
@@ -78,7 +89,7 @@ export function Automations() {
         onOpenRecipe={editor.openRecipe}
         onCreateRecipe={editor.createRecipe}
         onLoadExample={editor.loadExampleRecipe}
-        onDeleteRecipe={editor.deleteRecipeAndClearSelection}
+        onDeleteRecipe={(recipeId) => void confirmDeleteRecipe(recipeId)}
         onRunRecipe={(recipe) => void automations.runRecipe(recipe, {})}
         isRunning={automations.running}
         currentPage={recipePage}
@@ -97,7 +108,7 @@ export function Automations() {
         onRemoveStep={editor.removeDraftStep}
         onSaveDraft={editor.saveDraftRecipe}
         onDeleteDraft={() => {
-          if (draftRecipe) editor.deleteRecipeAndClearSelection(draftRecipe.id)
+          if (draftRecipe) void confirmDeleteRecipe(draftRecipe.id)
         }}
         recipeAction={editor.recipeAction}
         onToggleRecipeAction={editor.toggleRecipeAction}

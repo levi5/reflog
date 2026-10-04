@@ -1,5 +1,5 @@
+import { mergeStatsUseCase } from "../../../../data"
 import { t, type StringKey } from "../../../../i18n"
-import { repoBaseName } from "../../../../main/adapters"
 import type { Lang, SubmoduleInfo } from "../../../../types"
 
 export type ScopeTone = "ok" | "warn" | "muted" | "danger"
@@ -58,7 +58,7 @@ function submoduleTargets(lang: Lang, base: string, submodules: SubmoduleInfo[])
   return submodules.map((sub) => ({
     id: `sub:${base}:${sub.path}`,
     path: `${base}/${sub.path}`,
-    name: repoBaseName(sub.path) || sub.name || sub.path,
+    name: mergeStatsUseCase.repoBaseName(sub.path) || sub.name || sub.path,
     hint: sub.path,
     tone: submoduleStateTone(sub.state),
     badge: submoduleStateLabel(lang, sub.state),
@@ -104,7 +104,7 @@ export function buildScopeGroups({
     targets: parents.map((path, index) => ({
       id: `parent:${path}`,
       path,
-      name: repoBaseName(path),
+      name: mergeStatsUseCase.repoBaseName(path),
       hint: path,
       tone: index === 0 ? "warn" : "muted",
       badge: index === 0 ? t(lang, "scopeDirectParent") : undefined,
@@ -131,7 +131,7 @@ export function buildScopeGroups({
       .map((path) => ({
         id: `recent:${path}`,
         path,
-        name: repoBaseName(path),
+        name: mergeStatsUseCase.repoBaseName(path),
         hint: path,
         tone: "muted",
       })),

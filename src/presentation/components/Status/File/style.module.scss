@@ -9,10 +9,12 @@
   transition: background 0.13s ease, border-color 0.13s ease, transform 0.13s ease;
   content-visibility: auto;
   contain-intrinsic-size: auto 52px;
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
 }
 .fcard:hover {
   background: var(--bg-raised);
-  border-color: var(--faint);
+  border-color: transparent;
 }
 .fcard.active {
   background: var(--bg-highest);
@@ -37,6 +39,14 @@
 .fselect:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.fselect:hover:not(:disabled),
+.fselect:active:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
 }
 
 .fico {
@@ -91,7 +101,7 @@
 
 .fmeta small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .factions {

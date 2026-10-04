@@ -3,7 +3,11 @@ import { X } from "lucide-react"
 import { type ReactNode, type RefObject, useId, useLayoutEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import { useTranslation } from "../../context"
+import { isTopModal, modalStackDepth, pushModal } from "../../hooks/ui/useModalStack"
 import styles from "./style.module.scss"
+
+const FOCUSABLE =
+  'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"]), [tabIndex]:not([tabIndex="-1"])'
 
 interface Props {
   title: ReactNode
@@ -31,30 +35,31 @@ export function Modal({
   const titleId = useId()
   const boxRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const modalId = useRef(Symbol("modal"))
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
   const { t } = useTranslation()
 
   useLayoutEffect(() => {
     if (!open) return
+    const id = modalId.current
+    const release = pushModal(id)
     const previousFocus = document.activeElement
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
-    const target =
-      initialFocus?.current ??
-      boxRef.current?.querySelector<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"]), [tabIndex]:not([tabIndex="-1"])',
-      ) ??
-      closeRef.current
+    const target = initialFocus?.current ?? bodyRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? closeRef.current
     target?.focus()
     const onKey = (e: KeyboardEvent) => {
+      if (!isTopModal(id)) return
       if (e.key === "Escape") {
         e.preventDefault()
+        e.stopPropagation()
         onCloseRef.current()
       }
       if (e.key === "Tab" && boxRef.current) {
-        const focusables = boxRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"]), [tabIndex]:not([tabIndex="-1"])',
+        const focusables = Array.from(boxRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+          (el) => el.offsetParent !== null || el === document.activeElement,
         )
         if (focusables.length === 0) return
         const first = focusables[0]
@@ -68,11 +73,12 @@ export function Modal({
         }
       }
     }
-    document.addEventListener("keydown", onKey)
+    document.addEventListener("keydown", onKey, true)
     return () => {
-      document.removeEventListener("keydown", onKey)
-      document.body.style.overflow = previousOverflow
-      if (previousFocus instanceof HTMLElement) previousFocus.focus()
+      document.removeEventListener("keydown", onKey, true)
+      release()
+      if (modalStackDepth() === 0) document.body.style.overflow = previousOverflow
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus()
     }
   }, [open, initialFocus])
 
@@ -85,7 +91,7 @@ export function Modal({
     <div
       className={styles.overlay}
       onMouseDown={(e) => {
-        if (closeOnBackdrop && e.target === e.currentTarget) onClose()
+        if (closeOnBackdrop && isTopModal(modalId.current) && e.target === e.currentTarget) onClose()
       }}
     >
       <div
@@ -101,7 +107,9 @@ export function Modal({
             <X size={13} />
           </button>
         </div>
-        <div className={styles.body}>{children}</div>
+        <div ref={bodyRef} className={styles.body}>
+          {children}
+        </div>
         {actions && <div className={styles.foot}>{actions}</div>}
       </div>
     </div>,

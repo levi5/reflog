@@ -3,6 +3,21 @@ import classnames from "classnames"
 
 import styles from "./styles.module.scss"
 
+const ALIGN_MAP: Record<string, string> = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  stretch: "stretch",
+}
+
+const JUSTIFY_MAP: Record<string, string> = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+  between: "space-between",
+  around: "space-around",
+}
+
 interface FlexRowProps extends HTMLAttributes<HTMLDivElement> {
   gap?: number
   align?: "start" | "center" | "end" | "stretch"
@@ -28,8 +43,8 @@ export function FlexRow({
         {
           ...style,
           "--flex-gap": `${gap}px`,
-          "--flex-align": align,
-          "--flex-justify": justify,
+          "--flex-align": ALIGN_MAP[align] ?? align,
+          "--flex-justify": JUSTIFY_MAP[justify] ?? justify,
           "--flex-wrap": wrap ? "wrap" : "nowrap",
         } as React.CSSProperties
       }
@@ -65,8 +80,8 @@ export function FlexCol({
         {
           ...style,
           "--flex-gap": `${gap}px`,
-          "--flex-align": align,
-          "--flex-justify": justify,
+          "--flex-align": ALIGN_MAP[align] ?? align,
+          "--flex-justify": JUSTIFY_MAP[justify] ?? justify,
           "--flex-grow": grow,
         } as React.CSSProperties
       }

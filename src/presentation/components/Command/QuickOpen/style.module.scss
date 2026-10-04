@@ -1,0 +1,71 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+.input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-input);
+  border-radius: 0.6rem;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.input:focus {
+  outline: 0.2rem solid var(--grape);
+  outline-offset: 0.1rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.list button[type="button"] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: left;
+}
+
+.list button.active,
+.list button:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: transparent;
+}
+
+.list button svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.list button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  padding: 1.2rem 0.4rem;
+  color: var(--faint);
+  font-size: 12px;
+  text-align: center;
+}

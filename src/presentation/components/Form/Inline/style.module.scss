@@ -6,6 +6,8 @@
   input {
     min-width: 0;
     background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
     border: 1px solid var(--border);
     color: var(--fg);
     border-radius: 6px;

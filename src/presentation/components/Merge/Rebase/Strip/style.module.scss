@@ -123,7 +123,7 @@
 
 .rok {
   color: var(--green);
-  font-size: 11px;
+  font-size: var(--font-sm);
   display: inline-flex;
 }
 
@@ -141,18 +141,18 @@
 
 .rdate {
   color: var(--faint);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .omitted {
   color: var(--red);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .tonePick {
   border-radius: 4px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   padding: 2px 6px;
   min-width: 76px;
@@ -164,7 +164,7 @@
 
 .toneSquash {
   border-radius: 4px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   padding: 2px 6px;
   min-width: 76px;
@@ -176,7 +176,7 @@
 
 .toneDrop {
   border-radius: 4px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-family: var(--mono);
   padding: 2px 6px;
   min-width: 76px;

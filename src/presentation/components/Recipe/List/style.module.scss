@@ -60,7 +60,7 @@
 }
 
 .recipeMeta {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
   font-family: var(--mono);
   flex-shrink: 0;
@@ -94,7 +94,7 @@
 
 .actionBtn.danger:hover:not(:disabled) {
   background: var(--bg-raised);
-  color: #ff7a7a;
+  color: var(--red);
 }
 
 .virtualListWrapper {

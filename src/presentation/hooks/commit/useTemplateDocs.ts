@@ -1,7 +1,7 @@
+import { commitMarkdownUseCase } from "../../../data"
 import { useCallback, useEffect, useState } from "react"
 import type { TemplateDoc } from "../../../domain/entities/commit/commit-markdown"
 import { BUILTIN_DOCS } from "../../../shared/constants/commit/commitMarkdown"
-import { parseTemplateDoc } from "../../../main/adapters"
 import { DEFAULT_TEMPLATE_FOLDER, gitApi } from "../../../infrastructure/git"
 
 export interface GitIdentity {
@@ -23,7 +23,7 @@ export async function loadRepositoryTemplateDocs(repoPath: string): Promise<Temp
       names.map(async (name) => {
         try {
           const content = await gitApi.templateRead(repoPath, DEFAULT_TEMPLATE_FOLDER, name)
-          return parseTemplateDoc(`repo:${name}`, name.replace(/\.md$/, ""), "repo", content)
+          return commitMarkdownUseCase.parseTemplateDoc(`repo:${name}`, name.replace(/\.md$/, ""), "repo", content)
         } catch {
           return null
         }

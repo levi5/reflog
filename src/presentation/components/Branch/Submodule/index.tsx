@@ -9,9 +9,10 @@ interface SubmodulePanelProps {
   submodules: SubmoduleInfo[]
   onUpdate: (submodulePath?: string) => void
   onOpen?: (path: string) => void
+  busy?: boolean
 }
 
-export function SubmodulePanel({ submodules, onUpdate, onOpen }: SubmodulePanelProps) {
+export function SubmodulePanel({ submodules, onUpdate, onOpen, busy = false }: SubmodulePanelProps) {
   const { t } = useTranslation()
 
   const stateClass = (state: string) => {
@@ -49,7 +50,13 @@ export function SubmodulePanel({ submodules, onUpdate, onOpen }: SubmodulePanelP
       <div className={styles.topBar}>
         <span className={styles.title}>{t("submodules")}</span>
         {submodules.length > 0 && (
-          <button type="button" className={styles.updateAllBtn} onClick={() => onUpdate()} title={t("submoduleUpdate")}>
+          <button
+            type="button"
+            className={styles.updateAllBtn}
+            disabled={busy}
+            onClick={() => onUpdate()}
+            title={t("submoduleUpdate")}
+          >
             <RefreshCw size={11} /> {t("submoduleUpdate")}
           </button>
         )}
@@ -68,6 +75,7 @@ export function SubmodulePanel({ submodules, onUpdate, onOpen }: SubmodulePanelP
                 type="button"
                 className={styles.actionBtn}
                 onClick={() => onUpdate(sub.path)}
+                disabled={busy}
                 title={t("submoduleUpdate")}
               >
                 <RefreshCw size={11} /> {t("submoduleUpdate")}
@@ -85,7 +93,7 @@ export function SubmodulePanel({ submodules, onUpdate, onOpen }: SubmodulePanelP
             </div>
           </div>
         ))}
-        {submodules.length === 0 && <EmptyState small message={t("noSubmodules") || "Nenhum submódulo encontrado"} />}
+        {submodules.length === 0 && <EmptyState small message={t("noSubmodules")} />}
       </div>
     </div>
   )

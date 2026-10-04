@@ -54,7 +54,7 @@
   flex: 1;
   gap: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .stepsHead {
@@ -92,7 +92,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 
@@ -117,7 +117,7 @@
 }
 
 .whenLabel {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--muted);
   width: 14px;

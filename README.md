@@ -22,14 +22,17 @@ A modern desktop Git client built with **Tauri 2**, **React 19**, and **Rust** �
 
 | Category | Features |
 | ---------- | ---------- |
-| 📁 **Repository** | Open, clone, initialize, recent repos |
-| 📦 **Staging** | Add, unstage, discard, commit, amend |
-| 📊 **History** | Log, graph (DAG), blame, diff, reflog |
-| ⚔️ **Conflicts** | Visual merge tool, cherry-pick, revert |
-| 🔄 **Sync** | Push, pull, fetch, stash, submodules |
-| 🌿 **Branches/Tags** | Create, delete, rename, merge, tag |
-| ⚙️ **Automations** | Commit templates, hooks, recipes |
-| 🛠️ **Settings** | Git config, identity, GPG, remotes |
+| 📁 **Repository** | Open, clone, initialize, recents, superproject/submodule switcher |
+| 📦 **Staging** | Add, unstage, discard (per file, per hunk, per selection), commit, amend |
+| 📊 **History** | Log, graph (DAG), blame, diff, reflog, file history |
+| 🔎 **Search** | Server-side `git log` filters: author, message, path, pickaxe, date range |
+| 🔀 **Compare** | Merge base, per-file stats, ahead/behind commits, full diff between refs |
+| ⚔️ **Conflicts** | Visual merge tool, cherry-pick, revert, interactive rebase |
+| 🔄 **Sync** | Push, force-push (`--force-with-lease`), push tags, delete remote branch, pull, fetch (per remote, optional prune), upstream management, stash, submodules |
+| 🌿 **Branches/Tags** | Create (from any ref), delete (with force), rename, merge, tag |
+| ↩️ **Undo** | `Ctrl+Z` / `Ctrl+Shift+Z` over a bounded stack of reversible actions |
+| ⚙️ **Automations** | Commit templates, recipes, monitors, quick actions |
+| 🛠️ **Settings** | Git config editor (allow-listed keys), identity profiles, GPG status, remotes |
 
 ---
 
@@ -77,6 +80,7 @@ reflog/
 │   ├── domain/             # Domain layer
 │   │   └── entities/       # Business entities
 │   ├── infrastructure/     # Infrastructure layer
+│   ├── data/               # Use-cases + singletons
 │   ├── shared/             # Shared code
 │   ├── routes.tsx          # Route configuration
 │   └── main.tsx            # Entry point
@@ -247,7 +251,7 @@ permissions. Releases are unsigned, so Windows SmartScreen warns on first run.
 - **Trait-based Rust backend** — `GitRunner` trait for testability (mock runner in tests)
 - **Type-safe IPC** — Full TypeScript definitions for all Tauri commands
 - **Blocking operations handled correctly** — `spawn_blocking` for Git commands
-- **Security-first** — No shell (argv arrays), `--` separators, input validators, config allowlist, output caps, timeouts
+- **Security-first** — No shell (argv arrays), `--` separators, input validators, config allowlist, output caps, timeouts, `--force-with-lease` instead of `--force`
 - **Performance** — LTO, stripped binaries, lazy-loaded routes, paginated lists
 
 ---

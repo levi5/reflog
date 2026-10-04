@@ -5,10 +5,11 @@ import type { RunAction } from "./action-types"
 
 export function useGitAction(lang: Lang, runAction: RunAction) {
   return useCallback(
-    (work: () => Promise<unknown>, loadingKey: StringKey, successKey: StringKey) =>
+    (work: () => Promise<unknown>, loadingKey: StringKey, successKey: StringKey, options?: { errorMessage?: string }) =>
       runAction(work, undefined, {
         loadingMessage: t(lang, loadingKey),
         successMessage: t(lang, successKey),
+        errorMessage: options?.errorMessage,
       }),
     [lang, runAction],
   )

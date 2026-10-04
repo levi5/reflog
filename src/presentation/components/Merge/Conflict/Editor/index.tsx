@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react"
+import { conflictResolverUseCase } from "../../../../../data"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Choice } from "../../../../../domain/entities/conflict/conflicts"
-import { applyChoiceToContent, parseConflicts } from "../../../../../main/adapters"
 import type { ConflictBlock, ConflictFile } from "../../../../../types"
 import { useTranslation } from "../../../../context"
+import { scrollIntoViewSafely } from "../../../../hooks"
 import { EmptyState } from "../../../Empty/State"
 import { CompareModal } from "../../Compare/Modal"
 import { FileTabBar } from "../../File/TabBar"
@@ -22,8 +23,8 @@ interface Props {
 
 export function InlineEditor(props: Props) {
   const { file, content, hunkIndex, saving, setContent, setHunkIndex, onSave, onResolve } = props
-  const { lang, t } = useTranslation()
-  const blocks = useMemo(() => parseConflicts(content), [content])
+  const { t, format } = useTranslation()
+  const blocks = useMemo(() => conflictResolverUseCase.parseConflicts(content), [content])
   const [compare, setCompare] = useState<ConflictBlock | null>(null)
 
   useEffect(() => {
@@ -35,26 +36,34 @@ export function InlineEditor(props: Props) {
 
   useEffect(() => {
     if (!active) return
-    document.getElementById(`hunk-${active.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })
+    scrollIntoViewSafely(document.getElementById(`hunk-${active.id}`), { block: "center" })
   }, [active])
 
-  const apply = (block: ConflictBlock, choice: Choice) => setContent(applyChoiceToContent(content, block, choice, true))
+  const apply = useCallback(
+    (block: ConflictBlock, choice: Choice) =>
+      setContent(conflictResolverUseCase.applyChoiceToContent(content, block, choice, true)),
+    [content, setContent],
+  )
+
+  const activeRef = useRef(active)
+  activeRef.current = active
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!active) return
-      const tag = (e.target as HTMLElement | null)?.tagName
+    const onKey = (event: KeyboardEvent) => {
+      const current = activeRef.current
+      if (!current) return
+      const tag = (event.target as HTMLElement | null)?.tagName
       if (tag === "INPUT" || tag === "TEXTAREA") return
-      if (!e.altKey) return
-      const key = e.key.toLowerCase()
+      if (!event.altKey) return
+      const key = event.key.toLowerCase()
       const choice: Choice | null = key === "1" ? "current" : key === "2" ? "incoming" : key === "b" ? "both" : null
       if (choice === null) return
-      e.preventDefault()
-      apply(active, choice)
+      event.preventDefault()
+      apply(current, choice)
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  })
+  }, [apply])
 
   const lines = useMemo(() => content.split("\n"), [content])
   const byStart = useMemo(() => {
@@ -126,13 +135,7 @@ export function InlineEditor(props: Props) {
           className="primary"
           onClick={onSave}
           disabled={saving || blocks.length > 0}
-          title={
-            blocks.length > 0
-              ? lang === "pt"
-                ? `Resolva os ${blocks.length} conflito(s) antes de salvar`
-                : `Resolve all ${blocks.length} conflict(s) before saving`
-              : t("save")
-          }
+          title={blocks.length > 0 ? format("resolveConflictsFirst", { count: blocks.length }) : t("save")}
         >
           {t("save")}
         </button>

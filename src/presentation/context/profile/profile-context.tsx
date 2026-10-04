@@ -1,14 +1,9 @@
+import { profileManagerUseCase } from "../../../data"
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react"
 import type { GitProfile } from "../../../domain/entities/profile/profiles"
-import {
-  loadActiveProfileId,
-  loadProfiles,
-  newProfile,
-  saveActiveProfileId,
-  saveProfiles,
-} from "../../../main/adapters"
 import { gitApi } from "../../../infrastructure/git"
-import { useMessage } from "../message"
+import { formatMessage } from "../../../i18n"
+import { useMessageActions } from "../message"
 import { useTranslation } from "../translation"
 
 export interface ProfileContextValue {
@@ -32,9 +27,9 @@ export function ProfileProvider({
   setMsg?: (m: string) => void
   children: ReactNode
 }) {
-  const [profiles, setProfiles] = useState<GitProfile[]>(loadProfiles)
-  const [activeId, setActiveId] = useState<string>(loadActiveProfileId)
-  const messageService = useMessage()
+  const [profiles, setProfiles] = useState<GitProfile[]>(() => profileManagerUseCase.loadProfiles())
+  const [activeId, setActiveId] = useState<string>(() => profileManagerUseCase.loadActiveProfileId())
+  const messageService = useMessageActions()
   const { lang } = useTranslation()
 
   const active = profiles.find((p) => p.id === activeId) ?? null
@@ -42,14 +37,14 @@ export function ProfileProvider({
   const persist = useCallback((list: GitProfile[], id: string) => {
     setProfiles(list)
     setActiveId(id)
-    saveProfiles(list)
-    saveActiveProfileId(id)
+    profileManagerUseCase.saveProfiles(list)
+    profileManagerUseCase.saveActiveProfileId(id)
   }, [])
 
   const add = useCallback(
     (name: string, email: string, emoji = ""): boolean => {
       if (!name.trim() || !email.trim()) return false
-      const p = newProfile(name, email, emoji)
+      const p = profileManagerUseCase.newProfile(name, email, emoji)
       const list = [...profiles, p]
       persist(list, activeId || p.id)
       return true
@@ -71,15 +66,12 @@ export function ProfileProvider({
       if (!p) return false
       const root = repoRoot ?? ""
       const global = !root
-      const loadingId = messageService.loading(
-        lang === "pt" ? `Aplicando perfil ${p.name}...` : `Applying profile ${p.name}...`,
-      )
+      const loadingId = messageService.loading(formatMessage(lang, "applyProfileLoading", { name: p.name }))
       try {
         await gitApi.configSet(root, "user.name", p.name, global)
         await gitApi.configSet(root, "user.email", p.email, global)
         persist(profiles, id)
-        const successMsg =
-          lang === "pt" ? `Perfil aplicado: ${p.name} <${p.email}>` : `Profile applied: ${p.name} <${p.email}>`
+        const successMsg = formatMessage(lang, "applyProfileSuccess", { name: p.name, email: p.email })
         setMsg?.(successMsg)
         messageService.dismiss(loadingId)
         messageService.success(successMsg)

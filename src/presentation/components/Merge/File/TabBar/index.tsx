@@ -30,7 +30,7 @@ export function FileTabBar(props: Props) {
     onCompare,
     onComplete,
   } = props
-  const { t } = useTranslation()
+  const { t, format } = useTranslation()
   const navDisabled = hunkTotal === 0
   return (
     <div className={styles.fileTabbar}>
@@ -40,15 +40,15 @@ export function FileTabBar(props: Props) {
           {count} {t("conflictsTitle")}
         </span>
       </span>
-      <span className={styles.cursorPos}>Ln {cursorLine}, Col 1</span>
+      <span className={styles.cursorPos}>{format("lineColumn", { line: cursorLine, col: 1 })}</span>
       <div className="spacer" />
       <span className={styles.hunkNav}>
         {t("hunk")} {hunkCurrent} {t("of")} {hunkTotal}
       </span>
-      <button type="button" className="mini-btn" onClick={onPrev} disabled={navDisabled} aria-label="prev hunk">
+      <button type="button" className="mini-btn" onClick={onPrev} disabled={navDisabled} aria-label={t("prevHunk")}>
         <ChevronUp size={14} />
       </button>
-      <button type="button" className="mini-btn" onClick={onNext} disabled={navDisabled} aria-label="next hunk">
+      <button type="button" className="mini-btn" onClick={onNext} disabled={navDisabled} aria-label={t("nextHunk")}>
         <ChevronDown size={14} />
       </button>
       <button type="button" className="mini-btn wide" onClick={onCompare} disabled={navDisabled}>

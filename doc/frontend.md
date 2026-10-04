@@ -20,10 +20,9 @@ src/
 │   └── entities/        # Business entities (TypeScript)
 ├── infrastructure/      # Infrastructure Layer
 │   ├── git/             # Typed Tauri command wrappers (IGitApi)
-│   ├── storage/         # Versioned localStorage helpers
+│   ├── storage/         # Versioned localStorage helpers + usePersistentSetting
 │   └── templates/       # Template IO helpers
-├── data/                # Use-cases + protocols
-├── main/                # Adapters + factories (dependency wiring)
+├── data/                # Use-cases, protocols and ready-to-use singletons
 ├── shared/              # Shared code
 │   ├── utils/           # Utilities
 │   ├── constants/       # Constants
@@ -137,21 +136,34 @@ Providers are composed in `AppLayout` / `routes.tsx`
 - **SearchProvider** (`filter/`) - Global search query/scope
 - **UiProvider** (`ui/`), **StartupProvider** (`startup/`) - UI state, startup/reopen logic
 
+Every setting above is persisted by `usePersistentSetting`
+(`src/infrastructure/storage/versioned-storage.ts`): it reads the versioned
+key, normalizes the value, writes it back debounced, mirrors changes from other
+tabs and applies the side effect (CSS variable, `data-*` attribute). Adding a new
+setting means one hook call, not a new copy of that plumbing.
+
+## Use-cases (`src/data/`)
+
+`src/data/index.ts` exposes one ready-to-use instance per use-case
+(`commitTemplateUseCase`, `diffParserUseCase`, `mergeStatsUseCase`, …). The
+presentation layer consumes those singletons directly; there is no adapter or
+factory layer in between.
+
 ## Custom Hooks (`src/presentation/hooks/`)
 
 | Hook | Responsibility |
 | ------ | ---------------- |
 | `useRepository` / `useRepoCore` | Composed repo state + all git operations (`runAction` wrapper with loading/success/error toasts) |
 | `useRepositoryData` | Loads status/branches/tags/remotes/log/graph pages |
-| `useStaging` / `useStagingState` | Staging area operations |
-| `useMerge` / `useMergeState` | Merge/conflict state |
-| `useBranchOps`, `useTagOps`, `useRemoteOps`, `useStashOps`, `useSubmodules` | Branch/tag/remote/stash/submodule actions |
+| `useStaging` | Staging area operations |
+| `useMerge` | Merge/conflict state |
+| `useBranchOps`, `useTagOps`, `useRemoteOps`, `useStashOps` | Branch/tag/remote/stash actions |
 | `useGitAction` / `useGitActions` | `runAction` adapters with i18n messages |
 | `usePaginated` | Paginated IPC loading (log/graph pages) |
 | `useCommitTemplate` | Conventional-commit builder (fields <-> formatted message) |
 | `useTemplateManager`, `useTemplateDocs` | Template CRUD + docs |
 | `useMatchNavigator`, `useResizable`, `useIntersectionObserver`, `useAutoRefresh`, `useDismiss`, `useWindowDrag` | UI utilities |
-| `useConsoleSession`, `consoleHistory`, `consoleKeyboard` | In-app git console |
+| `useConsoleSession`, `consoleHistory` | In-app git console |
 | `useAutomations`, `useAutomationStore`, `useRecipeEditor`, `useAutomationTransfer`, `conditionRunner` | Automations/recipes/monitors |
 | `useProfiles` | Git identity profiles |
 
@@ -220,6 +232,32 @@ const handleCommit = async (message: string) => {
 }
 ```
 
+## Repository State
+
+`useRepository` returns four memoized slices, each behind its own React context:
+
+| Hook | Holds |
+| ---- | ----- |
+| `useRepoCore()` | status, refs, log/graph, sync, cherry-pick/revert/reset/rebase, undo stack |
+| `useStagingSlice()` | diff, blame, editor, stage/unstage/discard, stash, submodules |
+| `useCommitSlice()` | commit message and `doCommit` |
+| `useMergeSlice()` | conflict resolution state |
+
+`useRepo()` still returns the flattened object, but subscribing to it re-renders
+on every change anywhere — prefer the narrow slice whenever a component only
+needs one area. Splitting `commitMsg` out is what keeps typing in the commit box
+from re-rendering the file list.
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+| -------- | ------ |
+| `Ctrl/Cmd+K` | Command palette |
+| `Ctrl/Cmd+F` | Focus the page search box |
+| `Ctrl/Cmd+P` | Quick open a tracked file |
+| `Ctrl/Cmd+Z` / `Ctrl/Cmd+Shift+Z` | Undo / redo the last reversible action |
+| `F5`, `Ctrl/Cmd+R` | Refresh the repository |
+
 ## Styling
 
 - **Sass/SCSS** - Variables, mixins, nesting
@@ -251,8 +289,9 @@ pnpm test           # Run tests (vitest run)
 ```
 
 Covered today: automation codecs, partial patches, command-palette fuzzy
-matching, shared utils. No component (React Testing Library) or E2E
-setup — hooks/context/components have no tests yet.
+matching, shared utils, theme/accent contrast tokens, the modal stack, reduced
+motion, and SSR renders of a few components. There is no React Testing Library
+or E2E setup, so hooks and context providers are still untested.
 
 ## Build and Deploy
 
@@ -279,9 +318,11 @@ pnpm tauri build    # Native bundle (AppImage, .dmg, .msi)
 
 1. **Lazy load routes** - `React.lazy` + `Suspense`
 2. **Memoize computations** - `useMemo`, `useCallback`
-3. **Paginate large lists** - `VirtualList` paginates (slice per page);
-   true windowing is still open (see `Status/File` with thousands of files)
+3. **Window or paginate large lists** - `List.Paged` slices per page (recipes,
+   monitors, templates, profiles); `useVirtualRows` does real windowing for the
+   blame view and the commit graph
 4. **Error boundaries** - Per feature/page (`RouteErrorElement`, `ErrorFallback`)
-5. **Accessibility** - ARIA roles, keyboard nav, focus trap in modals
+5. **Accessibility** - ARIA roles, keyboard nav, focus trap in modals. Overlays
+   register in `useModalStack` so `Escape` only reaches the topmost one
 6. **Type safety** - `strict: true`, `noUnusedLocals`, `noUnusedParameters`,
    `noFallthroughCasesInSwitch` (see `tsconfig.json`)

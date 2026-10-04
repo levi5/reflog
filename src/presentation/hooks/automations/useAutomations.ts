@@ -1,3 +1,4 @@
+import { automationsUseCase, gitCommandParserUseCase } from "../../../data"
 import { _Either } from "funcio"
 import { useCallback } from "react"
 import type {
@@ -5,11 +6,11 @@ import type {
   AutomationRecipe,
   MonitorAutomation,
 } from "../../../domain/entities/automations/automations"
-import { expandAlias, resolveVariables, splitArgs, stripGitPrefix, validateAction } from "../../../main/adapters"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
 import type { IGitApi } from "../../../infrastructure/git/types"
 import type { IStorage } from "../../../data/protocols/storage"
-import { useMessage } from "../../context"
+import { useMessageActions } from "../../context"
+import { useTranslation } from "../../context/translation/translation-context"
 import { useAutomationLog } from "./useAutomationLog"
 import { useAutomationStore } from "./useAutomationStore"
 import { evalCondition } from "./conditionRunner"
@@ -37,7 +38,8 @@ export function useAutomations({ repoRoot, submodulePaths, refreshRepo, git = de
     importAutomations,
   } = useAutomationStore(storage ? { storage } : undefined)
   const { log, setLog, running, setRunning, clearLog, pushToLog } = useAutomationLog()
-  const messageService = useMessage()
+  const messageService = useMessageActions()
+  const { format } = useTranslation()
 
   const beginRun = useCallback(
     (label: string) => {
@@ -70,20 +72,26 @@ export function useAutomations({ repoRoot, submodulePaths, refreshRepo, git = de
     async (recipe: AutomationRecipe, varValues: Record<string, string>): Promise<boolean> => {
       const selectedRoot = recipe.repoPath.trim() || repoRoot
       if (!selectedRoot || running) return false
-      const loadingId = beginRun(`Executando "${recipe.name}"...`)
+      const loadingId = beginRun(format("executingRecipe", { name: recipe.name }))
       try {
         for (const step of recipe.steps) {
           const targets = resolveTargets(step.run.target, selectedRoot)
           for (const targetRoot of targets) {
-            const thenCmd = resolveVariables(expandAlias(step.run.command, store.aliases), varValues)
+            const thenCmd = automationsUseCase.resolveVariables(
+              automationsUseCase.expandAlias(step.run.command, store.aliases),
+              varValues,
+            )
             const elseCmd = step.else
-              ? resolveVariables(expandAlias(step.else.command, store.aliases), varValues)
+              ? automationsUseCase.resolveVariables(
+                  automationsUseCase.expandAlias(step.else.command, store.aliases),
+                  varValues,
+                )
               : null
             let takeThen = true
             if (step.when) {
               takeThen = await evalCondition(
                 step.when.kind,
-                step.when.arg ? resolveVariables(step.when.arg, varValues) : "",
+                step.when.arg ? automationsUseCase.resolveVariables(step.when.arg, varValues) : "",
                 targetRoot,
                 store.aliases,
                 git,
@@ -91,19 +99,21 @@ export function useAutomations({ repoRoot, submodulePaths, refreshRepo, git = de
             }
             const chosen = takeThen ? thenCmd : elseCmd
             if (!chosen) continue
-            const command = stripGitPrefix(chosen)
-            const invalid = validateAction(command, store.aliases)
+            const command = gitCommandParserUseCase.stripGitPrefix(chosen)
+            const invalid = automationsUseCase.validateAction(command, store.aliases)
             if (invalid) {
               pushToLog({ target: targetRoot, cmd: command, out: invalid, err: true })
-              messageService.error(`Comando inválido na receita "${recipe.name}": ${invalid}`)
+              messageService.error(format("automationInvalidCommandInRecipe", { name: recipe.name, detail: invalid }))
               return false
             }
 
-            const gitResult = await _Either.try.async(() => git.run(targetRoot, splitArgs(command)))
+            const gitResult = await _Either.try.async(() =>
+              git.run(targetRoot, gitCommandParserUseCase.splitArgs(command)),
+            )
             if (gitResult.isLeft()) {
               const e = gitResult.value
               pushToLog({ target: targetRoot, cmd: command, out: String(e), err: true })
-              messageService.error(`Falha na receita "${recipe.name}": ${String(e)}`)
+              messageService.error(format("automationRecipeFailed", { name: recipe.name, detail: String(e) }))
               return false
             }
 
@@ -111,85 +121,97 @@ export function useAutomations({ repoRoot, submodulePaths, refreshRepo, git = de
           }
         }
         if (selectedRoot === repoRoot) await refreshRepo()
-        messageService.success(`"${recipe.name}" concluído com sucesso.`)
+        messageService.success(format("automationRecipeDone", { name: recipe.name }))
         return true
       } finally {
         endRun(loadingId)
       }
     },
-    [running, store, repoRoot, refreshRepo, messageService, pushToLog, beginRun, endRun, resolveTargets, git],
+    [running, store, repoRoot, refreshRepo, messageService, pushToLog, beginRun, endRun, resolveTargets, git, format],
   )
 
   const runMonitor = useCallback(
     async (monitor: MonitorAutomation): Promise<boolean> => {
       const selectedRoot = monitor.repoPath.trim() || repoRoot
       if (!selectedRoot || running) return false
-      const loadingId = beginRun(`Executando monitor "${monitor.name}"...`)
+      const loadingId = beginRun(format("executingMonitor", { name: monitor.name }))
       try {
         for (const block of monitor.blocks) {
           for (const cmd of block.commands) {
-            const invalid = validateAction(cmd, [])
+            const invalid = automationsUseCase.validateAction(cmd, [])
             if (invalid === "empty") continue
             if (invalid === "unknown-verb") continue
-            const args = splitArgs(stripGitPrefix(cmd))
-            pushToLog({ target: selectedRoot, cmd: stripGitPrefix(cmd), out: "running...", err: false })
+            const args = gitCommandParserUseCase.splitArgs(gitCommandParserUseCase.stripGitPrefix(cmd))
+            pushToLog({
+              target: selectedRoot,
+              cmd: gitCommandParserUseCase.stripGitPrefix(cmd),
+              out: "running...",
+              err: false,
+            })
 
             const gitResult = await _Either.try.async(() => git.run(selectedRoot, args))
             if (gitResult.isLeft()) {
               const e = gitResult.value
-              pushToLog({ target: selectedRoot, cmd: stripGitPrefix(cmd), out: String(e), err: true })
-              messageService.error(`Falha no monitor "${monitor.name}": ${String(e)}`)
+              pushToLog({
+                target: selectedRoot,
+                cmd: gitCommandParserUseCase.stripGitPrefix(cmd),
+                out: String(e),
+                err: true,
+              })
+              messageService.error(format("automationMonitorFailed", { name: monitor.name, detail: String(e) }))
               return false
             }
 
             pushToLog({
               target: selectedRoot,
-              cmd: stripGitPrefix(cmd),
+              cmd: gitCommandParserUseCase.stripGitPrefix(cmd),
               out: (gitResult.value as string) || "ok",
               err: false,
             })
           }
         }
-        messageService.success(`Monitor "${monitor.name}" concluído com sucesso.`)
+        messageService.success(format("automationMonitorDone", { name: monitor.name }))
         return true
       } finally {
         endRun(loadingId)
       }
     },
-    [running, repoRoot, messageService, pushToLog, beginRun, endRun, git],
+    [running, repoRoot, messageService, pushToLog, beginRun, endRun, git, format],
   )
 
   const runShortcut = useCallback(
     async (shortcut: AutomationAlias, targetPath: string): Promise<boolean> => {
       const target = targetPath.trim() || repoRoot
       if (!target || running) return false
-      const command = stripGitPrefix(expandAlias(shortcut.expansion, store.aliases))
-      const invalid = validateAction(command, store.aliases)
+      const command = gitCommandParserUseCase.stripGitPrefix(
+        automationsUseCase.expandAlias(shortcut.expansion, store.aliases),
+      )
+      const invalid = automationsUseCase.validateAction(command, store.aliases)
       if (invalid) {
         setLog([{ target, cmd: command, out: invalid, err: true, at: Date.now() }])
-        messageService.error(`Atalho inválido: ${invalid}`)
+        messageService.error(format("automationShortcutInvalid", { detail: invalid }))
         return false
       }
-      const loadingId = beginRun(`Executando atalho "${shortcut.name}"...`)
+      const loadingId = beginRun(format("automationShortcutRunning", { name: shortcut.name }))
       try {
-        const gitResult = await _Either.try.async(() => git.run(target, splitArgs(command)))
+        const gitResult = await _Either.try.async(() => git.run(target, gitCommandParserUseCase.splitArgs(command)))
         if (gitResult.isLeft()) {
           const error = gitResult.value
           setLog([{ target, cmd: command, out: String(error), err: true, at: Date.now() }])
-          messageService.error(`Falha no atalho "${shortcut.name}": ${String(error)}`)
+          messageService.error(format("automationShortcutFailed", { name: shortcut.name, detail: String(error) }))
           return false
         }
 
         const out = gitResult.value as string
         setLog([{ target, cmd: command, out: out || "ok", err: false, at: Date.now() }])
         if (target === repoRoot) await refreshRepo()
-        messageService.success(`Atalho "${shortcut.name}" executado com sucesso.`)
+        messageService.success(format("automationShortcutDone", { name: shortcut.name }))
         return true
       } finally {
         endRun(loadingId)
       }
     },
-    [repoRoot, refreshRepo, running, store.aliases, messageService, beginRun, endRun, setLog, git],
+    [repoRoot, refreshRepo, running, store.aliases, messageService, beginRun, endRun, setLog, git, format],
   )
 
   return {

@@ -1,8 +1,8 @@
+import { codeHighlightUseCase } from "../../../../data"
 import classnames from "classnames"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
 import { memo, useMemo } from "react"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"
-import { highlightLineHast } from "../../../../main/adapters/code-highlight-adapter"
 import styles from "./style.module.scss"
 
 interface HighlighterProps {
@@ -13,7 +13,7 @@ interface HighlighterProps {
 
 export const Highlighter = memo(function Highlighter({ text, filePath = "", className }: HighlighterProps) {
   const content = useMemo(() => {
-    const tree = highlightLineHast(text, filePath)
+    const tree = codeHighlightUseCase.highlightLineHast(text, filePath)
     return tree ? toJsxRuntime(tree, { Fragment, jsx, jsxs }) : text
   }, [text, filePath])
 

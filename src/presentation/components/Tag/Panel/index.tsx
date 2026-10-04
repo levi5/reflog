@@ -1,8 +1,8 @@
+import { semverUseCase } from "../../../../data"
 import { ArrowUpCircle, Tag, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "../../../context"
 
-import { suggestNextVersions } from "../../../../main/adapters"
 import { InlineForm } from "../../Form/Inline"
 import { ListItem } from "../../List/Item"
 import styles from "./style.module.scss"
@@ -13,6 +13,7 @@ type TagPanelProps = {
   tags: string[]
   onCreateTag: (tagName: string, tagMessage?: string) => void
   onDeleteTag: (tagName: string) => void
+  busy?: boolean
 }
 
 type VersionSuggestionProps = {
@@ -22,7 +23,7 @@ type VersionSuggestionProps = {
 
 const VersionSuggestion = ({ existingTags, onPickVersion }: VersionSuggestionProps) => {
   const { t } = useTranslation()
-  const nextVersions = useMemo(() => suggestNextVersions(existingTags), [existingTags])
+  const nextVersions = useMemo(() => semverUseCase.suggestNextVersions(existingTags), [existingTags])
 
   const versionOptions = nextVersions ? [nextVersions.patch, nextVersions.minor, nextVersions.major] : [INITIAL_VERSION]
 
@@ -88,9 +89,10 @@ function TagCreateForm({ tagName, tagMessage, onTagNameChange, onTagMessageChang
 interface TagCardProps {
   tagName: string
   onDeleteTag: (tagName: string) => void
+  busy?: boolean
 }
 
-function TagCard({ tagName, onDeleteTag }: TagCardProps) {
+function TagCard({ tagName, onDeleteTag, busy = false }: TagCardProps) {
   const { t } = useTranslation()
   return (
     <ListItem
@@ -100,7 +102,14 @@ function TagCard({ tagName, onDeleteTag }: TagCardProps) {
         </>
       }
       actions={
-        <button type="button" className="mini-btn" title={t("deleteTag")} onClick={() => onDeleteTag(tagName)}>
+        <button
+          type="button"
+          className="mini-btn"
+          title={t("deleteTag")}
+          aria-label={`${t("deleteTag")}: ${tagName}`}
+          disabled={busy}
+          onClick={() => onDeleteTag(tagName)}
+        >
           <Trash2 size={12} />
         </button>
       }
@@ -108,7 +117,7 @@ function TagCard({ tagName, onDeleteTag }: TagCardProps) {
   )
 }
 
-export function TagPanel({ tags, onCreateTag, onDeleteTag }: TagPanelProps) {
+export function TagPanel({ tags, onCreateTag, onDeleteTag, busy = false }: TagPanelProps) {
   const [tagName, setTagName] = useState("")
   const [tagMessage, setTagMessage] = useState("")
 
@@ -136,7 +145,7 @@ export function TagPanel({ tags, onCreateTag, onDeleteTag }: TagPanelProps) {
         onSubmit={handleCreateTag}
       />
       {tags.map((tagName) => (
-        <TagCard key={tagName} tagName={tagName} onDeleteTag={onDeleteTag} />
+        <TagCard key={tagName} tagName={tagName} busy={busy} onDeleteTag={onDeleteTag} />
       ))}
     </div>
   )

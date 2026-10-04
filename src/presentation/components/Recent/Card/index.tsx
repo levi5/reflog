@@ -1,6 +1,6 @@
+import { mergeStatsUseCase } from "../../../../data"
 import { History, Trash2, X } from "lucide-react"
 import type { ReactNode } from "react"
-import { repoBaseName } from "../../../../main/adapters"
 import { useTranslation } from "../../../context"
 import styles from "./style.module.scss"
 
@@ -46,7 +46,7 @@ export function RecentCard({
           {recents.map((recent) => (
             <li key={recent} className={styles.recentItem}>
               <button type="button" className={styles.recentBtn} disabled={busy} onClick={() => onSelect(recent)}>
-                <strong>{repoBaseName(recent)}</strong>
+                <strong>{mergeStatsUseCase.repoBaseName(recent)}</strong>
                 <span>{recent}</span>
               </button>
               {onRemove && (

@@ -13,7 +13,7 @@
   font-size: 13px;
 
   &:focus {
-    border-color: var(--grape);
+    border-color: var(--grape-btn);
     outline: none;
     box-shadow: 0 0 0 2px var(--grape-dim);
   }
@@ -61,7 +61,7 @@
   border: 1px solid var(--border-soft);
   border-left: 3px solid transparent;
   border-radius: 8px;
-  background: var(--bg-panel2);
+  background: var(--surface);
 
   &:hover, &:focus-within, &.selected {
     background: var(--bg-hover);
@@ -113,7 +113,7 @@
 
 .actionType {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .executeBtn {
@@ -132,8 +132,8 @@
   transition: background 0.15s ease, color 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: var(--grape);
-    color: #fff;
+    background: var(--grape-btn);
+    color: var(--on-accent);
   }
 }
 

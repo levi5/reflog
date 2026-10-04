@@ -1,6 +1,8 @@
 .recents {
   width: 100%;
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border-soft);
   border-radius: 12px;
   padding: 12px 16px;
@@ -80,7 +82,7 @@
 }
 
 .recentBtn span {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--faint);
   font-family: var(--mono);
   word-break: break-all;
@@ -103,7 +105,7 @@
 
 .removeRecentBtn:hover:not(:disabled) {
   opacity: 1;
-  color: var(--error, #ef4444);
+  color: var(--danger);
   background: var(--bg-deep);
 }
 

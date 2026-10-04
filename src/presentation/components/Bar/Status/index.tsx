@@ -1,3 +1,4 @@
+import { mergeStatsUseCase } from "../../../../data"
 import classnames from "classnames"
 import {
   CircleCheck,
@@ -9,7 +10,6 @@ import {
   TriangleAlert,
   UserRound,
 } from "lucide-react"
-import { gpgVerified, shortVersion, sshHost } from "../../../../main/adapters"
 import { useTranslation } from "../../../context"
 import styles from "./style.module.scss"
 
@@ -48,8 +48,8 @@ export function StatusBar(props: Props) {
     gpg,
   } = props
   const { t } = useTranslation()
-  const verified = gpgVerified(gpg)
-  const remote = remoteUrl.includes("@") ? remoteUrl : sshHost(remoteUrl)
+  const verified = mergeStatsUseCase.gpgVerified(gpg)
+  const remote = remoteUrl.includes("@") ? remoteUrl : mergeStatsUseCase.sshHost(remoteUrl)
   const danger = merging || cherryPicking || reverting || unmergedCount > 0
   const tone = danger ? "tone-danger" : changedCount > 0 ? "tone-warn" : "tone-clean"
   return (
@@ -103,7 +103,7 @@ export function StatusBar(props: Props) {
         </span>
       )}
       {remoteUrl && <span className={styles.sbRemote}>ssh: {remote}</span>}
-      {gitVersion && <span className={styles.sbGit}>git {shortVersion(gitVersion)}</span>}
+      {gitVersion && <span className={styles.sbGit}>git {mergeStatsUseCase.shortVersion(gitVersion)}</span>}
     </footer>
   )
 }

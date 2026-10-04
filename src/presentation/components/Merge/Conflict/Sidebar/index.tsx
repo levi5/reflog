@@ -63,6 +63,7 @@ export function ConflictSidebar(props: Props) {
       <input
         className={styles.filterInput}
         placeholder={t("searchFiles")}
+        aria-label={t("searchFiles")}
         value={filter}
         onChange={(e) => onFilter(e.target.value)}
       />

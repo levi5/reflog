@@ -1,10 +1,11 @@
 import classnames from "classnames"
 import { Check, Copy, FileText, GitBranch, ListPlus, RotateCcw, Undo2, X } from "lucide-react"
-import { type CSSProperties, useEffect, useRef, useState } from "react"
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "../../../context"
 import type { CommitFileChange, CommitInfo } from "../../../../types"
 import { Icon } from "../../Icons"
 import { ResizeGrip } from "../../Resizable/Grip"
+import { Select, type SelectOption } from "../../Select"
 import { useResizable } from "../../../hooks"
 import styles from "./style.module.scss"
 import { useCopyFeedback } from "./useCopyFeedback"
@@ -54,6 +55,18 @@ export type CommitDetailProps = {
   minWidth?: number
   maxWidth?: number
   expanded?: boolean
+}
+
+type ResetMode = "soft" | "mixed" | "hard"
+type ResetLabelKey = "resetSoft" | "resetMixed" | "resetHard"
+
+const RESET_MODES: ResetMode[] = ["soft", "mixed", "hard"]
+
+function buildResetModeOptions(t: (key: ResetLabelKey) => string): SelectOption[] {
+  return RESET_MODES.map((mode) => ({
+    value: mode,
+    label: t(`reset${mode[0].toUpperCase()}${mode.slice(1)}` as ResetLabelKey),
+  }))
 }
 
 function isLargeDiff(content: string): boolean {
@@ -121,6 +134,8 @@ export function CommitDetail({
   expanded = false,
 }: CommitDetailProps) {
   const { t } = useTranslation()
+  const [resetMode, setResetMode] = useState<ResetMode>("mixed")
+  const resetModeOptions = useMemo(() => buildResetModeOptions(t), [t])
   const detailWidth = useResizable({
     axis: "x",
     initial: initialWidth,
@@ -128,6 +143,7 @@ export function CommitDetail({
     max: maxWidth,
     storageKey,
     invert: true,
+    label: t("resizePanel"),
   })
   const { isCopied, handleCopy } = useCopyFeedback(commit, copied, onCopy)
 
@@ -263,15 +279,28 @@ export function CommitDetail({
           </button>
         )}
         {onReset && (
-          <button
-            type="button"
-            className={styles.actionBtn}
-            onClick={() => onReset(commit.hash, "mixed")}
-            title={t("resetMixed")}
-          >
-            <RotateCcw size={12} />
-            {t("resetToCommit")}
-          </button>
+          <>
+            <div className={styles.resetMode}>
+              <span>{t("resetMode")}</span>
+              <Select
+                label={t("resetMode")}
+                value={resetMode}
+                options={resetModeOptions}
+                buttonClassName={styles.resetModeSelect}
+                onChange={(value) => setResetMode(value as ResetMode)}
+              />
+            </div>
+            <button
+              type="button"
+              className={resetMode === "hard" ? classnames(styles.actionBtn, styles.dangerBtn) : styles.actionBtn}
+              onClick={() => onReset(commit.hash, resetMode)}
+              title={resetMode === "hard" ? t("resetHard") : t("resetToCommit")}
+              aria-label={`${t("resetToCommit")} — ${t(`reset${resetMode[0].toUpperCase()}${resetMode.slice(1)}` as ResetLabelKey)}`}
+            >
+              <RotateCcw size={12} />
+              {t("resetToCommit")}
+            </button>
+          </>
         )}
         {onCheckout && (
           <button

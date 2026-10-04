@@ -1,6 +1,6 @@
 import { _Either, _pipe } from "funcio"
 import { useCallback } from "react"
-import { t } from "../../../i18n"
+import { formatMessage, t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
 import type { RepositoryActionDeps } from "./action-types"
 import { useGitAction } from "./useGitAction"
@@ -33,16 +33,13 @@ export function useTagOps(deps: RepositoryActionDeps) {
         loadingMessage: t(lang, "deleteTagLoading"),
         successMessage: t(lang, "deleteTagSuccess"),
         successDuration: tipHash ? 8000 : undefined,
-        successAction: tipHash
-          ? {
-              label: t(lang, "undo"),
-              onAction: () => {
-                void runAction(() => git.run(repo, ["tag", name, tipHash]), undefined, {
-                  loadingMessage: t(lang, "actionProcessing"),
-                  successMessage: t(lang, "actionSuccess"),
-                })
-              },
-            }
+        undoLabel: formatMessage(lang, "undoDeleteTag", { name }),
+        undo: tipHash
+          ? () =>
+              runAction(() => git.run(repo, ["tag", name, tipHash]), undefined, {
+                loadingMessage: t(lang, "actionProcessing"),
+                successMessage: t(lang, "actionSuccess"),
+              })
           : undefined,
       })
     },

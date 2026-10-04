@@ -29,7 +29,12 @@ pub trait GitRunner: Send + Sync {
     ) -> Result<String, String> {
         self.run_env(repo, args, env)
     }
-    fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String> {
+    fn run_limited(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        max_bytes: usize,
+    ) -> Result<String, String> {
         self.run(repo, args).and_then(|output| {
             if output.len() > max_bytes {
                 Err(OUTPUT_LIMIT_ERROR.to_string())
@@ -38,12 +43,7 @@ pub trait GitRunner: Send + Sync {
             }
         })
     }
-    fn run_stdin(
-        &self,
-        repo: Option<&str>,
-        args: &[&str],
-        input: &str,
-    ) -> Result<String, String>;
+    fn run_stdin(&self, repo: Option<&str>, args: &[&str], input: &str) -> Result<String, String>;
     fn run_env(
         &self,
         repo: Option<&str>,
@@ -145,13 +145,21 @@ impl ProcessRunner {
             .spawn()
             .map_err(|e| format!("falha ao executar git: {e}"))?;
 
-        let stdout = child.stdout.take().ok_or_else(|| "stdout indisponível".to_string())?;
-        let stderr = child.stderr.take().ok_or_else(|| "stderr indisponível".to_string())?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| "stdout indisponível".to_string())?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| "stderr indisponível".to_string())?;
         let activity = Arc::new(AtomicBool::new(false));
         let stdout_activity = Arc::clone(&activity);
         let stderr_activity = Arc::clone(&activity);
-        let stdout_reader = std::thread::spawn(move || drain_pipe(stdout, max_output_bytes, stdout_activity));
-        let stderr_reader = std::thread::spawn(move || drain_pipe(stderr, max_output_bytes, stderr_activity));
+        let stdout_reader =
+            std::thread::spawn(move || drain_pipe(stdout, max_output_bytes, stdout_activity));
+        let stderr_reader =
+            std::thread::spawn(move || drain_pipe(stderr, max_output_bytes, stderr_activity));
 
         if let Some(input) = stdin_input {
             if let Some(mut stdin) = child.stdin.take() {
@@ -164,10 +172,15 @@ impl ProcessRunner {
         let poll_interval = Duration::from_millis(200);
         let start_time = Instant::now();
         let mut last_activity = Instant::now();
-        let max_absolute_timeout = exec_timeout.saturating_mul(10).max(Duration::from_secs(1800));
+        let max_absolute_timeout = exec_timeout
+            .saturating_mul(10)
+            .max(Duration::from_secs(1800));
 
         let status = loop {
-            match child.wait_timeout(poll_interval).map_err(|e| e.to_string())? {
+            match child
+                .wait_timeout(poll_interval)
+                .map_err(|e| e.to_string())?
+            {
                 Some(status) => break status,
                 None => {
                     if activity.swap(false, Ordering::Relaxed) {
@@ -218,16 +231,16 @@ impl GitRunner for ProcessRunner {
         self.execute(repo, args, None, None, timeout, None)
     }
 
-    fn run_limited(&self, repo: Option<&str>, args: &[&str], max_bytes: usize) -> Result<String, String> {
-        self.execute(repo, args, None, None, DEFAULT_TIMEOUT, Some(max_bytes))
-    }
-
-    fn run_stdin(
+    fn run_limited(
         &self,
         repo: Option<&str>,
         args: &[&str],
-        input: &str,
+        max_bytes: usize,
     ) -> Result<String, String> {
+        self.execute(repo, args, None, None, DEFAULT_TIMEOUT, Some(max_bytes))
+    }
+
+    fn run_stdin(&self, repo: Option<&str>, args: &[&str], input: &str) -> Result<String, String> {
         self.execute(repo, args, Some(input), None, DEFAULT_TIMEOUT, None)
     }
 
@@ -354,6 +367,16 @@ pub mod mock {
                 ),
                 existing: vec![],
             }
+        }
+
+        pub fn with_failures(failures: &[(&str, &str)], outputs: &[(&str, &str)]) -> Self {
+            let mut runner = Self::new(outputs, &[]);
+            for (command, message) in failures {
+                runner
+                    .outputs
+                    .insert(command.to_string(), Err(message.to_string()));
+            }
+            runner
         }
 
         pub fn with_existing(mut self, paths: &[&str]) -> Self {

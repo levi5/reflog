@@ -57,11 +57,13 @@
   left: 0;
   min-width: 100%;
   width: max-content;
-  max-width: 320px;
+  max-width: min(320px, calc(100vw - 16px));
   max-height: 280px;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--bg-panel2);
+  background: var(--glass);
+  backdrop-filter: var(--glass-filter);
+  -webkit-backdrop-filter: var(--glass-filter);
   border: 1px solid var(--border);
   border-radius: 0.8rem;
   padding: 0.4rem;
@@ -110,8 +112,8 @@
   background: var(--bg-hover);
 }
 .item.active {
+  background: var(--grape-dim);
   color: var(--grape);
-  font-weight: 700;
 }
 .item.active svg {
   color: var(--grape);
@@ -140,7 +142,6 @@
 }
 
 .itemAction {
-  width: fit-content;
   display: grid;
   place-items: center;
   width: 24px;
@@ -156,7 +157,7 @@
 }
 
 .itemAction:hover {
-  color: #ff7a7a;
+  color: var(--red);
   background: var(--bg-raised);
 }
 

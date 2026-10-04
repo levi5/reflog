@@ -1,15 +1,7 @@
+import { commitMarkdownUseCase, commitTemplateUseCase } from "../../../data"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { TemplateDoc } from "../../../domain/entities/commit/commit-markdown"
 import { BUILTIN_DOCS } from "../../../shared/constants/commit/commitMarkdown"
-import {
-  buildVars,
-  formatCommit,
-  inferFromBranch,
-  lintCommit,
-  parseConventional,
-  renderTemplate,
-  setLastCommitOpts,
-} from "../../../main/adapters"
 import type { CommitFields, CommitPreset, LintCode } from "../../../domain/entities/commit/commit-template"
 import { EMPTY_FIELDS } from "../../../shared/constants/commit/commitTemplate"
 import { useCommitConfig } from "../../context"
@@ -24,7 +16,7 @@ interface Options {
 
 export function useCommitTemplate({ value, onChange, repoPath, branch }: Options) {
   const [fields, setFields] = useState<CommitFields>(() =>
-    value.trim() ? parseConventional(value) : { ...EMPTY_FIELDS },
+    value.trim() ? commitTemplateUseCase.parseConventional(value) : { ...EMPTY_FIELDS },
   )
   const { prefs, presets, history, savePrefs, pushHistory } = useCommitConfig()
   const [showBody, setShowBody] = useState(false)
@@ -42,10 +34,10 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
   )
 
   const formatted = useMemo(() => {
-    if (!activeDoc?.pattern) return formatCommit(fields)
-    return renderTemplate(
+    if (!activeDoc?.pattern) return commitTemplateUseCase.formatCommit(fields)
+    return commitMarkdownUseCase.renderTemplate(
       activeDoc.pattern,
-      buildVars(fields, {
+      commitMarkdownUseCase.buildVars(fields, {
         branch: branchName,
         author: identity.name,
         email: identity.email,
@@ -55,7 +47,7 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
   formattedRef.current = formatted
 
   useEffect(() => {
-    setLastCommitOpts({ signoff: fields.signoff, sign: fields.sign })
+    commitTemplateUseCase.setLastCommitOpts({ signoff: fields.signoff, sign: fields.sign })
   }, [fields.signoff, fields.sign])
 
   useEffect(() => {
@@ -66,7 +58,7 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
     if (value !== lastExternalValueRef.current) {
       lastExternalValueRef.current = value
       if (value !== formattedRef.current) {
-        setFields(value.trim() ? parseConventional(value) : { ...EMPTY_FIELDS })
+        setFields(value.trim() ? commitTemplateUseCase.parseConventional(value) : { ...EMPTY_FIELDS })
       }
     }
   }, [value])
@@ -113,7 +105,7 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
     [setActiveTemplate],
   )
 
-  const inferred = useMemo(() => (branchName ? inferFromBranch(branchName) : null), [branchName])
+  const inferred = useMemo(() => (branchName ? commitMarkdownUseCase.inferFromBranch(branchName) : null), [branchName])
 
   const inferBranch = useCallback(() => {
     if (!inferred) return
@@ -125,7 +117,7 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
   }, [inferred])
 
   const applyHistory = useCallback((msg: string) => {
-    setFields(parseConventional(msg))
+    setFields(commitTemplateUseCase.parseConventional(msg))
   }, [])
 
   const recordCommit = useCallback(() => {
@@ -141,7 +133,7 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
     }))
   }, [pushHistory])
 
-  const errors: LintCode[] = useMemo(() => lintCommit(fields, prefs), [fields, prefs])
+  const errors: LintCode[] = useMemo(() => commitTemplateUseCase.lintCommit(fields, prefs), [fields, prefs])
   const canCommit = fields.subject.trim().length > 0 && !errors.includes("typeRequired")
 
   return {

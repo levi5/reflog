@@ -1,7 +1,5 @@
 use crate::domain::{CommitInfo, ReflogEntry};
 use crate::runner::GitRunner;
-use crate::AppState;
-use tauri::State;
 
 const MAX_LOG_LIMIT: usize = 1000;
 const MAX_LOG_OUTPUT_BYTES: usize = 2 * 1024 * 1024;
@@ -146,7 +144,6 @@ pub fn reflog_of(
     Ok(entries)
 }
 
-
 pub fn count_of(runner: &dyn GitRunner, repo_path: &str) -> Result<usize, String> {
     let root = runner.repo_root(repo_path)?;
     let out = runner.run(Some(&root), &["rev-list", "--all", "--count"])?;
@@ -155,45 +152,19 @@ pub fn count_of(runner: &dyn GitRunner, repo_path: &str) -> Result<usize, String
         .map_err(|_| "invalid commit count".to_string())
 }
 
-#[tauri::command]
-pub async fn git_count(state: State<'_, AppState>, repo_path: String) -> Result<usize, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || count_of(runner.as_ref(), &repo_path)).await
-}
+git_command!(git_count, usize, count_of, (repo_path: String), ());
 
-#[tauri::command]
-pub async fn git_log(
-    state: State<'_, AppState>,
-    repo_path: String,
-    limit: Option<usize>,
-    skip: Option<usize>,
-) -> Result<Vec<CommitInfo>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || log_of(runner.as_ref(), &repo_path, limit, skip)).await
-}
+git_command!(git_log, Vec<CommitInfo>, log_of, (repo_path: String), (limit: Option<usize>, skip: Option<usize>));
 
-#[tauri::command]
-pub async fn git_graph(
-    state: State<'_, AppState>,
-    repo_path: String,
-    limit: Option<usize>,
-    skip: Option<usize>,
-) -> Result<Vec<CommitInfo>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || graph_of(runner.as_ref(), &repo_path, limit, skip)).await
-}
+git_command!(git_graph, Vec<CommitInfo>, graph_of, (repo_path: String), (limit: Option<usize>, skip: Option<usize>));
 
-#[tauri::command]
-pub async fn git_reflog(
-    state: State<'_, AppState>,
-    repo_path: String,
-    limit: Option<usize>,
-    skip: Option<usize>,
-) -> Result<Vec<ReflogEntry>, String> {
-    let runner = state.runner.clone();
-    crate::commands::run_blocking(move || reflog_of(runner.as_ref(), &repo_path, limit, skip)).await
-}
-
+git_command!(
+    git_reflog,
+    Vec<ReflogEntry>,
+    reflog_of,
+    (repo_path: String),
+    (limit: Option<usize>, skip: Option<usize>)
+);
 
 #[cfg(test)]
 mod tests {
@@ -248,7 +219,10 @@ mod tests {
     #[test]
     fn counts_all_commits() {
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("rev-list --all --count", "108\n")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("rev-list --all --count", "108\n"),
+            ],
             &[],
         );
         assert_eq!(count_of(&runner, "/r").unwrap(), 108);

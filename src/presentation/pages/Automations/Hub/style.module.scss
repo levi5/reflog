@@ -5,6 +5,8 @@
   height: 100%;
   flex-direction: column;
   background: var(--bg-win);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   overflow: hidden;
 }
 
@@ -21,7 +23,7 @@
 .eyebrow {
   margin: 0 0 2px;
   color: var(--grape);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -86,7 +88,7 @@
   border-radius: 50%;
   background: var(--grape-dim);
   color: var(--grape);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
 }
 
@@ -194,7 +196,7 @@
 }
 
 .actionType {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -214,7 +216,7 @@
 
 .removeBtn:hover {
   background: var(--bg-raised);
-  color: #ff7a7a;
+  color: var(--red);
 }
 
 .quickBar {
@@ -240,8 +242,8 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: var(--grape);
-  color: #fff;
-  font-size: 11px;
+  background: var(--grape-btn);
+  color: var(--on-accent);
+  font-size: var(--font-sm);
   font-weight: 700;
 }

@@ -3,6 +3,8 @@
   min-width: 240px;
   border-right: 1px solid var(--border-soft);
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   padding: 12px;
   overflow-y: auto;
   display: flex;
@@ -106,7 +108,7 @@
 }
 
 .templateMeta small {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -130,7 +132,7 @@
   border-radius: 10px;
   background: var(--green-dim);
   color: var(--green);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -168,7 +170,7 @@
   background: var(--grape-dim);
   color: var(--grape);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
 }
 
@@ -179,7 +181,7 @@
 }
 
 .presetScope {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
   margin-left: 4px;
 }
@@ -215,7 +217,7 @@
 }
 
 .summaryBadge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 4px;

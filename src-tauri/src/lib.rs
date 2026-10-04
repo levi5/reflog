@@ -7,6 +7,8 @@ use tauri_plugin_cli::CliExt;
 mod commands;
 mod domain;
 mod runner;
+#[cfg(test)]
+mod test_support;
 
 use runner::{GitRunner, ProcessRunner};
 
@@ -31,10 +33,10 @@ fn resolve_cli_path(value: &str) -> String {
     for comp in joined.components() {
         use std::path::Component;
         match comp {
-            Component::CurDir => {},
+            Component::CurDir => {}
             Component::ParentDir => {
                 out.pop();
-            },
+            }
             other => out.push(other.as_os_str()),
         }
     }
@@ -90,14 +92,19 @@ pub fn run() {
             commands::history::log::git_reflog,
             commands::history::diff::git_commit_files,
             commands::history::diff::git_commit_diff,
-
+            commands::history::git_merge_base,
+            commands::history::git_diff_refs,
+            commands::history::git_diff_stat_files,
+            commands::history::git_commits_ahead,
+            commands::history::git_commits_behind,
+            commands::history::git_compare_graph,
+            commands::history::git_search_log,
+            commands::history::git_search_graph,
+            commands::history::git_file_history,
             commands::history::diff::git_diff,
-            commands::history::diff::git_show,
             commands::files::content::get_file_content,
             commands::files::content::save_file_content,
-            
             commands::files::conflicted::get_conflicted_files,
-            commands::files::conflicted::parse_conflicts,
             commands::staging::git_add,
             commands::staging::git_commit,
             commands::staging::git_amend_commit,
@@ -105,6 +112,10 @@ pub fn run() {
             commands::sync::git_merge_abort,
             commands::sync::git_pull,
             commands::sync::git_push,
+            commands::sync::git_push_with,
+            commands::sync::git_set_upstream,
+            commands::sync::git_unset_upstream,
+            commands::sync::git_fetch_ref,
             commands::sync::git_stash,
             commands::sync::git_stash_pop,
             commands::sync::git_stash_list,
@@ -118,7 +129,6 @@ pub fn run() {
             commands::staging::git_revert_continue,
             commands::staging::git_revert_abort,
             commands::staging::git_reset,
-
             commands::staging::git_unstage,
             commands::staging::git_discard,
             commands::staging::git_apply_patch,
@@ -135,6 +145,7 @@ pub fn run() {
             commands::refs::git_remote_add,
             commands::refs::git_remote_remove,
             commands::meta::git_config_get,
+            commands::meta::git_config_snapshot,
             commands::meta::git_config_set,
             commands::meta::git_identity,
             commands::templates::git_template_list,
@@ -152,7 +163,6 @@ pub fn run() {
             commands::rebase::git_rebase_start,
             commands::rebase::git_rebase_continue,
             commands::rebase::git_rebase_abort,
-
             commands::meta::git_clone,
         ])
         .run(tauri::generate_context!())

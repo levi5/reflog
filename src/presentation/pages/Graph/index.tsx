@@ -1,3 +1,4 @@
+import { commitTemplateUseCase, mergeStatsUseCase } from "../../../data"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import classnames from "classnames"
@@ -11,9 +12,10 @@ import { Modal } from "../../components/Modal"
 import { Pagination } from "../../components/Pagination"
 import { ResizableSplitLayout } from "../../components/Resizable"
 import { SearchBox } from "../../components/Search"
+import { HistorySearchPanel } from "../../components/Graph"
+import type { LogFilter } from "../../../infrastructure/git/ipc-client"
 import { Skeleton } from "../../components/Skeleton"
 
-import { matchesQuery, pushHistory } from "../../../main/adapters"
 import { t } from "../../../i18n"
 import { useCommitTemplate, useIntersectionObserver } from "../../hooks"
 import { useRepo, useSearch, useSettingsContext } from "../../context"
@@ -42,10 +44,31 @@ export function Graph(_props: Props) {
     branch: repo.status?.branch ?? "",
   })
 
-  const handleAmend = (commit: CommitInfo) => {
+  const handleAmend = useCallback((commit: CommitInfo) => {
     setAmendCommit(commit)
     setAmendMessage(commit.message)
-  }
+  }, [])
+
+  const handleCheckout = useCallback((hash: string) => void repo.checkoutBranch(hash), [repo.checkoutBranch])
+  const handleReset = useCallback(
+    (hash: string, mode: "soft" | "mixed" | "hard") => void repo.resetBranch(hash, mode),
+    [repo.resetBranch],
+  )
+  const handleCherryPick = useCallback((hash: string) => void repo.cherryPick(hash), [repo.cherryPick])
+
+  const handleSelectCommit = useCallback(
+    (commit: CommitInfo) => {
+      dismissedCommitHashRef.current = ""
+      setSelectedCommit(commit)
+      setSearchParams((prev) => {
+        const nextSearchParams = new URLSearchParams(prev)
+        if (commit?.hash) nextSearchParams.set("hash", commit.hash)
+        else nextSearchParams.delete("hash")
+        return nextSearchParams
+      })
+    },
+    [setSearchParams],
+  )
 
   const confirmAmend = async () => {
     const msg = amendMessage.trim()
@@ -57,7 +80,7 @@ export function Graph(_props: Props) {
     const box = await _try.async(async () => {
       await repo.amendCommit?.(repo.repo, msg, signoff, sign)
 
-      pushHistory(msg)
+      commitTemplateUseCase.pushHistory(msg)
       setAmendCommit(null)
       setAmendMessage("")
     })
@@ -71,13 +94,6 @@ export function Graph(_props: Props) {
   }
 
   const repoPath = repo.repo
-  useEffect(() => {
-    void viewMode
-    void repoPath
-    void query
-    void scope
-    setCommitPage(0)
-  }, [viewMode, repoPath, query, scope])
 
   const currentHasMore = viewMode === "log" ? repo.logHasMore : repo.graphHasMore
   const currentLoading = viewMode === "log" ? repo.logLoading : repo.graphLoading
@@ -116,49 +132,113 @@ export function Graph(_props: Props) {
     handleLoadMoreRef.current = handleLoadMore
   }, [handleLoadMore])
 
+  const [searchFilter, setSearchFilter] = useState<LogFilter | null>(null)
+  const [searchResults, setSearchResults] = useState<CommitInfo[]>([])
+  const [searchBusy, setSearchBusy] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const searchRequestRef = useRef(0)
+
+  const runServerSearch = useCallback(
+    async (filter: LogFilter) => {
+      if (!repo.repo) return
+      const request = searchRequestRef.current + 1
+      searchRequestRef.current = request
+      setSearchBusy(true)
+      setSearchError(null)
+      try {
+        const results = await repo.searchHistory(filter, viewMode === "graph" ? "graph" : "log", 200)
+        if (searchRequestRef.current !== request) return
+        setSearchResults(results)
+      } catch (e) {
+        if (searchRequestRef.current !== request) return
+        setSearchError(String(e))
+        setSearchResults([])
+      } finally {
+        if (searchRequestRef.current === request) setSearchBusy(false)
+      }
+    },
+    [repo, viewMode],
+  )
+
+  const handleServerSearch = useCallback(
+    (filter: LogFilter) => {
+      setSearchFilter(filter)
+      setCommitPage(0)
+      void runServerSearch(filter)
+    },
+    [runServerSearch],
+  )
+
+  const clearServerSearch = useCallback(() => {
+    searchRequestRef.current += 1
+    setSearchFilter(null)
+    setSearchResults([])
+    setSearchError(null)
+    setSearchBusy(false)
+  }, [])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: switching view, repo, scope or query must reset pagination
+  useEffect(() => {
+    setCommitPage(0)
+  }, [viewMode, repoPath, query, scope])
+
   const filteredCommits = useMemo(() => {
     const availableCommits = viewMode === "log" ? repo.log : repo.graph
+    if (searchFilter !== null) {
+      if (scope === "branches" || scope === "files") return searchResults
+      return searchResults.filter((commit) =>
+        [commit.message, commit.author, commit.short, commit.hash].some((value) =>
+          mergeStatsUseCase.matchesQuery(value, query),
+        ),
+      )
+    }
     if (scope === "branches" || scope === "files") return availableCommits
     return availableCommits.filter((commit) =>
-      [commit.message, commit.author, commit.short, commit.hash].some((value) => matchesQuery(value, query)),
+      [commit.message, commit.author, commit.short, commit.hash].some((value) =>
+        mergeStatsUseCase.matchesQuery(value, query),
+      ),
     )
-  }, [repo.log, repo.graph, query, scope, viewMode])
+  }, [repo.log, repo.graph, query, scope, viewMode, searchFilter, searchResults])
   const filteredReflog = useMemo(() => {
     if (scope === "branches" || scope === "files") return repo.reflog
     return repo.reflog.filter((entry) =>
-      [entry.action, entry.author, entry.short, entry.hash, entry.selector].some((value) => matchesQuery(value, query)),
+      [entry.action, entry.author, entry.short, entry.hash, entry.selector].some((value) =>
+        mergeStatsUseCase.matchesQuery(value, query),
+      ),
     )
   }, [repo.reflog, query, scope])
 
   const handlePageChange = (newPage: number) => {
     setCommitPage(newPage)
     const preloadThreshold = (newPage + 2) * COMMITS_PER_PAGE
+    if (searchFilter !== null) return
     if (preloadThreshold >= availableCommitCount && currentHasMore && !currentLoading) {
       handleLoadMore()
     }
   }
 
   useEffect(() => {
+    if (searchFilter !== null) return
     const isNearEnd = (commitPage + 2) * COMMITS_PER_PAGE >= availableCommitCount
     if (isNearEnd && currentHasMore && !currentLoading && availableCommitCount > 0) {
       handleLoadMoreRef.current()
     }
-  }, [commitPage, availableCommitCount, currentHasMore, currentLoading])
+  }, [commitPage, availableCommitCount, currentHasMore, currentLoading, searchFilter])
 
   const observeLoadMore = useIntersectionObserver<HTMLDivElement>(
     (entries) => {
       if (entries.some((entry) => entry.isIntersecting)) handleLoadMoreRef.current()
     },
-    { threshold: 0.5, enabled: viewMode !== "reflog" },
+    { threshold: 0.5, enabled: viewMode !== "reflog" && searchFilter === null },
   )
 
-  const isUnfiltered = query.trim() === ""
+  const isUnfiltered = query.trim() === "" && searchFilter === null
   const totalKnown = isUnfiltered && repo.totalCommits != null
   const paginationTotal = totalKnown ? (repo.totalCommits as number) : filteredCommits.length
 
   const commits = filteredCommits.slice(commitPage * COMMITS_PER_PAGE, (commitPage + 1) * COMMITS_PER_PAGE)
-  const isSeeking = currentHasMore && commitPage * COMMITS_PER_PAGE >= availableCommitCount
-  const paginationLoading = currentLoading || isSeeking
+  const isSeeking = searchFilter === null && currentHasMore && commitPage * COMMITS_PER_PAGE >= availableCommitCount
+  const paginationLoading = currentLoading || isSeeking || searchBusy
   const hashParam = searchParams.get("hash")
   const logCommits = repo.log
   const graphCommits = repo.graph
@@ -178,19 +258,31 @@ export function Graph(_props: Props) {
     () =>
       scope === "commits" || scope === "files"
         ? repo.branches
-        : repo.branches.filter((branch) => matchesQuery(branch.name, query)),
+        : repo.branches.filter((branch) => mergeStatsUseCase.matchesQuery(branch.name, query)),
     [repo.branches, query, scope],
   )
 
   return (
     <ResizableSplitLayout
-      sidebarWidth={{ initial: 300, min: 220, max: 560, storageKey: "graph.side" }}
+      sidebarWidth={{ initial: 300, min: 220, max: 560, storageKey: "graph.side", label: t(lang, "resizeSidebar") }}
       sidebar={
         <>
           <div className={styles.sideHead}>
             <strong style={{ textTransform: "uppercase" }}>{t(lang, "branches")}</strong>
           </div>
           <SearchBox placeholder={t(lang, "searchPh")} />
+          <HistorySearchPanel
+            onSearch={handleServerSearch}
+            onClear={clearServerSearch}
+            active={searchFilter !== null}
+            busy={searchBusy}
+            resultCount={searchResults.length}
+          />
+          {searchError && (
+            <p className={styles.searchError} role="alert" data-testid="history-search-error">
+              {searchError}
+            </p>
+          )}
           <Branch.Panel
             branches={branches}
             currentBranchName={repo.status?.branch ?? ""}
@@ -198,8 +290,9 @@ export function Graph(_props: Props) {
             onNewBranchNameChange={repo.setNewBranch}
             onCreateBranch={repo.createBranch}
             onCheckoutBranch={repo.checkoutBranch}
-            onDeleteBranch={(branchName) => repo.deleteBranch(branchName, false)}
+            onDeleteBranch={repo.deleteBranch}
             onRenameBranch={repo.renameBranch}
+            onCreateBranchFrom={repo.createBranchFrom}
           />
         </>
       }
@@ -210,6 +303,7 @@ export function Graph(_props: Props) {
               <button
                 type="button"
                 className={classnames(styles.toggleBtn, viewMode === "log" && styles.active)}
+                aria-pressed={viewMode === "log"}
                 onClick={() => setViewMode("log")}
               >
                 <List size={14} />
@@ -218,6 +312,7 @@ export function Graph(_props: Props) {
               <button
                 type="button"
                 className={classnames(styles.toggleBtn, viewMode === "graph" && styles.active)}
+                aria-pressed={viewMode === "graph"}
                 onClick={() => setViewMode("graph")}
               >
                 <GitBranch size={14} />
@@ -226,6 +321,7 @@ export function Graph(_props: Props) {
               <button
                 type="button"
                 className={classnames(styles.toggleBtn, viewMode === "reflog" && styles.active)}
+                aria-pressed={viewMode === "reflog"}
                 onClick={() => setViewMode("reflog")}
               >
                 <History size={14} />
@@ -248,13 +344,13 @@ export function Graph(_props: Props) {
                     refs: [],
                   })
                 }
-                onCheckout={(hash) => repo.checkoutBranch(hash)}
-                onReset={(hash, mode) => repo.resetBranch(hash, mode)}
-                onCherryPick={(hash) => repo.cherryPick(hash)}
+                onCheckout={handleCheckout}
+                onReset={handleReset}
+                onCherryPick={handleCherryPick}
               />
             ) : (
               <>
-                {commits.length === 0 && paginationLoading ? (
+                {commits.length === 0 && (paginationLoading || repo.reflogLoading) ? (
                   <Skeleton.Commits count={COMMITS_PER_PAGE} label={t(lang, "loading")} />
                 ) : (
                   <Commit.List
@@ -262,16 +358,8 @@ export function Graph(_props: Props) {
                     currentBranchName={repo.status?.branch ?? ""}
                     showGraph={viewMode === "graph"}
                     selectedHash={selectedCommit?.hash}
-                    onSelect={(commit) => {
-                      dismissedCommitHashRef.current = ""
-                      setSelectedCommit(commit)
-                      setSearchParams((prev) => {
-                        const nextSearchParams = new URLSearchParams(prev)
-                        if (commit?.hash) nextSearchParams.set("hash", commit.hash)
-                        else nextSearchParams.delete("hash")
-                        return nextSearchParams
-                      })
-                    }}
+                    query={query}
+                    onSelect={handleSelectCommit}
                     onAmend={handleAmend}
                   />
                 )}
@@ -294,10 +382,10 @@ export function Graph(_props: Props) {
                 actions={
                   <>
                     <button type="button" onClick={cancelAmend}>
-                      {t(lang, "cancel") ?? "Cancelar"}
+                      {t(lang, "cancel")}
                     </button>
                     <button type="button" className="primary" onClick={confirmAmend} disabled={!amendApi.canCommit}>
-                      {t(lang, "save") ?? "Salvar"}
+                      {t(lang, "saveChanges")}
                     </button>
                   </>
                 }

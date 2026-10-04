@@ -1,6 +1,6 @@
-import { VirtualList } from "./Virtual"
-export type { VirtualListProps } from "./Virtual"
+import { PagedList } from "./Paged"
+export type { PagedListProps } from "./Paged"
 
 export const List = {
-  Virtual: VirtualList,
+  Paged: PagedList,
 }

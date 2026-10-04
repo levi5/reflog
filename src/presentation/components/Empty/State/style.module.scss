@@ -9,10 +9,20 @@
 .empty.small {
   padding: 10px;
 }
-.empty.big {
-  padding: 80px 20px;
-  font-size: 14px;
-}
 .empty.ok {
   color: var(--green);
+}
+
+.message {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hint {
+  margin: 6px 0 0;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+  color: var(--faint);
+  opacity: 0.85;
 }

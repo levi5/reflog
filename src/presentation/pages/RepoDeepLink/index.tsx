@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { useLoaderData, useNavigate, useSearchParams } from "react-router-dom"
 import { Spinner } from "../../components/Animation/Spinner"
-import { useRepo } from "../../context"
+import { useRepoCore } from "../../context"
 
 interface RepoLoaderData {
   repoPath: string
@@ -23,7 +23,7 @@ export function RepoDeepLink() {
   const { repoPath, view } = useLoaderData() as RepoLoaderData
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const repo = useRepo()
+  const repo = useRepoCore()
   const file = searchParams.get("file")
   const hash = searchParams.get("hash")
   const section = searchParams.get("section")

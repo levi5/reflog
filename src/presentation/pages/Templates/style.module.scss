@@ -11,6 +11,8 @@
   min-width: 240px;
   border-right: 1px solid var(--border-soft);
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   padding: 12px;
   overflow-y: auto;
   display: flex;
@@ -88,7 +90,7 @@
 }
 
 .templateMeta small {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -103,7 +105,7 @@
   border-radius: 10px;
   background: var(--green-dim);
   color: var(--green);
-  font-size: 10px;
+  font-size: var(--font-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -178,6 +180,8 @@
 
 .sectionCard {
   background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   padding: 14px 16px;
@@ -222,7 +226,7 @@
 }
 
 .formField label {
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 500;
   color: var(--muted);
 }
@@ -276,7 +280,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 
@@ -293,7 +297,7 @@
   border: 1px solid var(--border);
   color: var(--grape);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   cursor: pointer;
   transition: all 0.12s ease;
 }
@@ -353,6 +357,8 @@
   flex: 1;
   min-height: 220px;
   background: var(--bg-deep);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 10px 12px;
@@ -487,7 +493,7 @@
   background: var(--grape-dim);
   color: var(--grape);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   font-weight: 600;
 }
 
@@ -498,7 +504,7 @@
 }
 
 .presetScope {
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 .presetActions {
@@ -586,7 +592,7 @@
 
 
 .sourceBadge {
-  font-size: 10px;
+  font-size: var(--font-xs);
   color: var(--muted);
   background: var(--bg-raised);
   padding: 1px 4px;

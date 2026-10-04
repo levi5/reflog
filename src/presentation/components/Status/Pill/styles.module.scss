@@ -13,21 +13,21 @@
 }
 
 .alertPill {
-  color: #ff7a7a;
-  border-color: rgba(255, 122, 122, 0.5);
-  background: rgba(255, 122, 122, 0.1);
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 50%, transparent);
+  background: var(--red-dim);
 }
 .repoPill.alertPill:hover {
-  border-color: rgba(255, 122, 122, 0.8);
-  background: rgba(255, 122, 122, 0.18);
+  border-color: color-mix(in srgb, var(--red) 80%, transparent);
+  background: var(--red-container);
 }
 
 .filesPill {
   color: var(--amber);
-  border-color: rgba(255, 190, 90, 0.4);
-  background: rgba(255, 190, 90, 0.08);
+  border-color: color-mix(in srgb, var(--amber) 40%, transparent);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
 }
 .repoPill.filesPill:hover {
-  border-color: rgba(255, 190, 90, 0.7);
-  background: rgba(255, 190, 90, 0.15);
+  border-color: color-mix(in srgb, var(--amber) 70%, transparent);
+  background: color-mix(in srgb, var(--amber) 16%, transparent);
 }

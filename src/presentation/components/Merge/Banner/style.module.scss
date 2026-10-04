@@ -87,7 +87,7 @@
   border-radius: 4px;
   padding: 1px 6px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .branchPillDst {
@@ -96,7 +96,7 @@
   border-radius: 4px;
   padding: 1px 6px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
 }
 
 .mbCounts {
@@ -104,7 +104,7 @@
   gap: 7px;
   align-items: center;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--font-sm);
   color: var(--muted);
 }
 .mbCounts .cErr {
@@ -145,8 +145,8 @@
   gap: 6px;
 }
 .rebaseBtn:hover:not(:disabled) {
-  background: var(--grape);
-  color: #fff;
+  background: var(--grape-btn);
+  color: var(--on-accent);
 }
 
 .rebaseCount {
@@ -154,7 +154,7 @@
   color: var(--violet);
   border-radius: 9999px;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--font-xs);
   padding: 1px 6px;
 }
 

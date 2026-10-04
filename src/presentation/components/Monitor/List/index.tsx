@@ -90,7 +90,7 @@ export function MonitorsList({
   )
 
   return (
-    <List.Virtual<MonitorAutomation>
+    <List.Paged<MonitorAutomation>
       items={monitors}
       selectedId={selectedId}
       currentPage={currentPage}

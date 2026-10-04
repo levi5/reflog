@@ -4,6 +4,7 @@ import { CommandInput } from "./Input"
 import { CommandIntentHint } from "./IntentHint"
 import { CommandLog } from "./Log"
 import { CommandPalette } from "./Palette"
+import { QuickOpen } from "./QuickOpen"
 import { CommandSuggestions } from "./Suggestions"
 
 export const Command = {
@@ -13,5 +14,6 @@ export const Command = {
   IntentHint: CommandIntentHint,
   Log: CommandLog,
   Palette: CommandPalette,
+  QuickOpen,
   Suggestions: CommandSuggestions,
 }

@@ -149,8 +149,15 @@ Registered in `lib.rs` via `tauri::generate_handler![]`.
 | Module | Commands |
 | -------- | ---------- |
 | `branches` | `git_branches` - List local/remote branches |
-| `log` | `git_log`, `git_graph`, `git_reflog` - History |
-| `diff` | `git_commit_files`, `git_commit_diff`, `git_diff`, `git_show`, `git_blame`, `git_ls_files` |
+| `log` | `git_log`, `git_graph`, `git_reflog`, `git_count` - History |
+| `diff` | `git_commit_files`, `git_commit_diff`, `git_diff`, `git_blame`, `git_ls_files` |
+| `compare` | `git_merge_base`, `git_diff_refs`, `git_diff_stat_files`, `git_commits_ahead/behind`, `git_compare_graph` - branch comparison |
+| `search` | `git_search_log`, `git_search_graph`, `git_file_history` - server-side history filters |
+
+The `search` module pushes author/message/path/date/pickaxe filters straight
+into `git log`, so searches cover the whole history instead of only the commits
+the UI already paged in. Paths always go after a `--` separator and are
+validated as repo-relative.
 
 #### Staging (`commands/staging.rs`)
 
@@ -171,12 +178,13 @@ Registered in `lib.rs` via `tauri::generate_handler![]`.
 
 #### Sync (`commands/sync.rs`)
 
-#### Sync (`commands/sync.rs`)
-
 | Command | Description |
 | --------- | ------------- |
 | `git_merge_opts` | Merge branch (plain / `--squash` / `--no-ff`) |
 | `git_push` | Push (retries once with `-u origin` if no upstream) |
+| `git_push_with` | Push with intent: `--force-with-lease`, `--tags`, or `push <remote> --delete <branch>` |
+| `git_set_upstream` / `git_unset_upstream` | Publish or detach a branch from its tracking ref |
+| `git_fetch_ref` | Fetch a single remote with optional `--prune` / `--tags` |
 | `git_pull` | Pull (sets upstream to `origin/<branch>` and retries if missing) |
 | `git_fetch` | Fetch all remotes (optional `--prune`) |
 | `git_merge_abort` | Abort merge |
@@ -220,6 +228,7 @@ exists under the git dir.
 | Command | Description |
 | --------- | ------------- |
 | `git_config_get` | Get config value |
+| `git_config_snapshot` | Read every allow-listed key with its effective value |
 | `git_config_set` | Set config value |
 | `git_identity` | Get user identity |
 | `git_version` | Git version |
@@ -232,7 +241,7 @@ exists under the git dir.
 | Module | Commands |
 |--------|----------|
 | `content` | `get_file_content`, `save_file_content` |
-| `conflicted` | `get_conflicted_files`, `parse_conflicts` |
+| `conflicted` | `get_conflicted_files` |
 
 #### Templates (`commands/templates.rs`)
 
@@ -281,22 +290,42 @@ pub fn merge_opts(
     // ...
 }
 
-#[tauri::command]
-pub async fn git_merge_opts(
-    state: State<'_, AppState>,
-    repo_path: String,
-    branch: String,
-    squash: bool,
-    no_ff: bool,
-) -> Result<String, String> {
-    let runner = state.runner.clone();
-    run_blocking(move || merge_opts(runner.as_ref(), &repo_path, &branch, squash, no_ff)).await
-}
+git_command!(
+    git_merge_opts,
+    String,
+    merge_opts,
+    (repo_path: String, branch: String),
+    (squash: bool, no_ff: bool)
+);
 ```
 
 Pure logic lives in plain `pub fn`s taking `&dyn GitRunner`
-(testable with `MockRunner`); the `#[tauri::command]` wrapper only
-clones `AppState` and delegates via `run_blocking`.
+(testable with `MockRunner`); `git_command!` generates the
+`#[tauri::command]` wrapper, which only clones `AppState` and delegates
+via `run_blocking`. Arguments declared in the first group are passed by
+reference, those in the second by value.
+
+The four wrappers that need to prepare their input first (defaulting an
+`Option`, converting a payload into a domain type) are written by hand with the
+same `run_blocking` call:
+
+```rust
+#[tauri::command]
+pub async fn git_diff_refs(
+    state: State<'_, AppState>,
+    repo_path: String,
+    base: String,
+    target: String,
+    stat_only: Option<bool>,
+) -> Result<String, String> {
+    let runner = state.runner.clone();
+    let stat_only = stat_only.unwrap_or(false);
+    crate::commands::run_blocking(move || {
+        diff_refs(runner.as_ref(), &repo_path, &base, &target, stat_only)
+    })
+    .await
+}
+```
 
 ### Helper `run_blocking`
 
@@ -401,8 +430,9 @@ cargo test <name>
 
 Tests live next to the code (`#[cfg(test)] mod tests`) and use
 `runner::mock::MockRunner` (in-memory command outputs) plus `tempfile`
-for filesystem cases. One test spins up real Git repositories in the
-system temp dir to exercise submodules end to end.
+for filesystem cases. Tests that need a real repository share the
+`test_support::git` helper, which pins identity/default-branch settings and
+asserts on failure; one suite uses it to exercise submodules end to end.
 
 ### Mock Runner Example
 
@@ -444,8 +474,10 @@ mod tests {
    become flags. Commands whose grammar forbids `--` before the revision
    (`checkout`, `reset`, annotated `tag -a`, `diff-tree`) rely on
    validation instead (leading `-` rejected)
-4. **Config allowlist** - `config_get`/`config_set` only accept keys in
-   `ALLOWED_CONFIG_KEYS` (identity, safe core/diff/merge options)
+4. **Config allowlist** - `config_get`/`config_set`/`config_snapshot` only
+   accept keys in `ALLOWED_CONFIG_KEYS` (identity, safe core/diff/merge
+   options), so no arbitrary setting (e.g. `credential.helper`,
+   `core.sshCommand`) can be read or written from the UI
 5. **Console sandbox** (`playground.rs`) - `git_run` only allows listed verbs
    and rejects dangerous flags (`--hard`, `--force`, `-f`, `--output`,
    `--upload-pack`, `-c`, …) plus shell metacharacters

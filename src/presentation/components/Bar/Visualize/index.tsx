@@ -82,10 +82,10 @@ export const VisualizeBar = ({
       <span className={styles.count} aria-live="polite">
         {zoomPercent}
       </span>
-      <button type="button" className="icon-btn" onClick={onZoomIn} title="+">
+      <button type="button" className="icon-btn" onClick={onZoomIn} title={t("zoomIn")} aria-label={t("zoomIn")}>
         <ZoomIn size={14} />
       </button>
-      <button type="button" className="icon-btn" onClick={onZoomOut} title="−">
+      <button type="button" className="icon-btn" onClick={onZoomOut} title={t("zoomOut")} aria-label={t("zoomOut")}>
         <ZoomOut size={14} />
       </button>
       <button

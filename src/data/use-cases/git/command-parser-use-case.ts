@@ -1,3 +1,4 @@
+import { stripGitPrefix } from "../../../shared/utils/git"
 import { DANGEROUS, INTENT_VERBS, QUICK, READ_ONLY, TEMPLATES } from "../../../shared/constants/gitConsole"
 import type { IGitCommandParserUseCase, Intent } from "../../../domain/entities/git/git-console"
 
@@ -30,10 +31,7 @@ export class GitCommandParserUseCase implements IGitCommandParserUseCase {
   }
 
   stripGitPrefix(raw: string): string {
-    const text = raw.trim()
-    if (text === "git") return ""
-    if (text.startsWith("git ")) return text.slice(4)
-    return text
+    return stripGitPrefix(raw)
   }
 
   splitChain(input: string): string[] {
