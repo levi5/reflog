@@ -1,6 +1,6 @@
 # Reflog
 
-![Reflog Screenshot](./public/app-screenshot.png)
+![Reflog Screenshot](./public/screenshots/01-welcome.png)
 
 A modern desktop Git client built with **Tauri 2**, **React 19**, and **Rust** — focused on conflict resolution, history visualization, and workflow automations.
 
@@ -66,7 +66,7 @@ A modern desktop Git client built with **Tauri 2**, **React 19**, and **Rust** �
 
 ## 📁 Project Structure
 
-```
+```txt
 reflog/
 ├── doc/                    # Documentation
 ├── public/                 # Static assets
