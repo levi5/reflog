@@ -26,7 +26,7 @@ export class CommitGraphUseCase implements ICommitGraphUseCase {
   }
 
   layoutGraph(commits: CommitInfo[]): GraphLayout {
-    const seen = new Set(commits.map((c) => c.hash))
+    const seen = new Set(commits.map((commit) => commit.hash))
     let lanes: (string | null)[] = []
     const rows: GraphRow[] = []
     let maxLanes = 1
@@ -41,7 +41,7 @@ export class CommitGraphUseCase implements ICommitGraphUseCase {
       const bottom = [...lanes]
       const links: GraphLink[] = []
 
-      const parents = [...new Set(commit.parents)].filter((p) => p !== commit.hash)
+      const parents = [...new Set(commit.parents)].filter((parentHash) => parentHash !== commit.hash)
       if (parents.length === 0) {
         bottom[lane] = null
       } else {
@@ -54,26 +54,26 @@ export class CommitGraphUseCase implements ICommitGraphUseCase {
           bottom[lane] = first
           links.push({ fromLane: lane, toLane: lane })
         }
-        for (const p of rest) {
-          let k = bottom.indexOf(p)
-          if (k === -1) {
-            k = bottom.indexOf(null)
-            if (k === -1) {
-              k = bottom.length
-              bottom.push(p)
+        for (const parentHash of rest) {
+          let targetLane = bottom.indexOf(parentHash)
+          if (targetLane === -1) {
+            targetLane = bottom.indexOf(null)
+            if (targetLane === -1) {
+              targetLane = bottom.length
+              bottom.push(parentHash)
             } else {
-              bottom[k] = p
+              bottom[targetLane] = parentHash
             }
           }
-          if (!links.some((l) => l.toLane === k)) {
-            links.push({ fromLane: lane, toLane: k })
+          if (!links.some((link) => link.toLane === targetLane)) {
+            links.push({ fromLane: lane, toLane: targetLane })
           }
         }
       }
 
-      for (let j = 0; j < bottom.length; j++) {
-        if (bottom[j] !== null && !seen.has(bottom[j] as string)) {
-          bottom[j] = null
+      for (let slot = 0; slot < bottom.length; slot++) {
+        if (bottom[slot] !== null && !seen.has(bottom[slot] as string)) {
+          bottom[slot] = null
         }
       }
 

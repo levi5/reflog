@@ -32,7 +32,7 @@ export function ProfileProvider({
   const messageService = useMessageActions()
   const { lang } = useTranslation()
 
-  const active = profiles.find((p) => p.id === activeId) ?? null
+  const active = profiles.find((profile) => profile.id === activeId) ?? null
 
   const persist = useCallback((list: GitProfile[], id: string) => {
     setProfiles(list)
@@ -44,9 +44,9 @@ export function ProfileProvider({
   const add = useCallback(
     (name: string, email: string, emoji = ""): boolean => {
       if (!name.trim() || !email.trim()) return false
-      const p = profileManagerUseCase.newProfile(name, email, emoji)
-      const list = [...profiles, p]
-      persist(list, activeId || p.id)
+      const created = profileManagerUseCase.newProfile(name, email, emoji)
+      const list = [...profiles, created]
+      persist(list, activeId || created.id)
       return true
     },
     [profiles, activeId, persist],
@@ -54,7 +54,7 @@ export function ProfileProvider({
 
   const remove = useCallback(
     (id: string) => {
-      const list = profiles.filter((p) => p.id !== id)
+      const list = profiles.filter((profile) => profile.id !== id)
       persist(list, activeId === id ? (list[0]?.id ?? "") : activeId)
     },
     [profiles, activeId, persist],
@@ -62,16 +62,16 @@ export function ProfileProvider({
 
   const apply = useCallback(
     async (id: string): Promise<boolean> => {
-      const p = profiles.find((x) => x.id === id)
-      if (!p) return false
+      const target = profiles.find((profile) => profile.id === id)
+      if (!target) return false
       const root = repoRoot ?? ""
       const global = !root
-      const loadingId = messageService.loading(formatMessage(lang, "applyProfileLoading", { name: p.name }))
+      const loadingId = messageService.loading(formatMessage(lang, "applyProfileLoading", { name: target.name }))
       try {
-        await gitApi.configSet(root, "user.name", p.name, global)
-        await gitApi.configSet(root, "user.email", p.email, global)
+        await gitApi.configSet(root, "user.name", target.name, global)
+        await gitApi.configSet(root, "user.email", target.email, global)
         persist(profiles, id)
-        const successMsg = formatMessage(lang, "applyProfileSuccess", { name: p.name, email: p.email })
+        const successMsg = formatMessage(lang, "applyProfileSuccess", { name: target.name, email: target.email })
         setMsg?.(successMsg)
         messageService.dismiss(loadingId)
         messageService.success(successMsg)
@@ -89,7 +89,7 @@ export function ProfileProvider({
 
   const cycle = useCallback(async () => {
     if (profiles.length === 0) return
-    const idx = profiles.findIndex((p) => p.id === activeId)
+    const idx = profiles.findIndex((profile) => profile.id === activeId)
     const next = profiles[(idx + 1) % profiles.length]
     await apply(next.id)
   }, [profiles, activeId, apply])

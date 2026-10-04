@@ -62,7 +62,7 @@ export function useAutomations({ repoRoot, submodulePaths, refreshRepo, git = de
   const resolveTargets = useCallback(
     (target: AutomationRecipe["steps"][number]["run"]["target"], selectedRoot: string): string[] => {
       if (target === "repo") return [selectedRoot]
-      if (target === "all-submodules") return submodulePaths.map((p) => `${selectedRoot}/${p}`)
+      if (target === "all-submodules") return submodulePaths.map((submodulePath) => `${selectedRoot}/${submodulePath}`)
       return [`${selectedRoot}/${target.submodule}`]
     },
     [submodulePaths],
@@ -111,9 +111,9 @@ export function useAutomations({ repoRoot, submodulePaths, refreshRepo, git = de
               git.run(targetRoot, gitCommandParserUseCase.splitArgs(command)),
             )
             if (gitResult.isLeft()) {
-              const e = gitResult.value
-              pushToLog({ target: targetRoot, cmd: command, out: String(e), err: true })
-              messageService.error(format("automationRecipeFailed", { name: recipe.name, detail: String(e) }))
+              const failure = gitResult.value
+              pushToLog({ target: targetRoot, cmd: command, out: String(failure), err: true })
+              messageService.error(format("automationRecipeFailed", { name: recipe.name, detail: String(failure) }))
               return false
             }
 
@@ -151,14 +151,14 @@ export function useAutomations({ repoRoot, submodulePaths, refreshRepo, git = de
 
             const gitResult = await _Either.try.async(() => git.run(selectedRoot, args))
             if (gitResult.isLeft()) {
-              const e = gitResult.value
+              const failure = gitResult.value
               pushToLog({
                 target: selectedRoot,
                 cmd: gitCommandParserUseCase.stripGitPrefix(cmd),
-                out: String(e),
+                out: String(failure),
                 err: true,
               })
-              messageService.error(format("automationMonitorFailed", { name: monitor.name, detail: String(e) }))
+              messageService.error(format("automationMonitorFailed", { name: monitor.name, detail: String(failure) }))
               return false
             }
 

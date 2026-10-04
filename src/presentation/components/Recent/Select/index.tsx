@@ -26,7 +26,7 @@ export function RecentSelect({
   const { t } = useTranslation()
   const options: SelectOption[] = [
     { value: "", label: t("recents") },
-    ...recents.map((r) => ({ value: r, label: mergeStatsUseCase.repoBaseName(r) })),
+    ...recents.map((path) => ({ value: path, label: mergeStatsUseCase.repoBaseName(path) })),
   ]
 
   return (

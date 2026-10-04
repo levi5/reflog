@@ -17,62 +17,62 @@ interface CellProps extends SVGProps<SVGSVGElement> {
 
 export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svgProps }: CellProps) => {
   const width = Math.max(lanes, 1) * laneWidth
-  const x = (l: number) => l * laneWidth + laneWidth / 2
+  const laneCenterX = (lane: number) => lane * laneWidth + laneWidth / 2
   const mid = rowHeight / 2
   const color = graphLayoutUseCase.laneColor(row.lane)
 
   return (
     <svg width={width} height={rowHeight} aria-hidden="true" {...svgProps}>
-      {row.top.map((h, j) => {
-        if (h === null || h === undefined) return null
-        const c = graphLayoutUseCase.laneColor(j)
-        if (j === row.lane) {
+      {row.top.map((hash, laneIndex) => {
+        if (hash === null || hash === undefined) return null
+        const laneColor = graphLayoutUseCase.laneColor(laneIndex)
+        if (laneIndex === row.lane) {
           return (
             <line
-              key={`enter-${h}`}
-              x1={x(j)}
+              key={`enter-${hash}`}
+              x1={laneCenterX(laneIndex)}
               y1={0}
-              x2={x(j)}
+              x2={laneCenterX(laneIndex)}
               y2={mid}
-              stroke={c}
+              stroke={laneColor}
               strokeWidth={2}
               strokeLinecap="round"
             />
           )
         }
-        const continues = row.bottom[j] === h
+        const continues = row.bottom[laneIndex] === hash
         return (
           <line
-            key={`pass-${h}`}
-            x1={x(j)}
+            key={`pass-${hash}`}
+            x1={laneCenterX(laneIndex)}
             y1={0}
-            x2={x(j)}
+            x2={laneCenterX(laneIndex)}
             y2={continues ? rowHeight : mid}
-            stroke={c}
+            stroke={laneColor}
             strokeWidth={2}
             strokeLinecap="round"
             opacity={0.9}
           />
         )
       })}
-      {row.links.map((l) =>
-        l.toLane === l.fromLane ? (
+      {row.links.map((link) =>
+        link.toLane === link.fromLane ? (
           <line
-            key={`link-${l.fromLane}-${l.toLane}`}
-            x1={x(l.fromLane)}
+            key={`link-${link.fromLane}-${link.toLane}`}
+            x1={laneCenterX(link.fromLane)}
             y1={mid}
-            x2={x(l.toLane)}
+            x2={laneCenterX(link.toLane)}
             y2={rowHeight}
-            stroke={graphLayoutUseCase.laneColor(l.fromLane)}
+            stroke={graphLayoutUseCase.laneColor(link.fromLane)}
             strokeWidth={2}
             strokeLinecap="round"
           />
         ) : (
           <path
-            key={`link-${l.fromLane}-${l.toLane}`}
-            d={`M ${x(l.fromLane)} ${mid} C ${x(l.fromLane)} ${mid + rowHeight / 4}, ${x(l.toLane)} ${rowHeight - rowHeight / 4}, ${x(l.toLane)} ${rowHeight}`}
+            key={`link-${link.fromLane}-${link.toLane}`}
+            d={`M ${laneCenterX(link.fromLane)} ${mid} C ${laneCenterX(link.fromLane)} ${mid + rowHeight / 4}, ${laneCenterX(link.toLane)} ${rowHeight - rowHeight / 4}, ${laneCenterX(link.toLane)} ${rowHeight}`}
             fill="none"
-            stroke={graphLayoutUseCase.laneColor(l.fromLane)}
+            stroke={graphLayoutUseCase.laneColor(link.fromLane)}
             strokeWidth={2}
             strokeLinecap="round"
           />
@@ -80,11 +80,11 @@ export const Cell = ({ row, lanes, rowHeight = ROW_H, laneWidth = LANE_W, ...svg
       )}
       {row.isMerge ? (
         <>
-          <circle cx={x(row.lane)} cy={mid} r={6} fill="var(--bg-win)" stroke={color} strokeWidth={2} />
-          <circle cx={x(row.lane)} cy={mid} r={2} fill={color} />
+          <circle cx={laneCenterX(row.lane)} cy={mid} r={6} fill="var(--bg-win)" stroke={color} strokeWidth={2} />
+          <circle cx={laneCenterX(row.lane)} cy={mid} r={2} fill={color} />
         </>
       ) : (
-        <circle cx={x(row.lane)} cy={mid} r={4.5} fill={color} stroke="var(--bg-win)" strokeWidth={1} />
+        <circle cx={laneCenterX(row.lane)} cy={mid} r={4.5} fill={color} stroke="var(--bg-win)" strokeWidth={1} />
       )}
     </svg>
   )

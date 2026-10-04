@@ -35,7 +35,7 @@ export function EmojiPicker({ title, onPick }: Props) {
         aria-label={title}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen((wasOpen) => !wasOpen)}
       >
         <Smile size={14} />
       </button>

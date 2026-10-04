@@ -23,7 +23,7 @@ export function Switch({ checked, onChange, label, title, disabled = false, aria
         aria-label={ariaLabel}
         checked={checked}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
+        onChange={(event) => onChange(event.target.checked)}
       />
       {label !== undefined && <span className={styles.label}>{label}</span>}
     </label>

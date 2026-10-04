@@ -61,7 +61,7 @@ export function StashPanel({
           aria-label={t("stashMessage")}
           value={stashMessage}
           onChange={(event) => onStashMessageChange(event.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onStash()}
+          onKeyDown={(event) => event.key === "Enter" && onStash()}
         />
         <button type="button" onClick={onStash} disabled={busy} title={t("saveStash")}>
           {t("saveStash")}

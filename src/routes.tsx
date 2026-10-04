@@ -7,29 +7,37 @@ import { RouteErrorElement, RouteNotFound } from "./presentation/components/Erro
 import { MessageProvider, RepoProvider } from "./presentation/context"
 import { detectLocale, formatMessage } from "./i18n"
 
-const Welcome = lazy(() => import("./presentation/pages/Welcome").then((m) => ({ default: m.Welcome })))
-const Merge = lazy(() => import("./presentation/pages/Merge").then((m) => ({ default: m.MergePage })))
-const Staging = lazy(() => import("./presentation/pages/Staging").then((m) => ({ default: m.Staging })))
-const Graph = lazy(() => import("./presentation/pages/Graph").then((m) => ({ default: m.Graph })))
-const Blame = lazy(() => import("./presentation/pages/Blame").then((m) => ({ default: m.Blame })))
+const Welcome = lazy(() =>
+  import("./presentation/pages/Welcome").then((pageModule) => ({ default: pageModule.Welcome })),
+)
+const Merge = lazy(() => import("./presentation/pages/Merge").then((pageModule) => ({ default: pageModule.MergePage })))
+const Staging = lazy(() =>
+  import("./presentation/pages/Staging").then((pageModule) => ({ default: pageModule.Staging })),
+)
+const Graph = lazy(() => import("./presentation/pages/Graph").then((pageModule) => ({ default: pageModule.Graph })))
+const Blame = lazy(() => import("./presentation/pages/Blame").then((pageModule) => ({ default: pageModule.Blame })))
 const Visualize = lazy(() =>
-  import("./presentation/pages/Visualize").then((m) => ({
-    default: m.Visualize,
+  import("./presentation/pages/Visualize").then((pageModule) => ({
+    default: pageModule.Visualize,
   })),
 )
 const AutomationHub = lazy(() =>
-  import("./presentation/pages/Automations/Hub").then((m) => ({
-    default: m.AutomationHub,
+  import("./presentation/pages/Automations/Hub").then((pageModule) => ({
+    default: pageModule.AutomationHub,
   })),
 )
-const Compare = lazy(() => import("./presentation/pages/Compare").then((m) => ({ default: m.CompareRefsPage })))
-const Docs = lazy(() => import("./presentation/pages/Docs").then((m) => ({ default: m.Docs })))
+const Compare = lazy(() =>
+  import("./presentation/pages/Compare").then((pageModule) => ({ default: pageModule.CompareRefsPage })),
+)
+const Docs = lazy(() => import("./presentation/pages/Docs").then((pageModule) => ({ default: pageModule.Docs })))
 const Settings = lazy(() =>
-  import("./presentation/pages/Settings").then((m) => ({
-    default: m.Settings,
+  import("./presentation/pages/Settings").then((pageModule) => ({
+    default: pageModule.Settings,
   })),
 )
-const RepoDeepLink = lazy(() => import("./presentation/pages/RepoDeepLink").then((m) => ({ default: m.RepoDeepLink })))
+const RepoDeepLink = lazy(() =>
+  import("./presentation/pages/RepoDeepLink").then((pageModule) => ({ default: pageModule.RepoDeepLink })),
+)
 
 export async function repoLoader({ params }: { params: Record<string, string | undefined> }) {
   const splat = params["*"] ?? ""

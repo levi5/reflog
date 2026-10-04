@@ -134,18 +134,18 @@ export function Welcome(props: Props) {
           <div className={styles.cloneForm}>
             <input
               value={cloneUrl}
-              onChange={(e) => onCloneUrl(e.target.value)}
+              onChange={(event) => onCloneUrl(event.target.value)}
               placeholder={t(lang, "cloneUrl")}
               aria-label={t(lang, "cloneUrl")}
-              onKeyDown={(e) => e.key === "Enter" && canClone && handleClone()}
+              onKeyDown={(event) => event.key === "Enter" && canClone && handleClone()}
             />
             <div className={styles.cloneRow}>
               <input
                 value={cloneDir}
-                onChange={(e) => onCloneDir(e.target.value)}
+                onChange={(event) => onCloneDir(event.target.value)}
                 placeholder={t(lang, "cloneDir")}
                 aria-label={t(lang, "cloneDir")}
-                onKeyDown={(e) => e.key === "Enter" && canClone && handleClone()}
+                onKeyDown={(event) => event.key === "Enter" && canClone && handleClone()}
               />
               <button
                 type="button"

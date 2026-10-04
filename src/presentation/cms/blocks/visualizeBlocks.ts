@@ -64,8 +64,8 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: GitBranch,
     title: { pt: "Criar branch", en: "Create branch" },
     fields: [{ key: "name", ph: { pt: "nome", en: "name" } }],
-    build: (v) => {
-      const name = (v["branch.name"] ?? v["branch-del.name"] ?? "").trim()
+    build: (values) => {
+      const name = (values["branch.name"] ?? values["branch-del.name"] ?? "").trim()
       return name ? `checkout -b ${name}` : null
     },
   },
@@ -76,10 +76,10 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     title: { pt: "Trocar de branch", en: "Switch branch" },
     fields: [{ key: "branch", ph: { pt: "branch", en: "branch" } }],
     flags: [{ key: "b", label: { pt: "criar (-b)", en: "create (-b)" }, flag: "-b" }],
-    build: (v, f) => {
-      const branch = (v["checkout.branch"] ?? "").trim()
+    build: (values, flags) => {
+      const branch = (values["checkout.branch"] ?? "").trim()
       if (!branch) return null
-      return f["checkout.b"] ? `checkout -b ${branch}` : `checkout ${branch}`
+      return flags["checkout.b"] ? `checkout -b ${branch}` : `checkout ${branch}`
     },
   },
   {
@@ -95,8 +95,8 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: GitMerge,
     title: { pt: "Fundir branch", en: "Merge branch" },
     fields: [{ key: "branch", ph: { pt: "branch", en: "branch" } }],
-    build: (v) => {
-      const branch = (v["merge.branch"] ?? "").trim()
+    build: (values) => {
+      const branch = (values["merge.branch"] ?? "").trim()
       return branch ? `merge ${branch}` : null
     },
   },
@@ -106,8 +106,8 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: FileText,
     title: { pt: "Commitar", en: "Commit" },
     fields: [{ key: "message", ph: { pt: "mensagem", en: "message" } }],
-    build: (v) => {
-      const message = (v["commit.message"] ?? "").trim()
+    build: (values) => {
+      const message = (values["commit.message"] ?? "").trim()
       return message ? `commit -m "${message}"` : null
     },
   },
@@ -117,8 +117,8 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: Plus,
     title: { pt: "Adicionar (git add)", en: "Stage (git add)" },
     fields: [{ key: "path", ph: { pt: "arquivo (vazio = tudo)", en: "file (empty = all)" } }],
-    build: (v) => {
-      const path = (v["add.path"] ?? "").trim()
+    build: (values) => {
+      const path = (values["add.path"] ?? "").trim()
       return path ? `add -- ${path}` : "add -A"
     },
   },
@@ -131,10 +131,10 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
       { key: "message", ph: { pt: "mensagem", en: "message" } },
       { key: "path", ph: { pt: "arquivo (vazio = tudo)", en: "file (empty = all)" } },
     ],
-    build: (v) => {
-      const message = (v["add-commit.message"] ?? "").trim()
+    build: (values) => {
+      const message = (values["add-commit.message"] ?? "").trim()
       if (!message) return null
-      const path = (v["add-commit.path"] ?? "").trim()
+      const path = (values["add-commit.path"] ?? "").trim()
       const addStep = path ? `add -- ${path}` : "add -A"
       return `${addStep} && commit -m "${message}"`
     },
@@ -158,11 +158,11 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
         flag: "-a",
       },
     ],
-    build: (v, f) => {
-      const name = (v["tag.name"] ?? "").trim()
+    build: (values, flags) => {
+      const name = (values["tag.name"] ?? "").trim()
       if (!name) return null
-      const message = (v["tag.message"] ?? "").trim()
-      if (f["tag.a"]) return message ? `tag -a ${name} -m "${message}"` : null
+      const message = (values["tag.message"] ?? "").trim()
+      if (flags["tag.a"]) return message ? `tag -a ${name} -m "${message}"` : null
       return `tag ${name}`
     },
   },
@@ -212,7 +212,7 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: History,
     title: { pt: "Voltar (reset --soft)", en: "Reset soft" },
     fields: [{ key: "ref", ph: { pt: "ref", en: "ref" }, def: "HEAD~1" }],
-    build: (v) => `reset --soft ${(v["reset.ref"] ?? "").trim() || "HEAD~1"}`,
+    build: (values) => `reset --soft ${(values["reset.ref"] ?? "").trim() || "HEAD~1"}`,
   },
   {
     id: "revert",
@@ -220,8 +220,8 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: Undo2,
     title: { pt: "Reverter commit", en: "Revert commit" },
     fields: [{ key: "ref", ph: { pt: "hash ou ref", en: "hash or ref" } }],
-    build: (v) => {
-      const ref = (v["revert.ref"] ?? "").trim()
+    build: (values) => {
+      const ref = (values["revert.ref"] ?? "").trim()
       return ref ? `revert ${ref}` : null
     },
   },
@@ -231,8 +231,8 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: ListPlus,
     title: { pt: "Pescar commit", en: "Cherry-pick" },
     fields: [{ key: "ref", ph: { pt: "hash ou ref", en: "hash or ref" } }],
-    build: (v) => {
-      const ref = (v["cherry-pick.ref"] ?? "").trim()
+    build: (values) => {
+      const ref = (values["cherry-pick.ref"] ?? "").trim()
       return ref ? `cherry-pick ${ref}` : null
     },
   },
@@ -242,8 +242,8 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: Trash2,
     title: { pt: "Excluir branch", en: "Delete branch" },
     fields: [{ key: "name", ph: { pt: "nome", en: "name" } }],
-    build: (v) => {
-      const name = (v["branch-del.name"] ?? "").trim()
+    build: (values) => {
+      const name = (values["branch-del.name"] ?? "").trim()
       return name ? `branch -D ${name}` : null
     },
   },
@@ -253,9 +253,9 @@ export const VISUALIZE_COMMAND_BLOCKS: CommandBlock[] = [
     icon: List,
     title: { pt: "Ver histórico", en: "View history" },
     fields: [{ key: "n", ph: { pt: "quantidade", en: "count" }, def: "10" }],
-    build: (v) => {
-      const n = ((v["log.n"] ?? "").trim() || "10").replace(/\D/g, "") || "10"
-      return `log --oneline -${n}`
+    build: (values) => {
+      const lineCount = ((values["log.n"] ?? "").trim() || "10").replace(/\D/g, "") || "10"
+      return `log --oneline -${lineCount}`
     },
   },
   {

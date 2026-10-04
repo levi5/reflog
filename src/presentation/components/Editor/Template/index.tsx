@@ -71,7 +71,7 @@ export function TemplateEditor({
               value={draft.name}
               placeholder={t("templateNameHint")}
               disabled={draft.source === "builtin"}
-              onChange={(e) => onDraftChange((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(event) => onDraftChange((prev) => ({ ...prev, name: event.target.value }))}
             />
           </div>
 
@@ -99,10 +99,10 @@ export function TemplateEditor({
               type="text"
               value={draft.defaults.scope}
               placeholder="e.g. core, auth"
-              onChange={(e) =>
+              onChange={(event) =>
                 onDraftChange((prev) => ({
                   ...prev,
-                  defaults: { ...prev.defaults, scope: e.target.value },
+                  defaults: { ...prev.defaults, scope: event.target.value },
                 }))
               }
             />
@@ -116,15 +116,15 @@ export function TemplateEditor({
           <span>{t("templateVariableHint")}</span>
         </div>
         <div className={styles.varsChips}>
-          {TEMPLATE_VARIABLES.map((v) => (
+          {TEMPLATE_VARIABLES.map((variable) => (
             <button
-              key={v.token}
+              key={variable.token}
               type="button"
               className={styles.varChip}
-              title={v.token}
-              onClick={() => onInsertVariable(v.token)}
+              title={variable.token}
+              onClick={() => onInsertVariable(variable.token)}
             >
-              {v.label}
+              {variable.label}
             </button>
           ))}
         </div>
@@ -142,7 +142,7 @@ export function TemplateEditor({
             value={draft.pattern}
             placeholder={t("templatePatternPlaceholder")}
             aria-label={t("templatePattern")}
-            onChange={(e) => onDraftChange((prev) => ({ ...prev, pattern: e.target.value }))}
+            onChange={(event) => onDraftChange((prev) => ({ ...prev, pattern: event.target.value }))}
           />
         </div>
 

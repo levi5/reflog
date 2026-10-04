@@ -24,7 +24,7 @@ export function TemplateSidebar({
   onEditPreset,
 }: TemplateSidebarProps) {
   const { t } = useTranslation()
-  const activeDocName = docs.find((d) => d.id === prefs.templateId)?.name ?? "conventional"
+  const activeDocName = docs.find((doc) => doc.id === prefs.templateId)?.name ?? "conventional"
 
   return (
     <aside className={styles.list}>

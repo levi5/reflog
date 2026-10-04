@@ -23,12 +23,12 @@ const stripCr = (line: string): string => line.replace(/\r$/, "")
 export class ConflictResolverUseCase implements IConflictResolverUseCase {
   private takeUntil(lines: string[], from: number, stops: string[]): ScanResult {
     const taken: string[] = []
-    let i = from
-    while (i < lines.length && !stops.some((s) => (lines[i] ?? "").startsWith(s))) {
-      taken.push(lines[i] ?? "")
-      i++
+    let cursor = from
+    while (cursor < lines.length && !stops.some((stop) => (lines[cursor] ?? "").startsWith(stop))) {
+      taken.push(lines[cursor] ?? "")
+      cursor++
     }
-    return { taken, index: i }
+    return { taken, index: cursor }
   }
 
   private parseAt(lines: string[], start: number, id: number): ParsedBlockResult {
@@ -70,20 +70,20 @@ export class ConflictResolverUseCase implements IConflictResolverUseCase {
   parseConflicts(content: string): ConflictBlock[] {
     const lines = content.split("\n")
     const blocks: ConflictBlock[] = []
-    let i = 0
-    let id = 0
+    let blockIndex = 0
+    let blockId = 0
 
-    while (i < lines.length) {
-      if (!stripCr(lines[i] ?? "").startsWith(CURRENT_MARK)) {
-        i++
+    while (blockIndex < lines.length) {
+      if (!stripCr(lines[blockIndex] ?? "").startsWith(CURRENT_MARK)) {
+        blockIndex++
         continue
       }
-      const parsed = this.parseAt(lines, i, id)
+      const parsed = this.parseAt(lines, blockIndex, blockId)
       if (parsed.block !== null) {
         blocks.push(parsed.block)
-        id++
+        blockId++
       }
-      i = parsed.next
+      blockIndex = parsed.next
     }
     return blocks
   }
@@ -103,7 +103,7 @@ export class ConflictResolverUseCase implements IConflictResolverUseCase {
   }
 
   blockChoices(content: string, blockId: number, choice: Choice): string {
-    const block = this.parseConflicts(content).find((b) => b.id === blockId)
+    const block = this.parseConflicts(content).find((candidate) => candidate.id === blockId)
     if (!block) return content
     return this.applyChoiceToContent(content, block, choice, true)
   }

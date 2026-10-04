@@ -38,7 +38,7 @@ function formatBranchOptionLabel(name: string, behind?: number) {
 }
 
 function buildBranchOptions(currentBranch: string, branches: BranchInfo[]) {
-  const currentBranchInfo = branches.find((b) => b.name === currentBranch)
+  const currentBranchInfo = branches.find((branch) => branch.name === currentBranch)
   const currentOption = {
     value: currentBranch,
     label: formatBranchOptionLabel(currentBranch, currentBranchInfo?.behind),
@@ -200,7 +200,7 @@ function AppBar() {
           title={t("refresh")}
           ariaLabel={t("refresh")}
           isActive={false}
-          onToggle={() => repo.refresh(repo.repo)}
+          onToggle={() => repo.refresh(repo.repo, "full")}
         >
           <RefreshCw size={14} />
         </NavToggleButton>

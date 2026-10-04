@@ -7,9 +7,9 @@ import styles from "./style.module.scss"
 type Action = "minimize" | "toggleMaximize" | "close"
 
 const ACTIONS: Record<Action, (w: TauriWindow) => Promise<void>> = {
-  minimize: (w) => w.minimize(),
-  toggleMaximize: (w) => w.toggleMaximize(),
-  close: (w) => w.close(),
+  minimize: (window) => window.minimize(),
+  toggleMaximize: (window) => window.toggleMaximize(),
+  close: (window) => window.close(),
 }
 
 const BUTTONS: { action: Action; close: boolean; Icon: typeof X }[] = [

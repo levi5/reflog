@@ -75,7 +75,7 @@ export class AutomationsTomlUseCase implements IAutomationsTomlUseCase {
       description: recipe.description,
       repo_path: recipe.repoPath,
       variables: recipe.variables,
-      step: recipe.steps.map((s) => this.mapStep(s)),
+      step: recipe.steps.map((step) => this.mapStep(step)),
     }
   }
 
@@ -101,8 +101,8 @@ export class AutomationsTomlUseCase implements IAutomationsTomlUseCase {
 
   serializeAutomationsToml(recipes: AutomationRecipe[], monitors: MonitorAutomation[]): string {
     return stringify({
-      recipe: recipes.map((r) => this.mapRecipe(r)),
-      monitor: monitors.map((m) => this.mapMonitor(m)),
+      recipe: recipes.map((recipe) => this.mapRecipe(recipe)),
+      monitor: monitors.map((monitor) => this.mapMonitor(monitor)),
     })
   }
 
@@ -119,8 +119,10 @@ export class AutomationsTomlUseCase implements IAutomationsTomlUseCase {
     const { recipes: rawRecipes, monitors: rawMonitors } = parseTomlPayload(parsed)
 
     return {
-      recipes: rawRecipes.filter(isImportableRecipe).map((r) => normalizeImportedRecipe(r, this.idGenerator)),
-      monitors: rawMonitors.filter(isImportableMonitor).map((m) => normalizeImportedMonitor(m, this.idGenerator)),
+      recipes: rawRecipes.filter(isImportableRecipe).map((recipe) => normalizeImportedRecipe(recipe, this.idGenerator)),
+      monitors: rawMonitors
+        .filter(isImportableMonitor)
+        .map((monitor) => normalizeImportedMonitor(monitor, this.idGenerator)),
     }
   }
 }

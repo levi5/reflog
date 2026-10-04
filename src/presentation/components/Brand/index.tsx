@@ -1,10 +1,11 @@
-import { GitBranch } from "lucide-react"
+import { LogoMark } from "./Logo"
 import styles from "./styles.module.scss"
 
 export function AppBrand() {
   return (
     <span className={styles.brand}>
-      <GitBranch size={14} /> Reflog
+      <LogoMark size={16} className={styles.mark} />
+      Reflog
     </span>
   )
 }

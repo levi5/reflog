@@ -149,9 +149,10 @@ function ShortcutItem({
 export function QuickActionsSidebar({ isOpen, onClose }: QuickActionsSidebarProps) {
   const repoContext = useRepoCore()
   const { t } = useTranslation()
+  const submodulePaths = useMemo(() => repoContext.submodules.map((sub) => sub.path), [repoContext.submodules])
   const automations = useAutomations({
     repoRoot: repoContext.repo,
-    submodulePaths: [],
+    submodulePaths,
     refreshRepo: () => repoContext.refresh(repoContext.repo),
   })
 

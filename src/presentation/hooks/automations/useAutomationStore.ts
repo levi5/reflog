@@ -53,7 +53,7 @@ export function useAutomationStore({ storage = localStorageAdapter }: StoreDeps 
 
   const saveRecipe = useCallback(
     (recipe: AutomationRecipe) => {
-      updateStore((prev) => ({ ...prev, recipes: upsertBy(prev.recipes, recipe, (e) => e.id) }))
+      updateStore((prev) => ({ ...prev, recipes: upsertBy(prev.recipes, recipe, (entry) => entry.id) }))
     },
     [updateStore],
   )
@@ -61,27 +61,27 @@ export function useAutomationStore({ storage = localStorageAdapter }: StoreDeps 
     (id: string) => {
       updateStore((prev) => ({
         ...prev,
-        recipes: removeBy(prev.recipes, (e) => e.id, id),
-        shortcuts: prev.shortcuts.filter((e) => !(e.targetType === "recipe" && e.targetId === id)),
+        recipes: removeBy(prev.recipes, (entry) => entry.id, id),
+        shortcuts: prev.shortcuts.filter((entry) => !(entry.targetType === "recipe" && entry.targetId === id)),
       }))
     },
     [updateStore],
   )
   const saveAlias = useCallback(
     (alias: AutomationAlias) => {
-      updateStore((prev) => ({ ...prev, aliases: upsertBy(prev.aliases, alias, (e) => e.name) }))
+      updateStore((prev) => ({ ...prev, aliases: upsertBy(prev.aliases, alias, (entry) => entry.name) }))
     },
     [updateStore],
   )
   const deleteAlias = useCallback(
     (name: string) => {
-      updateStore((prev) => ({ ...prev, aliases: removeBy(prev.aliases, (e) => e.name, name) }))
+      updateStore((prev) => ({ ...prev, aliases: removeBy(prev.aliases, (entry) => entry.name, name) }))
     },
     [updateStore],
   )
   const saveMonitor = useCallback(
     (monitor: MonitorAutomation) => {
-      updateStore((prev) => ({ ...prev, monitors: upsertBy(prev.monitors, monitor, (e) => e.id) }))
+      updateStore((prev) => ({ ...prev, monitors: upsertBy(prev.monitors, monitor, (entry) => entry.id) }))
     },
     [updateStore],
   )
@@ -89,21 +89,21 @@ export function useAutomationStore({ storage = localStorageAdapter }: StoreDeps 
     (id: string) => {
       updateStore((prev) => ({
         ...prev,
-        monitors: removeBy(prev.monitors, (e) => e.id, id),
-        shortcuts: prev.shortcuts.filter((e) => !(e.targetType === "monitor" && e.targetId === id)),
+        monitors: removeBy(prev.monitors, (entry) => entry.id, id),
+        shortcuts: prev.shortcuts.filter((entry) => !(entry.targetType === "monitor" && entry.targetId === id)),
       }))
     },
     [updateStore],
   )
   const saveShortcut = useCallback(
     (shortcut: AutomationShortcut) => {
-      updateStore((prev) => ({ ...prev, shortcuts: upsertBy(prev.shortcuts, shortcut, (e) => e.id) }))
+      updateStore((prev) => ({ ...prev, shortcuts: upsertBy(prev.shortcuts, shortcut, (entry) => entry.id) }))
     },
     [updateStore],
   )
   const deleteShortcut = useCallback(
     (id: string) => {
-      updateStore((prev) => ({ ...prev, shortcuts: removeBy(prev.shortcuts, (e) => e.id, id) }))
+      updateStore((prev) => ({ ...prev, shortcuts: removeBy(prev.shortcuts, (entry) => entry.id, id) }))
     },
     [updateStore],
   )

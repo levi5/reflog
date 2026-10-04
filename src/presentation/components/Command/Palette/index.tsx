@@ -120,7 +120,7 @@ function usePaletteEntries(): PaletteEntry[] {
         group: actionGroup,
         icon: <RotateCcw size={15} />,
         disabled: repoUnavailable,
-        run: () => void repo.refresh(repo.repo),
+        run: () => void repo.refresh(repo.repo, "full"),
       },
     ]
     return [...navEntries, ...actionEntries]

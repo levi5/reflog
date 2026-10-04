@@ -108,10 +108,10 @@ export function RepoBar(props: Props) {
           />
           <input
             value={openPath}
-            onChange={(e) => onOpenPath(e.target.value)}
+            onChange={(event) => onOpenPath(event.target.value)}
             placeholder={t("repoPath")}
             aria-label={t("repoPath")}
-            onKeyDown={(e) => e.key === "Enter" && open()}
+            onKeyDown={(event) => event.key === "Enter" && open()}
           />
           <button
             type="button"
@@ -123,33 +123,23 @@ export function RepoBar(props: Props) {
           >
             <FolderSearch size={14} />
           </button>
-          <button
-            type="button"
-            className={classnames("primary", "icon-btn", styles.iconBtn)}
-            onClick={open}
-            disabled={busy || !openPath.trim()}
-            title={t("open")}
-            aria-label={t("open")}
-          >
-            <FolderOpen size={14} />
-          </button>
         </>
       ) : (
         <>
           <input
             className={styles.grow}
             value={cloneUrl}
-            onChange={(e) => onCloneUrl(e.target.value)}
+            onChange={(event) => onCloneUrl(event.target.value)}
             placeholder={t("cloneUrl")}
             aria-label={t("cloneUrl")}
-            onKeyDown={(e) => e.key === "Enter" && clone()}
+            onKeyDown={(event) => event.key === "Enter" && clone()}
           />
           <input
             value={cloneDir}
-            onChange={(e) => onCloneDir(e.target.value)}
+            onChange={(event) => onCloneDir(event.target.value)}
             placeholder={t("cloneDir")}
             aria-label={t("cloneDir")}
-            onKeyDown={(e) => e.key === "Enter" && clone()}
+            onKeyDown={(event) => event.key === "Enter" && clone()}
           />
           <button
             type="button"

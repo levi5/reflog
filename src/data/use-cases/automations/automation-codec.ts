@@ -140,7 +140,7 @@ export function normalizeImportedRecipe(
           ? recipe.repo_path
           : "",
     variables: stringArray(recipe.variables),
-    steps: Array.isArray(rawSteps) ? rawSteps.map((s) => normalizeImportedStep(s, idGen)) : [],
+    steps: Array.isArray(rawSteps) ? rawSteps.map((step) => normalizeImportedStep(step, idGen)) : [],
   }
 }
 
@@ -183,7 +183,7 @@ export function normalizeImportedMonitor(
     repoPath,
     path,
     trigger: parseMonitorTrigger(monitor.trigger, path || repoPath),
-    blocks: Array.isArray(rawBlocks) ? rawBlocks.map((b) => normalizeImportedBlock(b, idGen)) : [],
+    blocks: Array.isArray(rawBlocks) ? rawBlocks.map((block) => normalizeImportedBlock(block, idGen)) : [],
   }
 }
 

@@ -16,33 +16,33 @@ export function EventsStrip({ changes }: Props) {
   return (
     <div className={styles.events}>
       <span className={styles.eventsTitle}>{t("eventsTitle")}</span>
-      {changes.map((c, i) => {
+      {changes.map((change, changeIndex) => {
         const key =
-          c.kind === "commits" || c.kind === "spotlight"
-            ? `${c.kind}-${c.hashes.join(",")}`
-            : c.kind === "checkout"
-              ? `checkout-${c.from}-${c.to}`
-              : c.kind === "files"
-                ? `files-${c.files.length}`
-                : `${c.kind}-${c.name}`
-        const title = c.kind === "files" ? c.files.join("\n") : undefined
+          change.kind === "commits" || change.kind === "spotlight"
+            ? `${change.kind}-${change.hashes.join(",")}`
+            : change.kind === "checkout"
+              ? `checkout-${change.from}-${change.to}`
+              : change.kind === "files"
+                ? `files-${change.files.length}`
+                : `${change.kind}-${change.name}`
+        const title = change.kind === "files" ? change.files.join("\n") : undefined
         return (
-          <span key={key} className={styles.event} style={{ animationDelay: `${i * 140}ms` }} title={title}>
-            {c.kind === "commits" && <CircleDot size={12} />}
-            {c.kind === "checkout" && <GitBranch size={12} />}
-            {c.kind === "ref-add" && <Plus size={12} />}
-            {c.kind === "ref-move" && <ArrowRight size={12} />}
-            {c.kind === "ref-del" && <Trash2 size={12} />}
-            {c.kind === "spotlight" && <Eye size={12} />}
-            {c.kind === "files" && <FileDiff size={12} />}
-            {c.kind === "commits" &&
-              `${c.hashes.length} ${t("evCommits")}: ${c.hashes.map((h) => h.slice(0, 7)).join(", ")}`}
-            {c.kind === "checkout" && `${t("evCheckout")}: ${c.from} → ${c.to}`}
-            {c.kind === "ref-add" && `${t("evRefAdd")}: ${c.name}`}
-            {c.kind === "ref-move" && `${t("evRefMove")}: ${c.name}`}
-            {c.kind === "ref-del" && `${t("evRefDel")}: ${c.name}`}
-            {c.kind === "spotlight" && `${c.hashes.length} ${t("evSpotlight")}`}
-            {c.kind === "files" && `${c.files.length} ${t("evFiles")}`}
+          <span key={key} className={styles.event} style={{ animationDelay: `${changeIndex * 140}ms` }} title={title}>
+            {change.kind === "commits" && <CircleDot size={12} />}
+            {change.kind === "checkout" && <GitBranch size={12} />}
+            {change.kind === "ref-add" && <Plus size={12} />}
+            {change.kind === "ref-move" && <ArrowRight size={12} />}
+            {change.kind === "ref-del" && <Trash2 size={12} />}
+            {change.kind === "spotlight" && <Eye size={12} />}
+            {change.kind === "files" && <FileDiff size={12} />}
+            {change.kind === "commits" &&
+              `${change.hashes.length} ${t("evCommits")}: ${change.hashes.map((hash) => hash.slice(0, 7)).join(", ")}`}
+            {change.kind === "checkout" && `${t("evCheckout")}: ${change.from} → ${change.to}`}
+            {change.kind === "ref-add" && `${t("evRefAdd")}: ${change.name}`}
+            {change.kind === "ref-move" && `${t("evRefMove")}: ${change.name}`}
+            {change.kind === "ref-del" && `${t("evRefDel")}: ${change.name}`}
+            {change.kind === "spotlight" && `${change.hashes.length} ${t("evSpotlight")}`}
+            {change.kind === "files" && `${change.files.length} ${t("evFiles")}`}
           </span>
         )
       })}

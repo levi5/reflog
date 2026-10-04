@@ -79,7 +79,7 @@ export class GitCommandParserUseCase implements IGitCommandParserUseCase {
     const [verb, ...rest] = args
     if (!verb || !INTENT_VERBS.includes(verb)) return verb ? { kind: "blocked", arg: verb } : null
 
-    const positional = rest.filter((a) => !a.startsWith("-"))
+    const positional = rest.filter((token) => !token.startsWith("-"))
     const arg = positional[0] ?? ""
 
     if (verb === "checkout" || verb === "switch") return { kind: "checkout", arg }

@@ -4,34 +4,35 @@ import type { GraphChange, IGraphAnimUseCase } from "../../../domain/entities/gr
 const HASH_RE = /\b[0-9a-f]{7,40}\b/g
 
 export class GraphAnimUseCase implements IGraphAnimUseCase {
-  private refsOf(c: CommitInfo): string[] {
-    return c.refs.filter((r) => !r.startsWith("HEAD"))
+  private refsOf(commit: CommitInfo): string[] {
+    return commit.refs.filter((refName) => !refName.startsWith("HEAD"))
   }
 
   private refMap(commits: CommitInfo[]): Map<string, string> {
-    const m = new Map<string, string>()
-    for (const c of commits) {
-      for (const r of this.refsOf(c)) {
-        if (!m.has(r)) m.set(r, c.hash)
+    const refToHash = new Map<string, string>()
+    for (const commit of commits) {
+      for (const refName of this.refsOf(commit)) {
+        if (!refToHash.has(refName)) refToHash.set(refName, commit.hash)
       }
     }
-    return m
+    return refToHash
   }
 
   headTarget(commits: CommitInfo[]): string {
-    for (const c of commits) {
-      for (const r of c.refs) {
-        const m = /^HEAD -> (.+)$/.exec(r)
-        if (m) return m[1] ?? ""
+    for (const commit of commits) {
+      for (const refName of commit.refs) {
+        const headTarget = /^HEAD -> (.+)$/.exec(refName)
+        if (headTarget) return headTarget[1] ?? ""
       }
     }
     return ""
   }
 
   headHash(commits: CommitInfo[]): string {
-    for (const c of commits) {
-      if (c.refs.some((r) => r === "HEAD" || r.startsWith("HEAD ->"))) {
-        return c.hash
+    for (const commit of commits) {
+      const isHead = commit.refs.some((refName) => refName === "HEAD" || refName.startsWith("HEAD ->"))
+      if (isHead) {
+        return commit.hash
       }
     }
     return ""
@@ -41,7 +42,7 @@ export class GraphAnimUseCase implements IGraphAnimUseCase {
     const found: string[] = []
     for (const match of output.matchAll(HASH_RE)) {
       const token = match[0]
-      const hit = commits.find((c) => c.hash.startsWith(token) || c.short === token)
+      const hit = commits.find((commit) => commit.hash.startsWith(token) || commit.short === token)
       if (hit && !found.includes(hit.hash)) found.push(hit.hash)
     }
     return found
@@ -62,7 +63,7 @@ export class GraphAnimUseCase implements IGraphAnimUseCase {
       const pipe = line.indexOf(" | ")
       if (pipe > 0) files.push(line.slice(0, pipe).trim())
     }
-    return files.filter((f) => f !== "")
+    return files.filter((path) => path !== "")
   }
 
   spotlightForCommand(
@@ -84,9 +85,9 @@ export class GraphAnimUseCase implements IGraphAnimUseCase {
 
       const hashes: string[] = []
       for (const branchName of branchNames) {
-        const commit = commits.find((c) =>
-          c.refs.some((r) => {
-            const cleanRef = r.replace(/^HEAD -> /, "").trim()
+        const commit = commits.find((candidate) =>
+          candidate.refs.some((refName) => {
+            const cleanRef = refName.replace(/^HEAD -> /, "").trim()
             return cleanRef === branchName || cleanRef.endsWith(`/${branchName}`)
           }),
         )
@@ -108,8 +109,8 @@ export class GraphAnimUseCase implements IGraphAnimUseCase {
 
   diffGraphs(oldCommits: CommitInfo[], newCommits: CommitInfo[]): { changes: GraphChange[]; fresh: string[] } {
     const changes: GraphChange[] = []
-    const oldHashes = new Set(oldCommits.map((c) => c.hash))
-    const fresh = newCommits.filter((c) => !oldHashes.has(c.hash)).map((c) => c.hash)
+    const oldHashes = new Set(oldCommits.map((commit) => commit.hash))
+    const fresh = newCommits.filter((commit) => !oldHashes.has(commit.hash)).map((commit) => commit.hash)
     if (fresh.length > 0) changes.push({ kind: "commits", hashes: fresh })
 
     const oldRefs = this.refMap(oldCommits)

@@ -88,18 +88,18 @@ export class DiffParserUseCase implements IDiffParserUseCase {
 
   private patchHead(preamble: string[]): string[] {
     return preamble.filter(
-      (l) =>
-        l.startsWith("diff --git") ||
-        l.startsWith("index ") ||
-        l.startsWith("--- ") ||
-        l.startsWith("+++ ") ||
-        l.startsWith("old mode") ||
-        l.startsWith("new mode") ||
-        l.startsWith("new file") ||
-        l.startsWith("deleted file") ||
-        l.startsWith("similarity index") ||
-        l.startsWith("rename from") ||
-        l.startsWith("rename to"),
+      (line) =>
+        line.startsWith("diff --git") ||
+        line.startsWith("index ") ||
+        line.startsWith("--- ") ||
+        line.startsWith("+++ ") ||
+        line.startsWith("old mode") ||
+        line.startsWith("new mode") ||
+        line.startsWith("new file") ||
+        line.startsWith("deleted file") ||
+        line.startsWith("similarity index") ||
+        line.startsWith("rename from") ||
+        line.startsWith("rename to"),
     )
   }
 

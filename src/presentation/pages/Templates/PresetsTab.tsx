@@ -98,7 +98,7 @@ export function PresetsTab({
                 type="text"
                 value={newPresetName}
                 placeholder="e.g. Refactor API"
-                onChange={(e) => setNewPresetName(e.target.value)}
+                onChange={(event) => setNewPresetName(event.target.value)}
               />
             </div>
             <div className={styles.formField}>
@@ -119,7 +119,7 @@ export function PresetsTab({
                 type="text"
                 value={newPresetScope}
                 placeholder="optional"
-                onChange={(e) => setNewPresetScope(e.target.value)}
+                onChange={(event) => setNewPresetScope(event.target.value)}
               />
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>

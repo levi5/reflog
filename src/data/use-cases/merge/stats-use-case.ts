@@ -7,7 +7,7 @@ export class MergeStatsUseCase implements IMergeStatsUseCase {
   }
 
   mergeStats(conflicts: ConflictFile[], resolved: Record<string, number>): MergeStats {
-    const remainingHunks = this.sum(conflicts.map((f) => f.conflicts.length))
+    const remainingHunks = this.sum(conflicts.map((file) => file.conflicts.length))
     const resolvedHunks = this.sum(Object.values(resolved))
     const totalHunks = remainingHunks + resolvedHunks
     const resolvedFiles = Object.keys(resolved).length
@@ -23,7 +23,7 @@ export class MergeStatsUseCase implements IMergeStatsUseCase {
   }
 
   pruneResolved(resolved: Record<string, number>, conflicts: ConflictFile[]): Record<string, number> {
-    const active = new Set(conflicts.map((f) => f.path))
+    const active = new Set(conflicts.map((file) => file.path))
     return Object.fromEntries(Object.entries(resolved).filter(([path]) => !active.has(path)))
   }
 
