@@ -68,8 +68,6 @@ describe("RebaseForm preserva o plano escolhido pelo usuario", () => {
     await applyRebase()
 
     const [, ops] = onApply.mock.calls[0]
-    // A ordem padrao e a inversa dos commits; "mover para cima" na ultima linha
-    // troca aaa111 com bbb222, uma posicao apenas.
     expect(ops.map((op) => op.hash)).toEqual(["ccc333", "aaa111", "bbb222"])
   })
 

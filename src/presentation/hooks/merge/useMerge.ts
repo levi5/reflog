@@ -54,9 +54,6 @@ export function useMerge(deps: MergeDeps) {
     if (conflicts.length === 0) return
     const keep = conflicts.find((file) => file.path === activeRef.current) ?? conflicts[0]
     const switchingFile = activeRef.current !== keep.path
-    // Um buffer com edicoes nao salvas nunca e substituido por uma atualizacao
-    // de fundo. Sem esta guarda, o refresh periodico do repo descartava o
-    // trabalho whenever o usuario limpava o buffer para reescrever o arquivo.
     if (dirtyRef.current && !switchingFile) return
     if (switchingFile || keep.content !== contentRef.current) {
       dirtyRef.current = false

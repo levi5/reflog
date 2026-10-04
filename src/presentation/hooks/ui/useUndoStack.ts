@@ -58,9 +58,6 @@ export function useUndoStack(limit = MAX_ENTRIES) {
     sync()
   }, [sync])
 
-  // A referencia deste objeto entra nas deps de runAction, que por sua vez
-  // memoiza branchOps, tagOps, remoteOps, gitActions e syncOps. Devolve-lo
-  // como literal invalidaria toda a RepoContext a cada render.
   return useMemo(
     () => ({ push, undo, redo, clear, canUndo, canRedo, pendingLabel, setPendingLabel }),
     [push, undo, redo, clear, canUndo, canRedo, pendingLabel],

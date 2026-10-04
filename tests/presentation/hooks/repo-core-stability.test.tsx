@@ -25,12 +25,6 @@ const gitStub = {
   config: vi.fn(async () => ({})),
 } as unknown as IGitApi
 
-/**
- * useRepoCore alimenta a coreSlice, que o RepoProvider memoiza com
- * useStableSlice. Se qualquer acao devolvida mudar de referencia a cada
- * render, a coreSlice e todo o contexto repo mudam junto, forcando
- * re-renderizacao em massa de cada consumidor.
- */
 describe("estabilidade da coreSlice", () => {
   it("useRepoCore mantem a referencia das acoes quando nenhum input muda", () => {
     const { result, rerender } = renderHook(() => useRepoCore("en", gitStub), { wrapper })

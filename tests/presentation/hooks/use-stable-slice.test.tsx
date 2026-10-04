@@ -45,7 +45,6 @@ describe("useStableSlice", () => {
     const before = seen[0]
     expect(before).toBeUndefined()
 
-    // sem estado que dependa do slice, nao deve haver re-render alem do inicial
     expect(renders).toBe(1)
   })
 
@@ -58,7 +57,6 @@ describe("useStableSlice", () => {
     )
 
     const first = identities.at(-1)
-    // forcar um re-render sem mudar os campos do slice
     act(() => {
       view.rerender(
         <Harness extra="alvo" stableAction={stableAction} onRenders={(_renders, slice) => identities.push(slice)} />,

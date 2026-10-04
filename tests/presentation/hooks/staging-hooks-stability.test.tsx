@@ -13,13 +13,6 @@ import { useStaging } from "../../../src/presentation/hooks/repository/useStagin
 const repo = "/tmp/repo"
 const runAction = vi.fn() as unknown as RunAction
 
-/**
- * Os hooks de staging sao consumidos por useRepository e pediatricos em
- * useStableSlice, que so evita re-renderizacao em massa se as funcoes
- * devolvidas mantiverem a mesma referencia quando nenhum input mudou.
- * As deps sao criadas uma unica vez para reproduzir as condicoes de
- * producao, onde useRepository passa callbacks ja memorizados.
- */
 function unstableAfterRerender(hook: () => Record<string, unknown>): string[] {
   const { result, rerender } = renderHook(hook)
   const first = result.current

@@ -22,10 +22,6 @@ export function RebaseForm({ defaultOnto, commits, loading, error, busy, onLoad,
   const [order, setOrder] = useState<string[]>([])
   const [actions, setActions] = useState<Record<string, RebaseOpAction>>({})
 
-  // Sincroniza apenas quando o valor de origem muda de verdade. Comparar a
-  // referencia de commits reexecutaria o efeito a cada refresh do repo e
-  // descartaria a ordem e as acoes pick/squash/drop escolhidas pelo usuario.
-  // Os refs comecam como null para que a populacao inicial sempre aconteca.
   const syncedOntoRef = useRef<string | null>(null)
   useEffect(() => {
     if (syncedOntoRef.current === defaultOnto) return
