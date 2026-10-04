@@ -36,21 +36,21 @@ export function relativeLuminance(hex: string): number {
     value.length === 3
       ? value
           .split("")
-          .map((c) => c + c)
+          .map((digit) => digit + digit)
           .join("")
       : value.padEnd(6, "0").slice(0, 6)
-  const r = Number.parseInt(full.slice(0, 2), 16)
-  const g = Number.parseInt(full.slice(2, 4), 16)
-  const b = Number.parseInt(full.slice(4, 6), 16)
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return 0
-  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+  const red = Number.parseInt(full.slice(0, 2), 16)
+  const green = Number.parseInt(full.slice(2, 4), 16)
+  const blue = Number.parseInt(full.slice(4, 6), 16)
+  if (Number.isNaN(red) || Number.isNaN(green) || Number.isNaN(blue)) return 0
+  return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue)
 }
 
 export function contrastRatio(foreground: string, background: string): number {
-  const a = relativeLuminance(foreground)
-  const b = relativeLuminance(background)
-  const lighter = Math.max(a, b)
-  const darker = Math.min(a, b)
+  const foregroundLuminance = relativeLuminance(foreground)
+  const backgroundLuminance = relativeLuminance(background)
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance)
+  const darker = Math.min(foregroundLuminance, backgroundLuminance)
   return (lighter + 0.05) / (darker + 0.05)
 }
 
@@ -60,8 +60,8 @@ const LIGHT_ON_ACCENT = "#ffffff"
 function mix(hex: string, target: string, ratio: number): string {
   const value = hex.replace("#", "")
   const parse = (offset: number) => Number.parseInt(value.slice(offset, offset + 2), 16)
-  const t = target.replace("#", "")
-  const parseTarget = (offset: number) => Number.parseInt(t.slice(offset, offset + 2), 16)
+  const targetDigits = target.replace("#", "")
+  const parseTarget = (offset: number) => Number.parseInt(targetDigits.slice(offset, offset + 2), 16)
   const out = [0, 2, 4].map((offset) => {
     const from = parse(offset)
     const to = parseTarget(offset)

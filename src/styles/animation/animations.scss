@@ -209,7 +209,7 @@
     filter: drop-shadow(0 0 1px transparent);
   }
   50% {
-    fill: #c4b5fd;
+    fill: color-mix(in srgb, var(--grape) 55%, white);
     filter: drop-shadow(0 0 6px rgba(196, 181, 253, 0.9));
   }
 }

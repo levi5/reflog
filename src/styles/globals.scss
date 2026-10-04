@@ -28,9 +28,9 @@
   --red: #ffb4ab;
   --red-container: #93000a;
   --red-dim: rgba(147, 0, 10, 0.12);
-  --violet: #c0c1ff;
-  --violet-container: #3131c0;
-  --violet-dim: rgba(49, 49, 192, 0.2);
+  --violet: var(--grape);
+  --violet-container: var(--grape-deep);
+  --violet-dim: var(--grape-dim);
   --grape: #9c90ff;
   --accent: #9c90ff;
   --grape-btn: #6b5ce0;
@@ -39,10 +39,10 @@
   --grape-dim: rgba(124, 108, 255, 0.16);
   --teal: #4cd7f6;
   --amber: #fbbf24;
-  --link: #38bdf8;
-  --primary: #38bdf8;
-  --primary-text: #38bdf8;
-  --on-primary: #002c47;
+  --link: var(--grape);
+  --primary: var(--grape-btn);
+  --primary-text: var(--grape);
+  --on-primary: var(--on-accent);
   --glass: var(--bg-panel);
   --glass-strong: var(--bg-panel);
   --glass-filter: none;
@@ -68,7 +68,7 @@
   --danger: var(--red);
   --error: var(--red);
   --blue: var(--primary);
-  --purple: var(--violet);
+  --purple: var(--grape-deep);
   --fg-muted: var(--muted);
   --bg-raise: var(--bg-raised);
   --bg-card: var(--bg-panel2);
@@ -111,9 +111,9 @@
   --red: #b42318;
   --red-container: #ffd9de;
   --red-dim: rgba(180, 35, 24, 0.08);
-  --violet: #5b4ee0;
-  --violet-container: #d9d8ff;
-  --violet-dim: rgba(91, 78, 224, 0.12);
+  --violet: var(--grape);
+  --violet-container: var(--grape-deep);
+  --violet-dim: var(--grape-dim);
   --grape: #5b4ee0;
   --accent: #5b4ee0;
   --grape-btn: #4c3fd3;
@@ -122,10 +122,10 @@
   --grape-dim: rgba(91, 78, 224, 0.14);
   --teal: #096057;
   --amber: #7d4e00;
-  --link: #1d4ed8;
-  --primary: #2563eb;
-  --primary-text: #1a56db;
-  --on-primary: #ffffff;
+  --link: var(--grape);
+  --primary: var(--grape-btn);
+  --primary-text: var(--grape);
+  --on-primary: var(--on-accent);
   --glass: var(--bg-panel);
   --glass-strong: var(--bg-panel);
   --glass-filter: none;
@@ -151,7 +151,7 @@
   --danger: var(--red);
   --error: var(--red);
   --blue: var(--primary);
-  --purple: var(--violet);
+  --purple: var(--grape-deep);
   --fg-muted: var(--muted);
   --bg-raise: var(--bg-raised);
   --bg-card: var(--bg-panel2);
@@ -323,7 +323,7 @@ button {
   backdrop-filter: var(--surface-filter);
   -webkit-backdrop-filter: var(--surface-filter);
   box-shadow: 0 0 0 1px var(--surface-ring) inset;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease, filter 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease, filter 0.15s ease, opacity 0.15s ease;
 }
 
 button:where(:hover):not(:disabled) {
@@ -504,6 +504,7 @@ select {
   backdrop-filter: var(--surface-filter);
   -webkit-backdrop-filter: var(--surface-filter);
   box-shadow: 0 0 0 1px var(--surface-ring) inset;
+  accent-color: var(--accent);
 }
 
 input::placeholder,

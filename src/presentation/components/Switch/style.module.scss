@@ -69,7 +69,7 @@
 }
 
 .switch input:checked::after {
-  background: #fff;
+  background: var(--on-accent);
   left: 17px;
 }
 
