@@ -29,6 +29,38 @@ pub trait GitRunner: Send + Sync {
     ) -> Result<String, String> {
         self.run_env(repo, args, env)
     }
+    fn run_env_limited(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        max_bytes: usize,
+    ) -> Result<String, String> {
+        self.run_env(repo, args, env).and_then(|output| {
+            if output.len() > max_bytes {
+                Err(OUTPUT_LIMIT_ERROR.to_string())
+            } else {
+                Ok(output)
+            }
+        })
+    }
+    fn run_env_limited_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        _timeout: Duration,
+        max_bytes: usize,
+    ) -> Result<String, String> {
+        self.run_env_with_timeout(repo, args, env, _timeout)
+            .and_then(|output| {
+                if output.len() > max_bytes {
+                    Err(OUTPUT_LIMIT_ERROR.to_string())
+                } else {
+                    Ok(output)
+                }
+            })
+    }
     fn run_limited(
         &self,
         repo: Option<&str>,
@@ -263,6 +295,34 @@ impl GitRunner for ProcessRunner {
         self.execute(repo, args, None, Some(env), timeout, None)
     }
 
+    fn run_env_limited(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        max_bytes: usize,
+    ) -> Result<String, String> {
+        self.execute(
+            repo,
+            args,
+            None,
+            Some(env),
+            DEFAULT_TIMEOUT,
+            Some(max_bytes),
+        )
+    }
+
+    fn run_env_limited_with_timeout(
+        &self,
+        repo: Option<&str>,
+        args: &[&str],
+        env: &[(&str, &str)],
+        timeout: Duration,
+        max_bytes: usize,
+    ) -> Result<String, String> {
+        self.execute(repo, args, None, Some(env), timeout, Some(max_bytes))
+    }
+
     fn read_file(&self, path: &Path) -> Result<String, String> {
         std::fs::read_to_string(path).map_err(|e| e.to_string())
     }
@@ -350,6 +410,7 @@ pub mod mock {
         pub outputs: HashMap<String, Result<String, String>>,
         pub files: Mutex<HashMap<PathBuf, String>>,
         pub existing: Vec<PathBuf>,
+        pub calls: Mutex<Vec<String>>,
     }
 
     impl MockRunner {
@@ -366,7 +427,24 @@ pub mod mock {
                         .collect(),
                 ),
                 existing: vec![],
+                calls: Mutex::new(vec![]),
             }
+        }
+
+        pub fn record(&self, args: &[&str]) {
+            self.calls
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .push(args.join(" "));
+        }
+
+        pub fn calls_for(&self, command: &str) -> usize {
+            self.calls
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .iter()
+                .filter(|call| *call == command)
+                .count()
         }
 
         pub fn with_failures(failures: &[(&str, &str)], outputs: &[(&str, &str)]) -> Self {
@@ -387,6 +465,7 @@ pub mod mock {
 
     impl GitRunner for MockRunner {
         fn run(&self, _repo: Option<&str>, args: &[&str]) -> Result<String, String> {
+            self.record(args);
             self.outputs
                 .get(&args.join(" "))
                 .cloned()
@@ -399,6 +478,7 @@ pub mod mock {
             args: &[&str],
             _input: &str,
         ) -> Result<String, String> {
+            self.record(args);
             self.outputs
                 .get(&args.join(" "))
                 .cloned()
@@ -411,6 +491,7 @@ pub mod mock {
             args: &[&str],
             _env: &[(&str, &str)],
         ) -> Result<String, String> {
+            self.record(args);
             self.outputs
                 .get(&args.join(" "))
                 .cloned()
