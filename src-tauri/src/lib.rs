@@ -131,6 +131,7 @@ pub fn run() {
             commands::staging::git_reset,
             commands::staging::git_unstage,
             commands::staging::git_discard,
+            commands::staging::git_discard_untracked,
             commands::staging::git_apply_patch,
             commands::history::diff::git_blame,
             commands::history::diff::git_ls_files,

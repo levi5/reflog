@@ -139,6 +139,8 @@ export const gitApi = {
     invokeTyped<string>("git_reset", { repoPath, target, mode }),
   unstage: (repoPath: string, file: string) => invokeTyped<string>("git_unstage", { repoPath, file }),
   discard: (repoPath: string, file: string) => invokeTyped<string>("git_discard", { repoPath, file }),
+  discardUntracked: (repoPath: string, files: string[]) =>
+    invokeTyped<string>("git_discard_untracked", { repoPath, files }),
   version: () => invokeTyped<string>("git_version", {}),
   remoteUrl: (repoPath: string) => invokeTyped<string>("git_remote_url", { repoPath }),
   gpg: (repoPath: string) => invokeTyped<string>("git_gpg", { repoPath }),

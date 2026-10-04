@@ -108,6 +108,29 @@ pub fn discard(runner: &dyn GitRunner, repo_path: &str, file: &str) -> Result<St
     }
 }
 
+pub fn discard_untracked(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    files: &[String],
+) -> Result<String, String> {
+    if files.is_empty() {
+        return Ok(String::new());
+    }
+    for f in files {
+        validate_repo_relative_path(f)?;
+    }
+    let root = runner.repo_root(repo_path)?;
+    let mut args: Vec<String> = vec![
+        "clean".to_string(),
+        "-f".to_string(),
+        "-d".to_string(),
+        "--".to_string(),
+    ];
+    args.extend(files.iter().cloned());
+    let borrowed: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    runner.run(Some(&root), &borrowed)
+}
+
 pub fn apply_patch(
     runner: &dyn GitRunner,
     repo_path: &str,
@@ -206,6 +229,8 @@ git_command!(git_unstage, String, unstage, (repo_path: String, file: String), ()
 
 git_command!(git_discard, String, discard, (repo_path: String, file: String), ());
 
+git_command!(git_discard_untracked, String, discard_untracked, (repo_path: String, files: Vec<String>), ());
+
 git_command!(git_apply_patch, String, apply_patch, (repo_path: String, patch: String), (cached: bool, reverse: bool));
 
 git_command!(git_cherry_pick, String, cherry_pick, (repo_path: String, hash: String), ());
@@ -287,5 +312,40 @@ mod tests {
         reset(&runner, &dir, "HEAD~1", "soft").unwrap();
         assert_eq!(git(&dir, &["rev-list", "--count", "HEAD"]).trim(), "1");
         assert!(git(&dir, &["status", "--porcelain"]).contains("g.txt"));
+    }
+
+    #[test]
+    fn clean_removes_untracked_files_in_real_repo() {
+        let (temp, dir) = fixture();
+        let runner = ProcessRunner;
+        std::fs::write(temp.path().join("new.txt"), "x\n").unwrap();
+        std::fs::create_dir_all(temp.path().join("scratch/deep")).unwrap();
+        std::fs::write(temp.path().join("scratch/deep/a.txt"), "x\n").unwrap();
+        std::fs::write(temp.path().join("f.txt"), "changed\n").unwrap();
+
+        discard_untracked(
+            &runner,
+            &dir,
+            &["new.txt".to_string(), "scratch".to_string()],
+        )
+        .unwrap();
+
+        assert!(!temp.path().join("new.txt").exists());
+        assert!(!temp.path().join("scratch").exists());
+        assert!(temp.path().join("f.txt").exists());
+        assert_eq!(
+            std::fs::read_to_string(temp.path().join("f.txt")).unwrap(),
+            "changed\n"
+        );
+    }
+
+    #[test]
+    fn clean_never_removes_tracked_files() {
+        let (_temp, dir) = fixture();
+        let runner = ProcessRunner;
+
+        discard_untracked(&runner, &dir, &["f.txt".to_string()]).unwrap();
+
+        assert!(std::path::Path::new(&dir).join("f.txt").exists());
     }
 }
