@@ -15,11 +15,11 @@ import type { CommitInfo, RebaseOp } from "../../../types"
 
 export function MergePage() {
   const { lang } = useSettingsContext()
-  const { showRebase, toggleRebase } = useOutletContext<AppOutletContext>()
+  const { showRebase, toggleRebase, setRebaseCount } = useOutletContext<AppOutletContext>()
   const [hunkIndex, setHunkIndex] = useState(0)
   const [filter, setFilter] = useState("")
   const repo = useRepo()
-  const activeFile = repo.conflicts.find((f) => f.path === repo.activeConflict)
+  const activeFile = repo.conflicts.find((file) => file.path === repo.activeConflict)
   const activeBlocks = conflictResolverUseCase.parseConflicts(repo.editorContent)
   const resolved = Object.entries(repo.resolvedMap)
     .filter(([p]) => mergeStatsUseCase.matchesQuery(p, filter))
@@ -30,14 +30,14 @@ export function MergePage() {
     setHunkIndex(0)
   }
   const currentBranch = repo.status?.branch ?? ""
-  const localBranches = repo.branches.filter((b) => !b.remote).map((b) => b.name)
+  const localBranches = repo.branches.filter((branch) => !branch.remote).map((branch) => branch.name)
   const defaultOnto =
-    repo.branches.find((b) => b.name === currentBranch)?.upstream ??
+    repo.branches.find((branch) => branch.name === currentBranch)?.upstream ??
     (localBranches.includes("main")
       ? "main"
       : localBranches.includes("master")
         ? "master"
-        : (localBranches.find((b) => b !== currentBranch) ?? "main"))
+        : (localBranches.find((branchName) => branchName !== currentBranch) ?? "main"))
   const [rebaseCommits, setRebaseCommits] = useState<CommitInfo[]>([])
   const [rebaseLoading, setRebaseLoading] = useState(false)
   const [rebaseError, setRebaseError] = useState<string | null>(null)
@@ -65,6 +65,10 @@ export function MergePage() {
     }
   }, [showRebase, repo.repo, defaultOnto, loadRebaseCommits])
 
+  useEffect(() => {
+    setRebaseCount(showRebase ? rebaseCommits.length : 0)
+  }, [showRebase, rebaseCommits.length, setRebaseCount])
+
   const applyRebase = (onto: string, ops: RebaseOp[]) => {
     void repo.rebaseStart(onto, ops).then(() => {
       if (repo.repo) void loadRebaseCommits(onto)
@@ -72,14 +76,12 @@ export function MergePage() {
   }
 
   useEffect(() => {
-    if (repo.conflicts.length > 0) {
-      const ok = repo.conflicts.some((f) => f.path === repo.activeConflict)
-      if (!ok) {
-        repo.selectConflictFile(repo.conflicts[0].path)
-        setHunkIndex(0)
-      }
-    }
-  }, [repo])
+    if (repo.conflicts.length === 0) return
+    const stillListed = repo.conflicts.some((file) => file.path === repo.activeConflict)
+    if (stillListed) return
+    repo.selectConflictFile(repo.conflicts[0].path)
+    setHunkIndex(0)
+  }, [repo.conflicts, repo.activeConflict, repo.selectConflictFile])
 
   const applyToActive = (choice: Choice) => {
     const block = conflictResolverUseCase.parseConflicts(repo.editorContent)[hunkIndex]

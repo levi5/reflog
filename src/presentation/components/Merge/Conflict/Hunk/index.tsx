@@ -25,12 +25,12 @@ function VsCodeLines({ lines, startLn, tone }: { lines: string[]; startLn: numbe
   }
   return (
     <>
-      {lines.map((l, i) => {
-        const ln = startLn + i
+      {lines.map((line, lineOffset) => {
+        const ln = startLn + lineOffset
         return (
           <div key={ln} className={classnames(styles.codeRow, toneClass)}>
             <span className={styles.ln}>{ln}</span>
-            <span className={styles.lc}>{l === "" ? " " : l}</span>
+            <span className={styles.lc}>{line === "" ? " " : line}</span>
           </div>
         )
       })}
@@ -49,8 +49,8 @@ export function HunkBlock({ block, selected, onSelect, onAccept, onCompare }: Pr
         <button
           type="button"
           className="link"
-          onClick={(e) => {
-            e.stopPropagation()
+          onClick={(event) => {
+            event.stopPropagation()
             onAccept(block, "current")
           }}
         >
@@ -60,8 +60,8 @@ export function HunkBlock({ block, selected, onSelect, onAccept, onCompare }: Pr
         <button
           type="button"
           className="link"
-          onClick={(e) => {
-            e.stopPropagation()
+          onClick={(event) => {
+            event.stopPropagation()
             onAccept(block, "incoming")
           }}
         >
@@ -71,8 +71,8 @@ export function HunkBlock({ block, selected, onSelect, onAccept, onCompare }: Pr
         <button
           type="button"
           className="link"
-          onClick={(e) => {
-            e.stopPropagation()
+          onClick={(event) => {
+            event.stopPropagation()
             onAccept(block, "both")
           }}
         >
@@ -82,8 +82,8 @@ export function HunkBlock({ block, selected, onSelect, onAccept, onCompare }: Pr
         <button
           type="button"
           className="link"
-          onClick={(e) => {
-            e.stopPropagation()
+          onClick={(event) => {
+            event.stopPropagation()
             onCompare(block)
           }}
         >

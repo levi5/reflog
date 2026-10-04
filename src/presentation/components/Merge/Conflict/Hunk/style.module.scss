@@ -36,7 +36,7 @@
   border-left-color: var(--green);
 }
 .sec.incoming {
-  border-left-color: #587cf6;
+  border-left-color: var(--accent);
 }
 
 .secHeader {
@@ -67,7 +67,7 @@ button.secHeader.base {
 }
 
 .incoming .secHeader {
-  color: #8ea6ff;
+  color: var(--accent);
 }
 
 .secHeader.base {
@@ -121,20 +121,20 @@ button.secHeader.base {
   font-style: italic;
 }
 .codeRow.cur {
-  background: rgba(78, 222, 163, 0.1);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
 }
 .codeRow.inc {
-  background: rgba(88, 124, 246, 0.16);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 .codeRow.base {
-  background: rgba(134, 148, 138, 0.08);
+  background: color-mix(in srgb, var(--faint) 8%, transparent);
   color: var(--muted);
 }
 
 :global([data-theme="light"]) .codeRow.cur {
-  color: #06402a;
+  color: var(--green);
 }
 
 :global([data-theme="light"]) .codeRow.inc {
-  color: #2f2a7a;
+  color: var(--grape-deep);
 }

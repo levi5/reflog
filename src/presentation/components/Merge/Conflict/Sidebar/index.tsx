@@ -34,9 +34,9 @@ const BADGE: Record<string, string> = {
   cyan: "cyan",
 }
 
-const match = (path: string, filter: string) => {
-  const q = filter.trim().toLowerCase()
-  return q === "" || path.toLowerCase().includes(q)
+const matchesFilter = (path: string, filter: string) => {
+  const normalizedFilter = filter.trim().toLowerCase()
+  return normalizedFilter === "" || path.toLowerCase().includes(normalizedFilter)
 }
 
 const toneOf = (active: boolean, count: number): string => TONE[`${active ? 1 : 0}${count > 1 ? 1 : 0}`] ?? "cyan"
@@ -46,8 +46,8 @@ const hunkLabel = (count: number): string => `${count} hunk${count > 1 ? "s" : "
 export function ConflictSidebar(props: Props) {
   const { conflicts, resolved, activePath, filter, progress, progressLabel, onFilter, onSelect } = props
   const { t } = useTranslation()
-  const visibleConflicts = conflicts.filter((f) => match(f.path, filter))
-  const visibleResolved = resolved.filter((r) => match(r.path, filter))
+  const visibleConflicts = conflicts.filter((file) => matchesFilter(file.path, filter))
+  const visibleResolved = resolved.filter((entry) => matchesFilter(entry.path, filter))
   return (
     <>
       <div className={styles.sidePanel}>
@@ -65,45 +65,45 @@ export function ConflictSidebar(props: Props) {
         placeholder={t("searchFiles")}
         aria-label={t("searchFiles")}
         value={filter}
-        onChange={(e) => onFilter(e.target.value)}
+        onChange={(event) => onFilter(event.target.value)}
       />
       <div className={styles.fileCards}>
-        {visibleResolved.map((r) => (
-          <div key={r.path} className={classnames(styles.fcard, styles.clean)}>
+        {visibleResolved.map((entry) => (
+          <div key={entry.path} className={classnames(styles.fcard, styles.clean)}>
             <span className={classnames(styles.fico, styles.ok)}>
               <CircleCheck size={16} />
             </span>
             <div className={styles.fmeta}>
-              <span className={styles.fname} title={r.path}>
-                {r.path}
+              <span className={styles.fname} title={entry.path}>
+                {entry.path}
               </span>
               <small className={styles.subOk}>{t("cleanHint")}</small>
             </div>
             <span className={classnames(styles.fbadge, styles.neutral)}>{t("clean")}</span>
           </div>
         ))}
-        {visibleConflicts.map((f) => {
-          const active = f.path === activePath
-          const tone = toneOf(active, f.conflicts.length)
+        {visibleConflicts.map((file) => {
+          const active = file.path === activePath
+          const tone = toneOf(active, file.conflicts.length)
           return (
             <button
               type="button"
-              key={f.path}
+              key={file.path}
               className={classnames(styles.fcard, active ? styles.active : styles.pending)}
-              onClick={() => onSelect(f.path)}
+              onClick={() => onSelect(file.path)}
             >
               <span className={classnames(styles.fico, styles[tone])}>
                 <TriangleAlert size={16} />
               </span>
               <div className={styles.fmeta}>
-                <span className={styles.fname} title={f.path}>
-                  {f.path}
+                <span className={styles.fname} title={file.path}>
+                  {file.path}
                 </span>
                 <small className={classnames(active && styles.subErr)}>
-                  {f.conflicts.length} {f.conflicts.length > 1 ? t("pendingInFile") : t("pendingRemaining")}
+                  {file.conflicts.length} {file.conflicts.length > 1 ? t("pendingInFile") : t("pendingRemaining")}
                 </small>
               </div>
-              <span className={classnames(styles.fbadge, styles[BADGE[tone]])}>{hunkLabel(f.conflicts.length)}</span>
+              <span className={classnames(styles.fbadge, styles[BADGE[tone]])}>{hunkLabel(file.conflicts.length)}</span>
             </button>
           )
         })}

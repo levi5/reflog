@@ -67,11 +67,11 @@ export function InlineEditor(props: Props) {
 
   const lines = useMemo(() => content.split("\n"), [content])
   const byStart = useMemo(() => {
-    const m = new Map<number, { block: ConflictBlock; idx: number }>()
-    blocks.forEach((b, idx) => {
-      m.set(b.start_line, { block: b, idx })
+    const byStartLine = new Map<number, { block: ConflictBlock; idx: number }>()
+    blocks.forEach((block, index) => {
+      byStartLine.set(block.start_line, { block, idx: index })
     })
-    return m
+    return byStartLine
   }, [blocks])
 
   const goHunk = (dir: 1 | -1) => {
@@ -80,9 +80,9 @@ export function InlineEditor(props: Props) {
   }
 
   const body: React.ReactNode[] = []
-  let i = 0
-  while (i < lines.length) {
-    const lineNo = i + 1
+  let lineIndex = 0
+  while (lineIndex < lines.length) {
+    const lineNo = lineIndex + 1
     const hit = byStart.get(lineNo)
     if (hit) {
       body.push(
@@ -95,16 +95,16 @@ export function InlineEditor(props: Props) {
           onCompare={setCompare}
         />,
       )
-      i = hit.block.end_line
+      lineIndex = hit.block.end_line
       continue
     }
     body.push(
       <div key={`l${lineNo}`} className={styles.codeRow}>
         <span className={styles.ln}>{lineNo}</span>
-        <span className={styles.lc}>{lines[i] === "" ? " " : lines[i]}</span>
+        <span className={styles.lc}>{lines[lineIndex] === "" ? " " : lines[lineIndex]}</span>
       </div>,
     )
-    i++
+    lineIndex++
   }
 
   const shortName = file.path.split("/").pop() ?? file.path

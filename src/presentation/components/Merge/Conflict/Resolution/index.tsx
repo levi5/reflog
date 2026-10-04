@@ -22,10 +22,10 @@ export function ResolutionHelper({ onAccept }: Props) {
         <strong>{t("resolutionHelper")}</strong>
         <span>{t("shortcuts")}</span>
       </div>
-      {ROWS.map((r) => (
-        <button type="button" key={r.choice} onClick={() => onAccept(r.choice)}>
-          <span>{t(r.label)}</span>
-          <kbd>{r.key}</kbd>
+      {ROWS.map((row) => (
+        <button type="button" key={row.choice} onClick={() => onAccept(row.choice)}>
+          <span>{t(row.label)}</span>
+          <kbd>{row.key}</kbd>
         </button>
       ))}
     </div>

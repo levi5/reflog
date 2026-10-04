@@ -20,13 +20,13 @@ export function ConflictMap({ blocks, activeIndex, onSelect }: Props) {
         </span>
       </div>
       <div className={styles.mapSegs}>
-        {blocks.map((b, i) => (
+        {blocks.map((block, blockIndex) => (
           <button
             type="button"
-            key={b.id}
-            className={classnames(i === activeIndex && styles.on)}
-            onClick={() => onSelect(i)}
-            aria-label={`${t("hunk")} ${i + 1}`}
+            key={block.id}
+            className={classnames(blockIndex === activeIndex && styles.on)}
+            onClick={() => onSelect(blockIndex)}
+            aria-label={`${t("hunk")} ${blockIndex + 1}`}
           />
         ))}
         {blocks.length === 0 && <i className={styles.done} />}

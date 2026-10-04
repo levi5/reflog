@@ -42,14 +42,24 @@ export function useMerge(deps: MergeDeps) {
 
   const activeRef = useRef(activeConflict)
   const contentRef = useRef(editorContent)
+  const dirtyRef = useRef(false)
   activeRef.current = activeConflict
   contentRef.current = editorContent
 
   useEffect(() => {
-    setResolvedMap((prev) => mergeStatsUseCase.pruneResolved(prev, conflicts))
+    setResolvedMap((prev) => {
+      const next = mergeStatsUseCase.pruneResolved(prev, conflicts)
+      return sameResolvedMap(prev, next) ? prev : next
+    })
     if (conflicts.length === 0) return
-    const keep = conflicts.find((f) => f.path === activeRef.current) ?? conflicts[0]
-    if (activeRef.current !== keep.path || !contentRef.current) {
+    const keep = conflicts.find((file) => file.path === activeRef.current) ?? conflicts[0]
+    const switchingFile = activeRef.current !== keep.path
+    // Um buffer com edicoes nao salvas nunca e substituido por uma atualizacao
+    // de fundo. Sem esta guarda, o refresh periodico do repo descartava o
+    // trabalho whenever o usuario limpava o buffer para reescrever o arquivo.
+    if (dirtyRef.current && !switchingFile) return
+    if (switchingFile || keep.content !== contentRef.current) {
+      dirtyRef.current = false
       setActiveConflict(keep.path)
       setEditorContent(keep.content)
     }
@@ -57,9 +67,15 @@ export function useMerge(deps: MergeDeps) {
 
   const fail = (e: unknown) => setMsg(String(e))
 
+  const updateEditorContent = (content: string) => {
+    dirtyRef.current = true
+    setEditorContent(content)
+  }
+
   const selectConflictFile = (path: string) => {
-    const found = conflicts.find((c) => c.path === path)
+    const found = conflicts.find((file) => file.path === path)
     if (!found) return
+    dirtyRef.current = false
     setActiveConflict(found.path)
     setEditorContent(found.content)
   }
@@ -75,7 +91,10 @@ export function useMerge(deps: MergeDeps) {
     setBusy(true)
     return gitApi
       .saveContent(repo, path, content)
-      .then(() => setMsg(t(lang, "saved")))
+      .then(() => {
+        dirtyRef.current = false
+        setMsg(t(lang, "saved"))
+      })
       .then(() => gitApi.conflicted(repo))
       .then(setConflicts)
       .catch(fail)
@@ -91,11 +110,13 @@ export function useMerge(deps: MergeDeps) {
       return Promise.resolve()
     }
     const before =
-      conflicts.find((f) => f.path === path)?.conflicts.length ?? conflictResolverUseCase.parseConflicts(content).length
+      conflicts.find((file) => file.path === path)?.conflicts.length ??
+      conflictResolverUseCase.parseConflicts(content).length
     return runAction(
       () => gitApi.saveContent(repo, path, content).then(() => gitApi.add(repo, [path])),
       () => {
-        setResolvedMap((m) => ({ ...m, [path]: Math.max(before, 1) }))
+        dirtyRef.current = false
+        setResolvedMap((current) => ({ ...current, [path]: Math.max(before, 1) }))
         setMsg(t(lang, "resolved"))
       },
       {
@@ -136,7 +157,7 @@ export function useMerge(deps: MergeDeps) {
     const squash = mergeSquash
     const noFF = mergeNoFF && !mergeSquash
     return runAction(
-      () => gitApi.mergeOpts(repo, branch, squash, noFF).then((m) => m.trim() || "merge ok"),
+      () => gitApi.mergeOpts(repo, branch, squash, noFF).then((output) => output.trim() || "merge ok"),
       () => {
         setMergeBranch("")
         setMergeSquash(false)
@@ -163,7 +184,7 @@ export function useMerge(deps: MergeDeps) {
     conflicts,
     activeConflict,
     editorContent,
-    setEditorContent,
+    setEditorContent: updateEditorContent,
     mergeBranch,
     setMergeBranch,
     mergeSquash,
@@ -178,4 +199,10 @@ export function useMerge(deps: MergeDeps) {
     startMerge,
     abortMerge,
   }
+}
+
+function sameResolvedMap(a: Record<string, number>, b: Record<string, number>): boolean {
+  const keys = Object.keys(a)
+  if (keys.length !== Object.keys(b).length) return false
+  return keys.every((key) => a[key] === b[key])
 }
