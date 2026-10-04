@@ -6,11 +6,11 @@ import "./global/global.css"
 
 import { Landing } from "./pages/Landing"
 
+document.documentElement.classList.add("js")
+
 const container = document.getElementById("root")
 
-if (!container) {
-  throw new Error("Root container not found")
-}
+if (!container) throw new Error("Root container not found")
 
 createRoot(container).render(
   <StrictMode>

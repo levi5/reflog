@@ -14,13 +14,7 @@ export const Showcase = () => (
       />
       <div className="showcase__grid">
         {showcase.map((item) => (
-          <Screenshot
-            key={item.src}
-            src={item.src}
-            alt={item.alt}
-            caption={item.caption}
-            span={item.span}
-          />
+          <Screenshot key={item.src} src={item.src} alt={item.alt} caption={item.caption} span={item.span} />
         ))}
       </div>
     </div>

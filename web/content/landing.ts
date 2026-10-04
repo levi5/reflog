@@ -73,14 +73,12 @@ export const features: FeatureEntry[] = [
   },
   {
     title: "Compare any two refs",
-    description:
-      "Merge base, per-file stats, ahead and behind counts, and the full diff between any pair of refs.",
+    description: "Merge base, per-file stats, ahead and behind counts, and the full diff between any pair of refs.",
     icon: "compare",
   },
   {
     title: "Tree and blame",
-    description:
-      "Browse the tree of any commit and read line-level blame with the commit that last touched each line.",
+    description: "Browse the tree of any commit and read line-level blame with the commit that last touched each line.",
     icon: "blame",
   },
   {

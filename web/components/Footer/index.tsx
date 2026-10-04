@@ -17,12 +17,8 @@ export const Footer = () => (
           </a>
         ))}
       </nav>
-      <p className="footer__legal">
-        {footer.license} Built with Tauri, React and Rust.
-      </p>
+      <p className="footer__legal">{footer.license} Built with Tauri, React and Rust.</p>
     </div>
-    <p className="footer__version mono">
-      {site.name} — open source, MIT
-    </p>
+    <p className="footer__version mono">{site.name} — open source, MIT</p>
   </footer>
 )

@@ -21,7 +21,13 @@
 		"rules": {
 			"preset": "recommended",
 			"complexity": {
-				"noCommaOperator": "off"
+				"noCommaOperator": "off",
+				"useArrowFunction": "error",
+				"noUselessTernary": "error"
+			},
+			"style": {
+				"useConst": "error",
+				"noUselessElse": "error"
 			}
 		}
 	},
@@ -38,5 +44,20 @@
 				"organizeImports": "off"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["web/**/*.css"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noDuplicateProperties": "off"
+					},
+					"complexity": {
+						"noImportantStyles": "off"
+					}
+				}
+			}
+		}
+	]
 }

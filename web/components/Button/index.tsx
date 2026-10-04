@@ -1,3 +1,5 @@
+import "./styles.css"
+
 export type ButtonVariant = "primary" | "ghost" | "quiet"
 export type ButtonSize = "sm" | "md" | "lg"
 
@@ -10,14 +12,7 @@ export interface ButtonProps {
   className?: string
 }
 
-export const Button = ({
-  label,
-  href,
-  variant = "primary",
-  size = "md",
-  icon,
-  className,
-}: ButtonProps) => {
+export const Button = ({ label, href, variant = "primary", size = "md", icon, className }: ButtonProps) => {
   const classes = ["button", `button--${variant}`, `button--${size}`, className].filter(Boolean).join(" ")
   const content = (
     <>
@@ -26,19 +21,13 @@ export const Button = ({
     </>
   )
 
-  if (href) {
-    return (
-      <a className={classes} href={href}>
-        {content}
-      </a>
-    )
-  }
-
-  return (
+  return href ? (
+    <a className={classes} href={href}>
+      {content}
+    </a>
+  ) : (
     <button className={classes} type="button">
       {content}
     </button>
   )
 }
-
-import "./styles.css"
