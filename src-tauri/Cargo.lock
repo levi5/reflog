@@ -2826,7 +2826,7 @@ dependencies = [
 
 [[package]]
 name = "reflog"
-version = "0.1.0-beta.3"
+version = "0.1.0-beta.4"
 dependencies = [
  "serde",
  "serde_json",

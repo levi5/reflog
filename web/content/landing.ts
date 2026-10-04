@@ -38,7 +38,7 @@ export const nav: NavEntry[] = [
 ]
 
 export const hero = {
-  badge: "Version 0.1.0-beta.3",
+  badge: "Version 0.1.0-beta.4",
   title: "Stop reading diffs in the terminal.",
   lede: "Reflog is a native desktop Git client that treats merge conflicts, history and rebase as first-class workflows instead of command-line trivia.",
   primaryCta: { label: "Download", href: "#install" },
