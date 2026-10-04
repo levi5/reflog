@@ -1,12 +1,12 @@
 export function fuzzyMatch(query: string, text: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return true
   const target = text.toLowerCase()
   let qi = 0
   for (const ch of target) {
-    if (ch === q[qi]) {
+    if (ch === normalizedQuery[qi]) {
       qi += 1
-      if (qi === q.length) return true
+      if (qi === normalizedQuery.length) return true
     }
   }
   return false
