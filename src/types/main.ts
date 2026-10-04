@@ -9,6 +9,7 @@ export interface FileStatus {
 export interface StatusResult {
   root: string
   branch: string
+  head: string
   ahead: number
   behind: number
   files: FileStatus[]

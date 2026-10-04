@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub struct StatusResult {
     pub root: String,
     pub branch: String,
+    #[serde(default)]
+    pub head: String,
     pub ahead: usize,
     pub behind: usize,
     pub files: Vec<FileStatus>,

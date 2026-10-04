@@ -12,6 +12,14 @@ fn short_head(runner: &dyn GitRunner, root: &str) -> String {
         .to_string()
 }
 
+fn full_head(runner: &dyn GitRunner, root: &str) -> String {
+    runner
+        .run(Some(root), &["rev-parse", "HEAD"])
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
 fn resolve_branch(runner: &dyn GitRunner, info: &str, root: &str) -> String {
     const DETACHED: &str = "HEAD (no branch)";
     const UNBORN_PREFIX: &str = "No commits yet on ";
@@ -62,9 +70,12 @@ pub fn status_of(runner: &dyn GitRunner, repo_path: &str) -> Result<StatusResult
     let rebasing = runner.path_exists(&git_state_path(runner, &root, "rebase-merge"))
         || runner.path_exists(&git_state_path(runner, &root, "rebase-apply"));
 
+    let head = full_head(runner, &root);
+
     Ok(StatusResult {
         root,
         branch,
+        head,
         ahead: parsed.ahead,
         behind: parsed.behind,
         files: parsed.files,
