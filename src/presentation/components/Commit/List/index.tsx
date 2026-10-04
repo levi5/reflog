@@ -14,6 +14,7 @@ interface CommitListProps {
   commits: CommitInfo[]
   currentBranchName: string
   showGraph: boolean
+  headHash?: string
   selectedHash?: string
   query?: string
   loading?: boolean
@@ -111,6 +112,7 @@ export function CommitList({
   commits,
   currentBranchName,
   showGraph,
+  headHash,
   selectedHash,
   query = "",
   loading = false,
@@ -135,14 +137,14 @@ export function CommitList({
 
   return (
     <>
-      {commitLayout.rows.map((row, rowIndex) => (
+      {commitLayout.rows.map((row) => (
         <MemoCommitItem
           key={row.commit.hash}
           row={row}
           laneCount={commitLayout.lanes}
           showGraph={showGraph}
           currentBranchName={currentBranchName}
-          showAmendButton={rowIndex === 0}
+          showAmendButton={!!headHash && row.commit.hash === headHash}
           isSelected={selectedHash === row.commit.hash}
           onSelect={onSelect}
           onAmend={onAmend}

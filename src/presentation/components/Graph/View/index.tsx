@@ -35,7 +35,7 @@ export function GraphViewer({
 }: GraphViewerProps) {
   const { t } = useTranslation()
   const commits = useMemo(
-    () => [...graph.layout.nodes].sort((a, b) => a.row - b.row).map((node) => node.commit),
+    () => [...graph.layout.nodes].sort((left, right) => left.row - right.row).map((node) => node.commit),
     [graph.layout.nodes],
   )
 

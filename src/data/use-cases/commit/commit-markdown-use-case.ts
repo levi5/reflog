@@ -6,11 +6,13 @@ const SECTION_RE = /\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g
 
 export class CommitMarkdownUseCase implements ICommitMarkdownUseCase {
   constructor(
-    private readonly formatHeaderFn: (fields: CommitFields) => string = (f) => {
-      const subject = f.subject.trim()
-      const scope = f.scope.trim().replace(/[()]/g, "")
-      const type = f.type.trim()
-      if (type) return `${type}${scope ? `(${scope})` : ""}${f.breaking ? "!" : ""}: ${subject}`
+    private readonly formatHeaderFn: (fields: CommitFields) => string = (fieldsToFormat) => {
+      const subject = fieldsToFormat.subject.trim()
+      const scope = fieldsToFormat.scope.trim().replace(/[()]/g, "")
+      const type = fieldsToFormat.type.trim()
+      if (type) {
+        return `${type}${scope ? `(${scope})` : ""}${fieldsToFormat.breaking ? "!" : ""}: ${subject}`
+      }
       if (scope && subject) return `${scope}: ${subject}`
       return subject
     },
@@ -38,11 +40,14 @@ export class CommitMarkdownUseCase implements ICommitMarkdownUseCase {
   }
 
   renderTemplate(pattern: string, vars: TemplateVars): string {
-    const withSections = pattern.replace(SECTION_RE, (_m, key: string, inner: string) => {
-      const v = vars[key as keyof TemplateVars] ?? ""
-      return v.trim() ? inner : ""
+    const withSections = pattern.replace(SECTION_RE, (_sectionMatch, key: string, inner: string) => {
+      const sectionValue = vars[key as keyof TemplateVars] ?? ""
+      return sectionValue.trim() ? inner : ""
     })
-    const filled = withSections.replace(/\{\{(\w+)\}\}/g, (_m, key: string) => vars[key as keyof TemplateVars] ?? "")
+    const filled = withSections.replace(
+      /\{\{(\w+)\}\}/g,
+      (_placeholder, key: string) => vars[key as keyof TemplateVars] ?? "",
+    )
     return filled
       .replace(/[ \t]+$/gm, "")
       .replace(/\n{3,}/g, "\n\n")
@@ -81,9 +86,9 @@ export class CommitMarkdownUseCase implements ICommitMarkdownUseCase {
   } {
     const parts = branch
       .split("/")
-      .map((p) => p.trim())
+      .map((part) => part.trim())
       .filter(Boolean)
-    const type = parts.find((p) => TYPE_FROM_BRANCH.includes(p.toLowerCase().replace(/[^a-z]/g, "")))
+    const type = parts.find((part) => TYPE_FROM_BRANCH.includes(part.toLowerCase().replace(/[^a-z]/g, "")))
     const norm = type ? type.toLowerCase().replace(/[^a-z]/g, "") : ""
     let scope = ""
     if (parts.length > 1) {

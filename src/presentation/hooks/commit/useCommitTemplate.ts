@@ -24,12 +24,13 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
   const lastExternalValueRef = useRef(value)
+  const lastEmittedRef = useRef<string | null>(null)
   const branchName = branch ?? ""
   const repo = repoPath ?? ""
   const { docs, identity } = useTemplateDocs(repo)
 
   const activeDoc = useMemo(
-    () => docs.find((d) => d.id === prefs.templateId) ?? BUILTIN_DOCS[0],
+    () => docs.find((doc) => doc.id === prefs.templateId) ?? BUILTIN_DOCS[0],
     [docs, prefs.templateId],
   )
 
@@ -51,38 +52,38 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
   }, [fields.signoff, fields.sign])
 
   useEffect(() => {
-    if (value !== formatted) onChangeRef.current(formatted)
-  }, [formatted, value])
-
-  useEffect(() => {
+    if (value === lastEmittedRef.current) return
     if (value !== lastExternalValueRef.current) {
       lastExternalValueRef.current = value
-      if (value !== formattedRef.current) {
-        setFields(value.trim() ? commitTemplateUseCase.parseConventional(value) : { ...EMPTY_FIELDS })
+      if (value.trim()) {
+        setFields(commitTemplateUseCase.parseConventional(value))
+        return
       }
-    }
-  }, [value])
-
-  useEffect(() => {
-    if (value === "") {
-      setFields((f) =>
-        f.subject || f.body || f.footer ? { ...f, subject: "", body: "", footer: "", breaking: false } : f,
+      setFields((current) =>
+        current.subject || current.body || current.footer
+          ? { ...current, subject: "", body: "", footer: "", breaking: false }
+          : current,
       )
+      return
     }
-  }, [value])
+    if (value !== formatted) {
+      lastEmittedRef.current = formatted
+      onChangeRef.current(formatted)
+    }
+  }, [formatted, value])
 
-  const setField = useCallback(<K extends keyof CommitFields>(key: K, v: CommitFields[K]) => {
-    setFields((f) => (f[key] === v ? f : { ...f, [key]: v }))
+  const setField = useCallback(<K extends keyof CommitFields>(key: K, nextValue: CommitFields[K]) => {
+    setFields((current) => (current[key] === nextValue ? current : { ...current, [key]: nextValue }))
   }, [])
 
-  const applyPreset = useCallback((p: CommitPreset) => {
-    setFields((f) => ({
-      ...f,
-      type: p.type,
-      scope: p.scope,
-      subject: p.subject || f.subject,
-      body: p.body || f.body,
-      footer: p.footer || f.footer,
+  const applyPreset = useCallback((preset: CommitPreset) => {
+    setFields((current) => ({
+      ...current,
+      type: preset.type,
+      scope: preset.scope,
+      subject: preset.subject || current.subject,
+      body: preset.body || current.body,
+      footer: preset.footer || current.footer,
     }))
   }, [])
 
@@ -95,10 +96,10 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
 
   const applyDocTemplate = useCallback(
     (doc: TemplateDoc) => {
-      setFields((f) => ({
-        ...f,
-        type: doc.defaults.type || f.type,
-        scope: doc.defaults.scope || f.scope,
+      setFields((current) => ({
+        ...current,
+        type: doc.defaults.type || current.type,
+        scope: doc.defaults.scope || current.scope,
       }))
       setActiveTemplate(doc.id)
     },
@@ -109,10 +110,10 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
 
   const inferBranch = useCallback(() => {
     if (!inferred) return
-    setFields((f) => ({
-      ...f,
-      type: f.type || inferred.type || "",
-      scope: f.scope || inferred.scope || "",
+    setFields((current) => ({
+      ...current,
+      type: current.type || inferred.type || "",
+      scope: current.scope || inferred.scope || "",
     }))
   }, [inferred])
 
@@ -124,8 +125,8 @@ export function useCommitTemplate({ value, onChange, repoPath, branch }: Options
     const msg = formattedRef.current.trim()
     if (!msg) return
     pushHistory(msg)
-    setFields((f) => ({
-      ...f,
+    setFields((current) => ({
+      ...current,
       subject: "",
       body: "",
       footer: "",

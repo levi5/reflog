@@ -1,5 +1,5 @@
 import { Play } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { CommitInfo, RebaseOp, RebaseOpAction } from "../../../../../types"
 import { useTranslation } from "../../../../context"
 import { EmptyState } from "../../../Empty/State"
@@ -22,16 +22,31 @@ export function RebaseForm({ defaultOnto, commits, loading, error, busy, onLoad,
   const [order, setOrder] = useState<string[]>([])
   const [actions, setActions] = useState<Record<string, RebaseOpAction>>({})
 
+  // Sincroniza apenas quando o valor de origem muda de verdade. Comparar a
+  // referencia de commits reexecutaria o efeito a cada refresh do repo e
+  // descartaria a ordem e as acoes pick/squash/drop escolhidas pelo usuario.
+  // Os refs comecam como null para que a populacao inicial sempre aconteca.
+  const syncedOntoRef = useRef<string | null>(null)
   useEffect(() => {
+    if (syncedOntoRef.current === defaultOnto) return
+    syncedOntoRef.current = defaultOnto
     setOnto(defaultOnto)
   }, [defaultOnto])
 
+  const commitSignature = useMemo(() => commits.map((commit) => commit.hash).join("|"), [commits])
+  const syncedCommitsRef = useRef<string | null>(null)
   useEffect(() => {
-    setOrder([...commits].reverse().map((c) => c.hash))
-    setActions({})
-  }, [commits])
+    if (syncedCommitsRef.current === commitSignature) return
+    syncedCommitsRef.current = commitSignature
+    setOrder([...commits].reverse().map((commit) => commit.hash))
+    const present = new Set(commits.map((commit) => commit.hash))
+    setActions((previous) => {
+      const kept = Object.fromEntries(Object.entries(previous).filter(([hash]) => present.has(hash)))
+      return Object.keys(kept).length === Object.keys(previous).length ? previous : kept
+    })
+  }, [commitSignature, commits])
 
-  const byHash = useMemo(() => new Map(commits.map((c) => [c.hash, c])), [commits])
+  const byHash = useMemo(() => new Map(commits.map((commit) => [commit.hash, commit])), [commits])
   const rows = useMemo(
     () => order.map((hash) => byHash.get(hash)).filter((c): c is CommitInfo => c !== undefined),
     [order, byHash],
@@ -53,7 +68,7 @@ export function RebaseForm({ defaultOnto, commits, loading, error, busy, onLoad,
       ? undefined
       : onApply(
           trimmed,
-          rows.map((c) => ({ hash: c.hash, action: actions[c.hash] ?? "pick" })),
+          rows.map((commit) => ({ hash: commit.hash, action: actions[commit.hash] ?? "pick" })),
         )
   }
 
@@ -67,7 +82,7 @@ export function RebaseForm({ defaultOnto, commits, loading, error, busy, onLoad,
           id="rebase-onto"
           className={styles.rebaseOntoInput}
           value={onto}
-          onChange={(e) => setOnto(e.target.value)}
+          onChange={(event) => setOnto(event.target.value)}
           placeholder={defaultOnto}
           spellCheck={false}
         />
@@ -93,15 +108,17 @@ export function RebaseForm({ defaultOnto, commits, loading, error, busy, onLoad,
         ) : rows.length === 0 ? (
           <EmptyState small message={t("rebaseNoCommits")} />
         ) : (
-          rows.map((c, index) => (
+          rows.map((commit, index) => (
             <RebaseRow
-              key={c.hash}
-              commit={c}
-              action={actions[c.hash] ?? "pick"}
+              key={commit.hash}
+              commit={commit}
+              action={actions[commit.hash] ?? "pick"}
               first={index === 0}
               last={index === rows.length - 1}
-              onAction={(v) => setActions((prev) => ({ ...prev, [c.hash]: v as RebaseOpAction }))}
-              onMove={(delta) => move(c.hash, delta)}
+              onAction={(nextAction) =>
+                setActions((prev) => ({ ...prev, [commit.hash]: nextAction as RebaseOpAction }))
+              }
+              onMove={(delta) => move(commit.hash, delta)}
             />
           ))
         )}

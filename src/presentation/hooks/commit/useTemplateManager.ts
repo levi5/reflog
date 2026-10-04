@@ -221,7 +221,7 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
 
   const handleUpdatePreset = useCallback(
     (preset: CommitPreset) => {
-      savePresets(presets.map((p) => (p.id === preset.id ? preset : p)))
+      savePresets(presets.map((candidate) => (candidate.id === preset.id ? preset : candidate)))
       setEditingPreset(null)
     },
     [presets, savePresets],
@@ -229,7 +229,7 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
 
   const handleDeletePreset = useCallback(
     (id: string) => {
-      savePresets(presets.filter((p) => p.id !== id))
+      savePresets(presets.filter((candidate) => candidate.id !== id))
       setEditingPreset((current) => (current?.id === id ? null : current))
     },
     [presets, savePresets],
