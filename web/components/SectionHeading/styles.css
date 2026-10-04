@@ -1,0 +1,27 @@
+.section-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+  margin-bottom: var(--gap-5);
+}
+
+.section-heading--center {
+  align-items: center;
+  text-align: center;
+}
+
+.section-heading--center .lede {
+  margin-inline: auto;
+}
+
+.section-heading__title {
+  max-width: 22ch;
+  font-size: var(--step-3);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.section-heading--center .section-heading__title {
+  margin-inline: auto;
+}

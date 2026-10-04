@@ -1,0 +1,38 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border-bottom: 1px solid transparent;
+  background-color: color-mix(in oklab, var(--bg) 72%, transparent);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+
+.header__inner {
+  display: flex;
+  gap: var(--gap-4);
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+
+.header__brand {
+  display: inline-flex;
+}
+
+.header__actions {
+  display: flex;
+  gap: var(--gap-2);
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .header__actions .button--quiet {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .header__inner {
+    height: 54px;
+  }
+}

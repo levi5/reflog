@@ -1,0 +1,41 @@
+.feature-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+  padding: var(--gap-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background-color: color-mix(in oklab, var(--surface) 70%, transparent);
+  transition:
+    border-color 200ms var(--ease),
+    background-color 200ms var(--ease);
+}
+
+.feature-card:hover {
+  border-color: var(--accent-line);
+  background-color: var(--surface);
+}
+
+.feature-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--accent-strong);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-md);
+  background-color: var(--accent-soft);
+}
+
+.feature-card__title {
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.feature-card__description {
+  font-size: var(--step-0);
+  line-height: 1.6;
+  color: var(--text-muted);
+}

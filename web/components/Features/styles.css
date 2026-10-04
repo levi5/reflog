@@ -1,0 +1,21 @@
+.features {
+  padding-block: var(--gap-6);
+}
+
+.features__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap-3);
+}
+
+@media (max-width: 960px) {
+  .features__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .features__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

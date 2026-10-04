@@ -1,0 +1,16 @@
+.showcase {
+  padding-block: var(--gap-6);
+  border-top: 1px solid var(--line-soft);
+}
+
+.showcase__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap-4) var(--gap-3);
+}
+
+@media (max-width: 760px) {
+  .showcase__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

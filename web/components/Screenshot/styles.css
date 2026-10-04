@@ -1,0 +1,44 @@
+.screenshot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-2);
+}
+
+.screenshot--full {
+  grid-column: 1 / -1;
+}
+
+.screenshot__frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-inset);
+  box-shadow: var(--shadow-md);
+  transition:
+    border-color 220ms var(--ease),
+    transform 220ms var(--ease);
+}
+
+.screenshot__frame::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(180deg, transparent 55%, rgb(0 0 0 / 28%) 100%);
+}
+
+.screenshot:hover .screenshot__frame {
+  border-color: var(--accent-line);
+  transform: translateY(-2px);
+}
+
+.screenshot__frame img {
+  width: 100%;
+}
+
+.screenshot__caption {
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  color: var(--text-faint);
+}
