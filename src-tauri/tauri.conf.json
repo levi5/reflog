@@ -33,6 +33,7 @@
     "shortDescription": "Reflog - cliente Git",
     "longDescription": "Reflog - cliente Git com resolvedor de conflitos",
     "icon": [
+      "icons/icon.png",
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
