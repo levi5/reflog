@@ -19,8 +19,8 @@ pub fn log_of(
     skip: Option<usize>,
 ) -> Result<Vec<CommitInfo>, String> {
     let root = runner.repo_root(repo_path)?;
-    let n = clamp_limit(limit, 50).to_string();
-    let max_count = format!("--max-count={n}");
+    let limit_arg = clamp_limit(limit, 50).to_string();
+    let max_count = format!("--max-count={limit_arg}");
     let mut args: Vec<String> = vec![
         "log".to_string(),
         "--all".to_string(),
@@ -28,24 +28,24 @@ pub fn log_of(
         "--pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s".to_string(),
         "--date=short".to_string(),
     ];
-    let s = clamp_skip(skip);
-    if s > 0 {
-        args.push(format!("--skip={s}"));
+    let skip_arg = clamp_skip(skip);
+    if skip_arg > 0 {
+        args.push(format!("--skip={skip_arg}"));
     }
-    let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let args_ref: Vec<&str> = args.iter().map(|arg| arg.as_str()).collect();
     let out = runner.run_limited(Some(&root), &args_ref, MAX_LOG_OUTPUT_BYTES)?;
     let mut commits = vec![];
     for line in out.lines() {
-        let p: Vec<&str> = line.split('\u{1f}').collect();
-        if p.len() < 5 {
+        let fields: Vec<&str> = line.split('\u{1f}').collect();
+        if fields.len() < 5 {
             continue;
         }
         commits.push(CommitInfo {
-            hash: p[0].to_string(),
-            short: p[1].to_string(),
-            author: p[2].to_string(),
-            date: p[3].to_string(),
-            message: p[4].to_string(),
+            hash: fields[0].to_string(),
+            short: fields[1].to_string(),
+            author: fields[2].to_string(),
+            date: fields[3].to_string(),
+            message: fields[4].to_string(),
             parents: vec![],
             refs: vec![],
         });
@@ -60,8 +60,8 @@ pub fn graph_of(
     skip: Option<usize>,
 ) -> Result<Vec<CommitInfo>, String> {
     let root = runner.repo_root(repo_path)?;
-    let n = clamp_limit(limit, 100).to_string();
-    let max_count = format!("--max-count={n}");
+    let limit_arg = clamp_limit(limit, 100).to_string();
+    let max_count = format!("--max-count={limit_arg}");
     let mut args: Vec<String> = vec![
         "log".to_string(),
         "--all".to_string(),
@@ -71,33 +71,33 @@ pub fn graph_of(
         "--pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s%x1f%P%x1f%D".to_string(),
         "--date=short".to_string(),
     ];
-    let s = clamp_skip(skip);
-    if s > 0 {
-        args.push(format!("--skip={s}"));
+    let skip_arg = clamp_skip(skip);
+    if skip_arg > 0 {
+        args.push(format!("--skip={skip_arg}"));
     }
-    let args_ref: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let args_ref: Vec<&str> = args.iter().map(|arg| arg.as_str()).collect();
     let out = runner.run_limited(Some(&root), &args_ref, MAX_LOG_OUTPUT_BYTES)?;
     let mut commits = vec![];
     for line in out.lines() {
-        let p: Vec<&str> = line.split('\u{1f}').collect();
-        if p.len() < 7 {
+        let fields: Vec<&str> = line.split('\u{1f}').collect();
+        if fields.len() < 7 {
             continue;
         }
-        let parents = p[5]
+        let parents = fields[5]
             .split_whitespace()
-            .map(|s| s.to_string())
+            .map(|hash| hash.to_string())
             .collect::<Vec<_>>();
-        let refs = p[6]
+        let refs = fields[6]
             .split(", ")
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
             .collect::<Vec<_>>();
         commits.push(CommitInfo {
-            hash: p[0].to_string(),
-            short: p[1].to_string(),
-            author: p[2].to_string(),
-            date: p[3].to_string(),
-            message: p[4].to_string(),
+            hash: fields[0].to_string(),
+            short: fields[1].to_string(),
+            author: fields[2].to_string(),
+            date: fields[3].to_string(),
+            message: fields[4].to_string(),
             parents,
             refs,
         });
@@ -112,8 +112,8 @@ pub fn reflog_of(
     skip: Option<usize>,
 ) -> Result<Vec<ReflogEntry>, String> {
     let root = runner.repo_root(repo_path)?;
-    let n = clamp_limit(limit, 50).to_string();
-    let max_count = format!("--max-count={n}");
+    let limit_arg = clamp_limit(limit, 50).to_string();
+    let max_count = format!("--max-count={limit_arg}");
     let skip_n = clamp_skip(skip).to_string();
     let skip_flag = format!("--skip={skip_n}");
     let mut cmd: Vec<&str> = vec![
@@ -128,17 +128,17 @@ pub fn reflog_of(
     let out = runner.run_limited(Some(&root), &cmd, MAX_LOG_OUTPUT_BYTES)?;
     let mut entries = vec![];
     for line in out.lines() {
-        let p: Vec<&str> = line.split('\u{1f}').collect();
-        if p.len() < 6 {
+        let fields: Vec<&str> = line.split('\u{1f}').collect();
+        if fields.len() < 6 {
             continue;
         }
         entries.push(ReflogEntry {
-            hash: p[0].to_string(),
-            short: p[1].to_string(),
-            selector: p[2].to_string(),
-            action: p[3].to_string(),
-            author: p[4].to_string(),
-            date: p[5].to_string(),
+            hash: fields[0].to_string(),
+            short: fields[1].to_string(),
+            selector: fields[2].to_string(),
+            action: fields[3].to_string(),
+            author: fields[4].to_string(),
+            date: fields[5].to_string(),
         });
     }
     Ok(entries)

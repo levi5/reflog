@@ -269,17 +269,17 @@ pub fn stash_list(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<StashIt
     )?;
     let mut items = vec![];
     for (idx, line) in out.lines().enumerate() {
-        let p: Vec<&str> = line.split('\u{1f}').collect();
-        if p.len() < 5 {
+        let fields: Vec<&str> = line.split('\u{1f}').collect();
+        if fields.len() < 5 {
             continue;
         }
         items.push(StashItem {
             index: idx,
-            hash: p[0].to_string(),
-            selector: p[1].to_string(),
-            message: p[2].to_string(),
-            author: p[3].to_string(),
-            date: p[4].to_string(),
+            hash: fields[0].to_string(),
+            selector: fields[1].to_string(),
+            message: fields[2].to_string(),
+            author: fields[3].to_string(),
+            date: fields[4].to_string(),
         });
     }
     Ok(items)

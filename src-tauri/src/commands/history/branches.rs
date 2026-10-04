@@ -27,11 +27,11 @@ pub fn branches_of(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<Branch
         let mut behind = 0;
         if !track.is_empty() {
             for part in track.split(',') {
-                let p = part.trim();
-                if let Some(n) = p.strip_prefix("ahead ") {
+                let segment = part.trim();
+                if let Some(n) = segment.strip_prefix("ahead ") {
                     ahead = n.parse().unwrap_or(0);
                 }
-                if let Some(n) = p.strip_prefix("behind ") {
+                if let Some(n) = segment.strip_prefix("behind ") {
                     behind = n.parse().unwrap_or(0);
                 }
             }
@@ -75,27 +75,30 @@ mod tests {
             &[],
         );
         let list = branches_of(&runner, "/r").unwrap();
-        let feat = list.iter().find(|b| b.name == "feat/a").unwrap();
+        let feat = list.iter().find(|branch| branch.name == "feat/a").unwrap();
         assert!(!feat.remote);
         assert!(feat.current);
         assert_eq!(feat.behind, 2);
         assert_eq!(feat.ahead, 0);
         assert_eq!(feat.upstream.as_deref(), Some("origin/feat/a"));
 
-        let master = list.iter().find(|b| b.name == "master").unwrap();
+        let master = list.iter().find(|branch| branch.name == "master").unwrap();
         assert!(!master.remote);
         assert!(!master.current);
         assert_eq!(master.ahead, 1);
         assert_eq!(master.behind, 3);
         assert_eq!(master.upstream.as_deref(), Some("origin/master"));
 
-        let local = list.iter().find(|b| b.name == "local").unwrap();
+        let local = list.iter().find(|branch| branch.name == "local").unwrap();
         assert!(!local.remote);
         assert_eq!(local.ahead, 0);
         assert_eq!(local.behind, 0);
         assert_eq!(local.upstream, None);
 
-        let origin = list.iter().find(|b| b.name == "origin/main").unwrap();
+        let origin = list
+            .iter()
+            .find(|branch| branch.name == "origin/main")
+            .unwrap();
         assert!(origin.remote);
         assert!(!origin.current);
     }

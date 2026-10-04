@@ -59,16 +59,16 @@ pub fn rebase_commits(
     )?;
     let mut commits = vec![];
     for line in out.lines() {
-        let p: Vec<&str> = line.split('\u{1f}').collect();
-        if p.len() < 5 {
+        let fields: Vec<&str> = line.split('\u{1f}').collect();
+        if fields.len() < 5 {
             continue;
         }
         commits.push(CommitInfo {
-            hash: p[0].to_string(),
-            short: p[1].to_string(),
-            author: p[2].to_string(),
-            date: p[3].to_string(),
-            message: p[4].to_string(),
+            hash: fields[0].to_string(),
+            short: fields[1].to_string(),
+            author: fields[2].to_string(),
+            date: fields[3].to_string(),
+            message: fields[4].to_string(),
             parents: vec![],
             refs: vec![],
         });
@@ -83,7 +83,10 @@ fn first_line(message: &str) -> String {
 fn build_todo(ops: &[RebaseOp], subjects: &std::collections::HashMap<String, String>) -> String {
     let mut todo = String::new();
     for op in ops {
-        let subject = subjects.get(&op.hash).map(|s| s.as_str()).unwrap_or("");
+        let subject = subjects
+            .get(&op.hash)
+            .map(|subject| subject.as_str())
+            .unwrap_or("");
         todo.push_str(&format!(
             "{} {} {}\n",
             op.action.todo_verb(),
@@ -130,7 +133,7 @@ pub fn rebase_start(
     }
 
     let commits = rebase_commits(runner, repo_path, onto)?;
-    let expected: HashSet<&str> = commits.iter().map(|c| c.hash.as_str()).collect();
+    let expected: HashSet<&str> = commits.iter().map(|commit| commit.hash.as_str()).collect();
     let given: HashSet<&str> = ops.iter().map(|op| op.hash.as_str()).collect();
     if expected != given {
         return Err("instruções divergem dos commits atuais; recarregue a lista".to_string());

@@ -21,16 +21,21 @@ pub struct LogFilter {
 
 fn clean(value: Option<String>) -> Option<String> {
     value
-        .map(|v| v.trim().to_string())
-        .filter(|v| !v.is_empty())
+        .map(|part| part.trim().to_string())
+        .filter(|part| !part.is_empty())
 }
 
 fn validate_date(kind: &str, value: &str) -> Result<(), String> {
     validate_search_term(value)?;
-    let ok = value.chars().all(|c| {
-        c.is_ascii_alphanumeric() || c == '-' || c == '+' || c == '.' || c == '/' || c == ':'
+    let all_allowed = value.chars().all(|char| {
+        char.is_ascii_alphanumeric()
+            || char == '-'
+            || char == '+'
+            || char == '.'
+            || char == '/'
+            || char == ':'
     }) && value.len() <= 32;
-    if ok {
+    if all_allowed {
         Ok(())
     } else {
         Err(format!("data de {kind} inválida"))
@@ -85,34 +90,37 @@ fn build_args(filter: &LogFilter, limit: usize, decorate: bool) -> Result<Vec<St
 fn parse(out: &str, decorate: bool) -> Vec<CommitInfo> {
     let mut commits = vec![];
     for line in out.lines() {
-        let p: Vec<&str> = line.split('\u{1f}').collect();
+        let fields: Vec<&str> = line.split('\u{1f}').collect();
         if decorate {
-            if p.len() < 8 {
+            if fields.len() < 8 {
                 continue;
             }
             commits.push(CommitInfo {
-                hash: p[0].to_string(),
-                short: p[1].to_string(),
-                author: p[2].to_string(),
-                date: p[4].to_string(),
-                message: p[5].to_string(),
-                parents: p[6].split_whitespace().map(|s| s.to_string()).collect(),
-                refs: p[7]
+                hash: fields[0].to_string(),
+                short: fields[1].to_string(),
+                author: fields[2].to_string(),
+                date: fields[4].to_string(),
+                message: fields[5].to_string(),
+                parents: fields[6]
+                    .split_whitespace()
+                    .map(|hash| hash.to_string())
+                    .collect(),
+                refs: fields[7]
                     .split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
+                    .map(|value| value.trim().to_string())
+                    .filter(|value| !value.is_empty())
                     .collect(),
             });
         } else {
-            if p.len() < 6 {
+            if fields.len() < 6 {
                 continue;
             }
             commits.push(CommitInfo {
-                hash: p[0].to_string(),
-                short: p[1].to_string(),
-                author: p[2].to_string(),
-                date: p[4].to_string(),
-                message: p[5].to_string(),
+                hash: fields[0].to_string(),
+                short: fields[1].to_string(),
+                author: fields[2].to_string(),
+                date: fields[4].to_string(),
+                message: fields[5].to_string(),
                 parents: vec![],
                 refs: vec![],
             });
@@ -130,11 +138,11 @@ pub fn search_log(
 ) -> Result<Vec<CommitInfo>, String> {
     let root = runner.repo_root(repo_path)?;
     let mut args = build_args(filter, limit.unwrap_or(100).min(MAX_SEARCH_RESULTS), false)?;
-    let s = skip.unwrap_or(0).min(100_000);
-    if s > 0 {
-        args.push(format!("--skip={s}"));
+    let skip_count = skip.unwrap_or(0).min(100_000);
+    if skip_count > 0 {
+        args.push(format!("--skip={skip_count}"));
     }
-    let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let refs: Vec<&str> = args.iter().map(|arg| arg.as_str()).collect();
     let out = runner.run_limited(Some(&root), &refs, MAX_SEARCH_OUTPUT_BYTES)?;
     Ok(parse(&out, false))
 }
@@ -148,11 +156,11 @@ pub fn search_graph(
 ) -> Result<Vec<CommitInfo>, String> {
     let root = runner.repo_root(repo_path)?;
     let mut args = build_args(filter, limit.unwrap_or(100).min(MAX_SEARCH_RESULTS), true)?;
-    let s = skip.unwrap_or(0).min(100_000);
-    if s > 0 {
-        args.push(format!("--skip={s}"));
+    let skip_count = skip.unwrap_or(0).min(100_000);
+    if skip_count > 0 {
+        args.push(format!("--skip={skip_count}"));
     }
-    let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let refs: Vec<&str> = args.iter().map(|arg| arg.as_str()).collect();
     let out = runner.run_limited(Some(&root), &refs, MAX_SEARCH_OUTPUT_BYTES)?;
     let cleaned: String = out
         .lines()

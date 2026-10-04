@@ -275,8 +275,8 @@ mod tests {
             (sup_s, lib_s)
         }
 
-        fn s(v: &[&str]) -> Vec<String> {
-            v.iter().map(|s| s.to_string()).collect()
+        fn owned(values: &[&str]) -> Vec<String> {
+            values.iter().map(|value| value.to_string()).collect()
         }
 
         fn canonical(path: &str) -> String {
@@ -347,30 +347,30 @@ mod tests {
             assert_eq!(list[0].state, " ");
 
             let head = git(&sup, &["rev-parse", "--short", "HEAD"]);
-            let out = run_git(&runner, &sup, &s(&["log", "--oneline", "-1"])).unwrap();
+            let out = run_git(&runner, &sup, &owned(&["log", "--oneline", "-1"])).unwrap();
             assert!(out.contains(head.trim()));
 
             let branch = run_git(
                 &runner,
                 &sup,
-                &s(&["rev-parse", "--verify", "--quiet", "refs/heads/main"]),
+                &owned(&["rev-parse", "--verify", "--quiet", "refs/heads/main"]),
             );
             assert!(branch.is_ok());
 
             let missing = run_git(
                 &runner,
                 &sup,
-                &s(&["rev-parse", "--verify", "--quiet", "refs/heads/release"]),
+                &owned(&["rev-parse", "--verify", "--quiet", "refs/heads/release"]),
             );
             assert!(missing.is_err());
 
-            let clean = run_git(&runner, &sup, &s(&["status", "--porcelain"])).unwrap();
+            let clean = run_git(&runner, &sup, &owned(&["status", "--porcelain"])).unwrap();
             assert!(clean.trim().is_empty());
 
             let pulled = run_git(
                 &runner,
                 &sup,
-                &s(&["submodule", "foreach", "git rev-parse --short HEAD"]),
+                &owned(&["submodule", "foreach", "git rev-parse --short HEAD"]),
             )
             .unwrap();
             assert!(pulled.contains("Entering 'libs/lib'"));
@@ -381,7 +381,7 @@ mod tests {
             let blocked = run_git(
                 &runner,
                 &sup,
-                &s(&["submodule", "foreach", "git push --force"]),
+                &owned(&["submodule", "foreach", "git push --force"]),
             );
             assert!(blocked.is_err());
         }

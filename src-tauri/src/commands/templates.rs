@@ -54,10 +54,10 @@ pub fn template_list(
     let mut names = vec![];
     for entry in entries.flatten() {
         let path = entry.path();
-        if !path.is_file() || path.extension().and_then(|e| e.to_str()) != Some("md") {
+        if !path.is_file() || path.extension().and_then(|ext| ext.to_str()) != Some("md") {
             continue;
         }
-        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+        if let Some(name) = path.file_name().and_then(|file_name| file_name.to_str()) {
             names.push(name.to_string());
         }
     }
@@ -207,10 +207,19 @@ mod tests {
         let dir = tempdir();
         let runner = runner_for(&dir);
         let folder = "docs/templates";
-        assert_eq!(template_list(&runner, &dir, folder).unwrap(), Vec::<String>::new());
+        assert_eq!(
+            template_list(&runner, &dir, folder).unwrap(),
+            Vec::<String>::new()
+        );
         template_write(&runner, &dir, folder, "api.md", "# api").unwrap();
-        assert_eq!(template_list(&runner, &dir, folder).unwrap(), vec!["api.md"]);
-        assert_eq!(template_read(&runner, &dir, folder, "api.md").unwrap(), "# api");
+        assert_eq!(
+            template_list(&runner, &dir, folder).unwrap(),
+            vec!["api.md"]
+        );
+        assert_eq!(
+            template_read(&runner, &dir, folder, "api.md").unwrap(),
+            "# api"
+        );
         assert!(template_write(&runner, &dir, "../escape", "api.md", "x").is_err());
         assert!(template_write(&runner, &dir, "/abs", "api.md", "x").is_err());
         assert!(template_write(&runner, &dir, "a\\\\b", "api.md", "x").is_err());
