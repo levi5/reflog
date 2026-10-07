@@ -44,6 +44,68 @@
   overflow-y: auto;
 }
 
+.recentGroups {
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.recentGroups .recentList {
+  margin: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.familyGroup {
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 4px;
+  background: var(--bg-deep);
+}
+
+.familyHead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 6px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.familyHead:hover {
+  background: var(--bg-hover);
+}
+
+.familyHead strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.familyCount {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.familyList {
+  margin-top: 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-soft);
+  margin-left: 12px;
+}
+
 .recentItem {
   display: flex;
   align-items: center;

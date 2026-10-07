@@ -807,5 +807,6 @@
   "stashBranched": "Branch created from stash.",
   "stashFile": "Apply file",
   "stashFilePh": "File path (e.g. src/a.ts)",
-  "stashFileHint": "Restore single file: git restore --source=stash@{n} -- <file>"
+  "stashFileHint": "Restore single file: git restore --source=stash@{n} -- <file>",
+  "recentFamilyCount": "{count} repositories"
 }
