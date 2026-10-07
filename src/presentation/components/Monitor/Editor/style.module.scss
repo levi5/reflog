@@ -134,9 +134,7 @@
 }
 
 .blocksHead,
-.block > header,
-.footer,
-.footer > div {
+.block > header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -212,14 +210,15 @@
   backdrop-filter: var(--content-filter);
   -webkit-backdrop-filter: var(--content-filter);
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .footerActions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+  display: contents;
 }
 
 .actionConfig {

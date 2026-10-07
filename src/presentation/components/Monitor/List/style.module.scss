@@ -72,7 +72,8 @@
   transition: opacity 0.15s ease;
 }
 
-.listItem:hover .itemActions,
+.itemContent:hover + .itemActions,
+.itemActions:hover,
 .itemActions:focus-within {
   opacity: 1;
 }
