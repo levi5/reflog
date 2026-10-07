@@ -1,0 +1,139 @@
+.explorer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 1px;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+
+.dirRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  background: transparent;
+  border: 0;
+  color: var(--fg);
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--font-sm);
+}
+
+.dirRow:hover {
+  background: var(--bg-hover);
+}
+
+.dirName {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dirCount {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.dirBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.dirChildren {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 4px;
+  padding: 2px 4px 2px 0;
+}
+
+.fileRow:hover {
+  background: var(--bg-hover);
+}
+
+.fileRowSelected {
+  background: var(--bg-hover);
+  outline: 1px solid var(--border-soft);
+}
+
+.fileMain {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: var(--fg);
+  cursor: pointer;
+  padding: 4px 2px;
+  font-size: var(--font-sm);
+}
+
+.fileName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  margin-left: 6px;
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--amber);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  padding: 0 5px;
+}
+
+.badgeStaged {
+  color: var(--green);
+}
+
+.fileActions {
+  display: flex;
+  gap: 2px;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+.fileActions button {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  color: var(--fg);
+  border-radius: 4px;
+  width: 22px;
+  height: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.fileActions button:hover {
+  background: var(--bg-hover);
+}

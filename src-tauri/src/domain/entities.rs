@@ -140,3 +140,18 @@ pub struct CompareFileStat {
     pub added: usize,
     pub removed: usize,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct WorktreeInfo {
+    pub path: String,
+    pub head: String,
+    #[serde(default)]
+    pub branch: Option<String>,
+    #[serde(default)]
+    pub detached: bool,
+    #[serde(default)]
+    pub bare: bool,
+    #[serde(default)]
+    pub main: bool,
+}

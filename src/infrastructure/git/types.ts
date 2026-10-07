@@ -12,8 +12,9 @@ import type {
   StashItem,
   StatusResult,
   SubmoduleInfo,
+  WorktreeInfo,
 } from "../../types"
-import type { LogFilter, PushOptions } from "./ipc-client"
+import type { LogFilter, PushOptions, StashPushOptions } from "./ipc-client"
 
 export interface IGitApi {
   checkRepo(path: string): Promise<boolean>
@@ -89,13 +90,18 @@ export interface IGitApi {
   templateDelete(repoPath: string, folder: string, name: string): Promise<string>
   submodules(repoPath: string): Promise<SubmoduleInfo[]>
   submoduleUpdate(repoPath: string, submodulePath?: string): Promise<string>
+  worktrees(repoPath: string): Promise<WorktreeInfo[]>
+  worktreeAdd(repoPath: string, path: string, branch?: string, detach?: boolean): Promise<string>
+  worktreeRemove(repoPath: string, path: string, force?: boolean): Promise<string>
   superprojectChain(repoPath: string): Promise<string[]>
-  stash(repoPath: string, message?: string): Promise<string>
+  stash(repoPath: string, message?: string, options?: StashPushOptions): Promise<string>
   stashPop(repoPath: string): Promise<string>
   stashList(repoPath: string): Promise<StashItem[]>
   stashShow(repoPath: string, index: number): Promise<string>
   stashDrop(repoPath: string, index: number): Promise<string>
   stashApply(repoPath: string, index: number): Promise<string>
+  stashBranch(repoPath: string, branch: string, index?: number): Promise<string>
+  stashApplyFile(repoPath: string, index: number, file: string): Promise<string>
   applyPatch(repoPath: string, patch: string, cached: boolean, reverse: boolean): Promise<string>
   configGet(repoPath: string, key: string, global?: boolean): Promise<string>
   configSnapshot(repoPath: string, global?: boolean): Promise<ConfigEntry[]>

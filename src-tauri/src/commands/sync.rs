@@ -1,5 +1,6 @@
 use crate::commands::validation::{
-    validate_ref_name, validate_remote_name, validate_stash_message,
+    validate_ref_name, validate_remote_name, validate_repo_relative_path,
+    validate_stash_message,
 };
 use crate::domain::StashItem;
 use crate::runner::{GitRunner, NETWORK_TIMEOUT};
@@ -242,18 +243,41 @@ pub fn stash(
     runner: &dyn GitRunner,
     repo_path: &str,
     message: Option<String>,
+    keep_index: bool,
+    staged_only: bool,
+    paths: Vec<String>,
 ) -> Result<String, String> {
     if let Some(ref m) = message {
         validate_stash_message(m)?;
     }
-    let root = runner.repo_root(repo_path)?;
-    match message {
-        Some(m) if !m.trim().is_empty() => runner.run(
-            Some(&root),
-            &["stash", "push", "--include-untracked", "-m", &m],
-        ),
-        _ => runner.run(Some(&root), &["stash", "push", "--include-untracked"]),
+    if keep_index && staged_only {
+        return Err("opções --keep-index e --staged são mutuamente exclusivas".to_string());
     }
+    for p in &paths {
+        validate_repo_relative_path(p)?;
+    }
+    let root = runner.repo_root(repo_path)?;
+    let mut cmd: Vec<String> = vec!["stash".to_string(), "push".to_string()];
+    if staged_only {
+        cmd.push("--staged".to_string());
+    } else {
+        if keep_index {
+            cmd.push("--keep-index".to_string());
+        }
+        cmd.push("--include-untracked".to_string());
+    }
+    if let Some(m) = message {
+        if !m.trim().is_empty() {
+            cmd.push("-m".to_string());
+            cmd.push(m);
+        }
+    }
+    if !paths.is_empty() {
+        cmd.push("--".to_string());
+        cmd.extend(paths);
+    }
+    let refs: Vec<&str> = cmd.iter().map(|s| s.as_str()).collect();
+    runner.run(Some(&root), &refs)
 }
 
 pub fn stash_pop(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
@@ -313,6 +337,41 @@ pub fn stash_apply(
     )
 }
 
+pub fn stash_branch(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    branch: &str,
+    index: Option<usize>,
+) -> Result<String, String> {
+    validate_ref_name(branch)?;
+    let root = runner.repo_root(repo_path)?;
+    match index {
+        Some(i) => runner.run(
+            Some(&root),
+            &["stash", "branch", branch, &format!("stash@{{{i}}}")],
+        ),
+        None => runner.run(Some(&root), &["stash", "branch", branch]),
+    }
+}
+
+pub fn stash_apply_file(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    file: &str,
+    index: usize,
+) -> Result<String, String> {
+    validate_repo_relative_path(file)?;
+    let root = runner.repo_root(repo_path)?;
+    let selector = format!("stash@{{{index}}}");
+    let source = format!("--source={selector}");
+    // `restore --source` is the modern spelling; fall back to `checkout <stash> --`
+    // for older Git versions (same pattern as `discard`).
+    match runner.run(Some(&root), &["restore", &source, "--", file]) {
+        Ok(o) => Ok(o),
+        Err(_) => runner.run(Some(&root), &["checkout", &selector, "--", file]),
+    }
+}
+
 git_command!(git_merge_opts, String, merge_opts, (repo_path: String, branch: String), (squash: bool, no_ff: bool));
 
 git_command!(git_fetch, String, fetch, (repo_path: String), (prune: bool));
@@ -337,7 +396,7 @@ git_command!(git_unset_upstream, String, unset_upstream, (repo_path: String, bra
 
 git_command!(git_fetch_ref, String, fetch_ref, (repo_path: String, remote: String), (prune: bool, tags: bool));
 
-git_command!(git_stash, String, stash, (repo_path: String), (message: Option<String>));
+git_command!(git_stash, String, stash, (repo_path: String), (message: Option<String>, keep_index: bool, staged_only: bool, paths: Vec<String>));
 
 git_command!(git_stash_pop, String, stash_pop, (repo_path: String), ());
 
@@ -349,6 +408,9 @@ git_command!(git_stash_drop, String, stash_drop, (repo_path: String), (index: us
 
 git_command!(git_stash_apply, String, stash_apply, (repo_path: String), (index: usize));
 
+git_command!(git_stash_branch, String, stash_branch, (repo_path: String, branch: String), (index: Option<usize>));
+
+git_command!(git_stash_apply_file, String, stash_apply_file, (repo_path: String, file: String), (index: usize));
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -486,8 +548,99 @@ mod tests {
         );
 
         assert_eq!(
-            stash(&runner, "/r", Some("before-checkout".into())).unwrap(),
+            stash(&runner, "/r", Some("before-checkout".into()), false, false, vec![]).unwrap(),
             "Saved"
         );
+    }
+
+    #[test]
+    fn stash_push_supports_keep_index_staged_and_pathspec() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash push --keep-index --include-untracked -m wip", "Saved"),
+            ],
+            &[],
+        );
+        assert_eq!(
+            stash(&runner, "/r", Some("wip".into()), true, false, vec![]).unwrap(),
+            "Saved"
+        );
+
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("stash push --staged -m wip", "Saved")],
+            &[],
+        );
+        assert_eq!(
+            stash(&runner, "/r", Some("wip".into()), false, true, vec![]).unwrap(),
+            "Saved"
+        );
+
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash push --include-untracked -- src/a.ts", "Saved"),
+            ],
+            &[],
+        );
+        assert_eq!(
+            stash(&runner, "/r", None, false, false, vec!["src/a.ts".to_string()]).unwrap(),
+            "Saved"
+        );
+
+        // mutually exclusive + path traversal rejected
+        let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
+        assert!(stash(&runner, "/r", None, true, true, vec![]).is_err());
+        assert!(stash(&runner, "/r", None, false, false, vec!["../evil".to_string()]).is_err());
+        assert!(stash(&runner, "/r", None, false, false, vec!["--help".to_string()]).is_err());
+    }
+
+    #[test]
+    fn stash_branch_validates_ref_and_targets_selector() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash branch fix/conflict stash@{1}", "branched"),
+            ],
+            &[],
+        );
+        assert_eq!(stash_branch(&runner, "/r", "fix/conflict", Some(1)).unwrap(), "branched");
+
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("stash branch hotfix", "branched")],
+            &[],
+        );
+        assert_eq!(stash_branch(&runner, "/r", "hotfix", None).unwrap(), "branched");
+
+        let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
+        assert!(stash_branch(&runner, "/r", "--evil", Some(0)).is_err());
+        assert!(stash_branch(&runner, "/r", "a..b", Some(0)).is_err());
+    }
+
+    #[test]
+    fn stash_apply_file_restores_single_path_with_fallback() {
+        // Modern git: restore --source works
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("restore --source=stash@{0} -- src/a.ts", "restored"),
+            ],
+            &[],
+        );
+        assert_eq!(stash_apply_file(&runner, "/r", "src/a.ts", 0).unwrap(), "restored");
+
+        // Old git: restore fails -> fallback to checkout
+        let runner = MockRunner::with_failures(
+            &[("restore --source=stash@{2} -- src/b.ts", "unknown option")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("checkout stash@{2} -- src/b.ts", "checked out"),
+            ],
+        );
+        assert_eq!(stash_apply_file(&runner, "/r", "src/b.ts", 2).unwrap(), "checked out");
+
+        // traversal rejected
+        let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
+        assert!(stash_apply_file(&runner, "/r", "../evil", 0).is_err());
     }
 }

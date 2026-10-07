@@ -49,6 +49,24 @@ export interface SubmoduleInfo {
   behind: number
 }
 
+export interface WorktreeInfo {
+  path: string
+  head: string
+  branch?: string | null
+  detached: boolean
+  bare: boolean
+  main: boolean
+}
+
+export interface FileTreeNode {
+  name: string
+  path: string
+  isDir: boolean
+  children: FileTreeNode[]
+  status?: string
+  staged?: boolean
+}
+
 export interface CommitInfo {
   hash: string
   short: string

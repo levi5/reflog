@@ -60,7 +60,7 @@ export function MonitorsList({
     <>
       <button type="button" className={styles.itemContent} onClick={() => onSelectMonitor(monitor)}>
         <span className={styles.monitorColor} style={{ background: monitor.color }} />
-        <span>
+        <span className={styles.itemText}>
           <strong>{monitor.name || t("unnamed")}</strong>
           <small>
             {monitor.blocks.length} {t("steps").toLowerCase()}

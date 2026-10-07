@@ -28,6 +28,7 @@ pub mod submodules;
 pub mod sync;
 pub mod templates;
 pub mod validation;
+pub mod worktrees;
 
 pub(crate) async fn run_blocking<F, T>(f: F) -> Result<T, String>
 where

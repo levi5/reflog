@@ -1,0 +1,117 @@
+.worktreeContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form input {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  color: var(--fg);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: var(--font-sm);
+}
+
+.addBtn {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  color: var(--fg);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: var(--font-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.addBtn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.worktreeList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.worktreeCard {
+  background: var(--bg-panel);
+  backdrop-filter: var(--content-filter);
+  -webkit-backdrop-filter: var(--content-filter);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mainBadge,
+.bareBadge {
+  font-size: 10px;
+  text-transform: uppercase;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  padding: 0 5px;
+  color: var(--muted);
+}
+
+.worktreePath {
+  font-family: var(--mono);
+  font-size: var(--font-sm);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.actionBtn {
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  color: var(--fg);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: var(--font-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.actionBtn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}

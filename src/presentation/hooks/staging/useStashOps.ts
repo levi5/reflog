@@ -17,6 +17,9 @@ export function useStashOps(deps: StashOpsDeps) {
   const { lang, repo, runAction, requestConfirm, setMsg } = deps
   const [stashes, setStashes] = useState<StashItem[]>([])
   const [stashMsg, setStashMsg] = useState("")
+  const [stashKeepIndex, setStashKeepIndex] = useState(false)
+  const [stashStagedOnly, setStashStagedOnly] = useState(false)
+  const [stashPaths, setStashPaths] = useState("")
 
   const loadStashes = useCallback(async () => {
     if (!repo) return
@@ -31,10 +34,22 @@ export function useStashOps(deps: StashOpsDeps) {
   const stashPush = useCallback(() => {
     if (!repo) return Promise.resolve()
     const message = stashMsg || undefined
+    const paths = stashPaths
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (stashKeepIndex && stashStagedOnly) {
+      setMsg(t(lang, "stashKeepStagedConflict"))
+      return Promise.resolve()
+    }
     return runAction(
-      () => gitApi.stash(repo, message).then((output) => output || "stashed"),
+      () =>
+        gitApi
+          .stash(repo, message, { keepIndex: stashKeepIndex, stagedOnly: stashStagedOnly, paths })
+          .then((output) => output || "stashed"),
       () => {
         setStashMsg("")
+        setStashPaths("")
         void loadStashes()
       },
       {
@@ -42,7 +57,7 @@ export function useStashOps(deps: StashOpsDeps) {
         successMessage: t(lang, "stashed"),
       },
     )
-  }, [repo, stashMsg, lang, runAction, loadStashes])
+  }, [repo, stashMsg, stashPaths, stashKeepIndex, stashStagedOnly, lang, runAction, loadStashes, setMsg])
 
   const stashPopIt = useCallback(
     () =>
@@ -100,14 +115,46 @@ export function useStashOps(deps: StashOpsDeps) {
 
   const stashShow = useCallback((index: number) => (repo ? gitApi.stashShow(repo, index) : Promise.resolve("")), [repo])
 
+  const stashBranch = useCallback(
+    (index: number, branch: string) => {
+      const name = branch.trim()
+      if (!repo || !name) return Promise.resolve()
+      return runAction(() => gitApi.stashBranch(repo, name, index), loadStashes, {
+        loadingMessage: t(lang, "stashBranching"),
+        successMessage: t(lang, "stashBranched"),
+      })
+    },
+    [repo, lang, runAction, loadStashes],
+  )
+
+  const stashApplyFile = useCallback(
+    (index: number, file: string) => {
+      const path = file.trim()
+      if (!repo || !path) return Promise.resolve()
+      return runAction(() => gitApi.stashApplyFile(repo, index, path), loadStashes, {
+        loadingMessage: t(lang, "actionProcessing"),
+        successMessage: t(lang, "actionSuccess"),
+      })
+    },
+    [repo, lang, runAction, loadStashes],
+  )
+
   return {
     stashes,
     stashMsg,
     setStashMsg,
+    stashKeepIndex,
+    setStashKeepIndex,
+    stashStagedOnly,
+    setStashStagedOnly,
+    stashPaths,
+    setStashPaths,
     loadStashes,
     stashPush,
     stashPopIt,
     stashApply,
+    stashBranch,
+    stashApplyFile,
     stashDrop,
     stashShow,
   }

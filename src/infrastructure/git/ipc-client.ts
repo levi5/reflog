@@ -13,6 +13,7 @@ import type {
   StashItem,
   StatusResult,
   SubmoduleInfo,
+  WorktreeInfo,
 } from "../../types"
 
 export const DEFAULT_TEMPLATE_FOLDER = ".reflog/templates"
@@ -21,6 +22,12 @@ export interface PushOptions {
   force?: boolean
   tags?: boolean
   deleteRemoteBranch?: string
+}
+
+export interface StashPushOptions {
+  keepIndex?: boolean
+  stagedOnly?: boolean
+  paths?: string[]
 }
 
 export interface LogFilter {
@@ -119,12 +126,23 @@ export const gitApi = {
     invokeTyped<CommitInfo[]>("git_search_graph", { repoPath, filter, limit, skip }),
   fileHistory: (repoPath: string, file: string, limit?: number, follow = true) =>
     invokeTyped<CommitInfo[]>("git_file_history", { repoPath, file, limit, follow }),
-  stash: (repoPath: string, message?: string) => invokeTyped<string>("git_stash", { repoPath, message }),
+  stash: (repoPath: string, message?: string, options: StashPushOptions = {}) =>
+    invokeTyped<string>("git_stash", {
+      repoPath,
+      message,
+      keepIndex: options.keepIndex ?? false,
+      stagedOnly: options.stagedOnly ?? false,
+      paths: options.paths ?? [],
+    }),
   stashPop: (repoPath: string) => invokeTyped<string>("git_stash_pop", { repoPath }),
   stashList: (repoPath: string) => invokeTyped<StashItem[]>("git_stash_list", { repoPath }),
   stashShow: (repoPath: string, index: number) => invokeTyped<string>("git_stash_show", { repoPath, index }),
   stashDrop: (repoPath: string, index: number) => invokeTyped<string>("git_stash_drop", { repoPath, index }),
   stashApply: (repoPath: string, index: number) => invokeTyped<string>("git_stash_apply", { repoPath, index }),
+  stashBranch: (repoPath: string, branch: string, index?: number) =>
+    invokeTyped<string>("git_stash_branch", { repoPath, branch, index: index ?? null }),
+  stashApplyFile: (repoPath: string, index: number, file: string) =>
+    invokeTyped<string>("git_stash_apply_file", { repoPath, index, file }),
   cherryPick: (repoPath: string, hash: string) => invokeTyped<string>("git_cherry_pick", { repoPath, hash }),
   cherryPickContinue: (repoPath: string) => invokeTyped<string>("git_cherry_pick_continue", { repoPath }),
   cherryPickAbort: (repoPath: string) => invokeTyped<string>("git_cherry_pick_abort", { repoPath }),
@@ -181,6 +199,11 @@ export const gitApi = {
   submodules: (repoPath: string) => invokeTyped<SubmoduleInfo[]>("git_submodule_list", { repoPath }),
   submoduleUpdate: (repoPath: string, submodulePath?: string) =>
     invokeTyped<string>("git_submodule_update", { repoPath, submodulePath }),
+  worktrees: (repoPath: string) => invokeTyped<WorktreeInfo[]>("git_worktree_list", { repoPath }),
+  worktreeAdd: (repoPath: string, path: string, branch?: string, detach = false) =>
+    invokeTyped<string>("git_worktree_add", { repoPath, path, branch: branch ?? null, detach }),
+  worktreeRemove: (repoPath: string, path: string, force = false) =>
+    invokeTyped<string>("git_worktree_remove", { repoPath, path, force }),
   superprojectChain: (repoPath: string) => invokeTyped<string[]>("git_superproject_chain", { repoPath }),
 }
 

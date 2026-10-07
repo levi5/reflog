@@ -1,6 +1,6 @@
 import { mergeStatsUseCase } from "../../../data"
-import { Archive, Boxes, Cloud, FileDiff, GitBranch, Tag as TagIcon } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { Archive, Boxes, Cloud, FileDiff, FolderTree, GitBranch, Network, Tag as TagIcon } from "lucide-react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Navigate } from "react-router-dom"
 import { t } from "../../../i18n"
 
@@ -8,6 +8,7 @@ import { Branch } from "../../components/Branch"
 import { Commit } from "../../components/Commit"
 import { Diff } from "../../components/Diff"
 import { Editor } from "../../components/Editor"
+import { ExplorerTree } from "../../components/Explorer"
 import { Flex } from "@/presentation/components/Wrapper/Flex"
 import { Resizable } from "@/presentation/components/Resizable"
 import { ResizeGrip } from "../../components/Resizable/Grip"
@@ -22,13 +23,14 @@ import { _Maybe } from "funcio"
 import { useRepo, useSearch, useSettingsContext } from "../../context"
 import { useResizable } from "../../hooks"
 import { useFileSelection } from "../../hooks/staging/use-file-selection"
+import { useWorktreeOps } from "../../hooks/repository/useWorktreeOps"
 import type { FileStatus } from "@/types"
 import type { TabItem } from "../../../types/components"
 import { SelectionToolbar } from "./SelectionToolbar"
 
 import styles from "./style.module.scss"
 
-type SideTab = "files" | "branches" | "tags" | "remotes" | "stash" | "submodules"
+type SideTab = "files" | "explorer" | "branches" | "tags" | "remotes" | "stash" | "submodules" | "worktrees"
 
 type Props = Record<string, never>
 
@@ -39,6 +41,14 @@ export function Staging(_props: Props) {
   const repo = useRepo()
   const { query, scope } = useSearch()
   const [tab, setTab] = useState<SideTab>("files")
+  const worktrees = useWorktreeOps({ lang, repo: repo.repo, runAction: repo.runAction })
+
+  useEffect(() => {
+    if (tab === "explorer" && repo.repo) void repo.loadTracked()
+  }, [tab, repo.repo, repo.loadTracked])
+  useEffect(() => {
+    if (tab === "worktrees" && repo.repo) void worktrees.loadWorktrees()
+  }, [tab, repo.repo, worktrees.loadWorktrees])
   const diffHeight = useResizable({
     axis: "y",
     initial: 340,
@@ -156,6 +166,12 @@ export function Staging(_props: Props) {
         title: t(lang, "status"),
       },
       {
+        id: "explorer",
+        icon: <FolderTree size={14} />,
+        count: repo.trackedFiles.length > 0 ? repo.trackedFiles.length : undefined,
+        title: t(lang, "explorer"),
+      },
+      {
         id: "branches",
         icon: <GitBranch size={14} />,
         count: repo.branches.length > 0 ? repo.branches.length : undefined,
@@ -185,15 +201,23 @@ export function Staging(_props: Props) {
         count: repo.submodules.length > 0 ? repo.submodules.length : undefined,
         title: t(lang, "submodules"),
       },
+      {
+        id: "worktrees",
+        icon: <Network size={14} />,
+        count: worktrees.worktrees.length > 0 ? worktrees.worktrees.length : undefined,
+        title: t(lang, "worktrees"),
+      },
     ],
     [
       lang,
       repo.status?.files.length,
+      repo.trackedFiles.length,
       repo.branches.length,
       repo.tags.length,
       repo.remotes.length,
       repo.stashes.length,
       repo.submodules.length,
+      worktrees.worktrees.length,
     ],
   )
 
@@ -274,12 +298,32 @@ export function Staging(_props: Props) {
             <Branch.Stash
               stashMessage={repo.stashMsg}
               onStashMessageChange={repo.setStashMsg}
+              keepIndex={repo.stashKeepIndex}
+              onKeepIndexChange={repo.setStashKeepIndex}
+              stagedOnly={repo.stashStagedOnly}
+              onStagedOnlyChange={repo.setStashStagedOnly}
+              pathspec={repo.stashPaths}
+              onPathspecChange={repo.setStashPaths}
               onStash={repo.stashPush}
               onPop={repo.stashPopIt}
               stashes={repo.stashes}
               onApply={repo.stashApply}
+              onApplyFile={repo.stashApplyFile}
+              onBranch={repo.stashBranch}
               onDrop={repo.stashDrop}
               onShowDiff={repo.stashShow}
+              busy={repo.busy}
+            />
+          )}
+          {tab === "explorer" && (
+            <ExplorerTree
+              trackedFiles={repo.trackedFiles}
+              statusFiles={repo.status?.files ?? []}
+              query={scope === "files" || scope === "all" ? query : ""}
+              selectedFilePath={repo.selectedFile}
+              onSelect={handleSelectDiff}
+              onStage={(filePath) => void repo.stageFile(filePath)}
+              onUnstage={(filePath) => void repo.unstageFile(filePath)}
               busy={repo.busy}
             />
           )}
@@ -288,6 +332,15 @@ export function Staging(_props: Props) {
               submodules={repo.submodules}
               onUpdate={repo.submoduleUpdate}
               onOpen={(subPath) => repo.handleOpen(`${repo.repo}/${subPath}`)}
+              busy={repo.busy}
+            />
+          )}
+          {tab === "worktrees" && (
+            <Branch.Worktree
+              worktrees={worktrees.worktrees}
+              onAdd={(path, branch) => void worktrees.addWorktree(path, branch)}
+              onRemove={(path) => void worktrees.removeWorktree(path)}
+              onOpen={(worktreePath) => repo.handleOpen(worktreePath)}
               busy={repo.busy}
             />
           )}

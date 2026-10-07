@@ -522,11 +522,20 @@ invoke<string>('git_merge_abort', { repoPath: string })
 
 ### `git_stash`
 
-Creates a stash (always with `--include-untracked`).
-Pass an empty/missing message for no message.
+Creates a stash. Supports `push --staged` (staged only), `push --keep-index`
+(keep staged in worktree) and an optional pathspec (`push -- <paths>`).
+`keepIndex` and `stagedOnly` are mutually exclusive; `--include-untracked`
+is added automatically unless `stagedOnly` is set. Pass an empty/missing
+message for no message. Paths are repo-relative and `..`-traversal is rejected.
 
 ```ts
-invoke<string>('git_stash', { repoPath: string, message?: string })
+invoke<string>('git_stash', {
+  repoPath: string,
+  message?: string,
+  keepIndex: boolean,
+  stagedOnly: boolean,
+  paths: string[],
+})
 ```
 
 ---
@@ -586,6 +595,29 @@ Applies a stash entry without removing it.
 
 ```ts
 invoke<string>('git_stash_apply', { repoPath: string, index: number })
+```
+
+---
+
+### `git_stash_branch`
+
+Creates a branch from a stash entry (`stash branch <branch> [stash@{n}]`).
+Omitting `index` uses the latest stash. Branch names are validated as refs.
+
+```ts
+invoke<string>('git_stash_branch', { repoPath: string, branch: string, index?: number | null })
+```
+
+---
+
+### `git_stash_apply_file`
+
+Restores a single file from a stash entry (`restore --source=stash@{n} -- <file>`,
+with fallback to `checkout stash@{n} -- <file>` on older Git). The path is
+repo-relative and `..`-traversal is rejected.
+
+```ts
+invoke<string>('git_stash_apply_file', { repoPath: string, index: number, file: string })
 ```
 
 ---
@@ -1067,6 +1099,47 @@ resolves to `superproject, …, parent, repo`.
 invoke<string[]>('git_superproject_chain', { repoPath: string })
 // Example: ['/work/super', '/work/super/libs/lib']
 ```
+
+---
+
+## Worktrees
+
+### `git_worktree_list`
+
+Lists linked worktrees (`worktree list --porcelain`). The first entry is the main worktree.
+
+```ts
+interface WorktreeInfo {
+  path: string
+  head: string
+  branch?: string | null
+  detached: boolean
+  bare: boolean
+  main: boolean
+}
+
+invoke<WorktreeInfo[]>('git_worktree_list', { repoPath: string })
+```
+
+---
+
+### `git_worktree_add` / `git_worktree_remove`
+
+`add` creates a worktree at `path`, optionally on a new branch (`-b <branch>`) or detached (`--detach`).
+`remove` deletes it, with `--force` when set. Option-like paths are rejected.
+
+```ts
+invoke<string>('git_worktree_add', { repoPath: string, path: string, branch?: string | null, detach: boolean })
+invoke<string>('git_worktree_remove', { repoPath: string, path: string, force: boolean })
+```
+
+---
+
+### Explorer
+
+The Staging sidebar has an `Explorer` tab built from `git_ls_files` plus `git_status` files
+(`buildFileTree` in `src/presentation/components/Explorer/`), with per-file stage/unstage and
+search filtering. No new command was needed.
 
 ---
 

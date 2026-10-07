@@ -1,4 +1,4 @@
-import { Eye, Play, Trash2 } from "lucide-react"
+import { Eye, GitBranch, Play, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "../../../context"
 import type { StashItem } from "../../../../types"
@@ -8,10 +8,18 @@ import styles from "./style.module.scss"
 interface StashPanelProps {
   stashMessage: string
   onStashMessageChange: (stashMessage: string) => void
+  keepIndex?: boolean
+  onKeepIndexChange?: (v: boolean) => void
+  stagedOnly?: boolean
+  onStagedOnlyChange?: (v: boolean) => void
+  pathspec?: string
+  onPathspecChange?: (v: string) => void
   onStash: () => void
   onPop: () => void
   stashes?: StashItem[]
   onApply?: (index: number) => void
+  onApplyFile?: (index: number, file: string) => void
+  onBranch?: (index: number, branch: string) => void
   onDrop?: (index: number) => void
   onShowDiff?: (index: number) => Promise<string>
   busy?: boolean
@@ -20,10 +28,18 @@ interface StashPanelProps {
 export function StashPanel({
   stashMessage,
   onStashMessageChange,
+  keepIndex = false,
+  onKeepIndexChange,
+  stagedOnly = false,
+  onStagedOnlyChange,
+  pathspec = "",
+  onPathspecChange,
   onStash,
   onPop,
   stashes = [],
   onApply,
+  onApplyFile,
+  onBranch,
   onDrop,
   onShowDiff,
   busy = false,
@@ -32,6 +48,8 @@ export function StashPanel({
   const [activeDiffIndex, setActiveDiffIndex] = useState<number | null>(null)
   const [diffText, setDiffText] = useState<string>("")
   const [loadingDiff, setLoadingDiff] = useState(false)
+  const [branchNames, setBranchNames] = useState<Record<number, string>>({})
+  const [filePaths, setFilePaths] = useState<Record<number, string>>({})
 
   const handleToggleDiff = async (index: number) => {
     if (activeDiffIndex === index) {
@@ -70,6 +88,38 @@ export function StashPanel({
           {t("stashPop")}
         </button>
       </div>
+
+      <div className={styles.rowFlex}>
+        <label title={t("stashKeepIndexHint")}>
+          <input
+            type="checkbox"
+            checked={keepIndex}
+            disabled={stagedOnly || busy || !onKeepIndexChange}
+            onChange={(e) => onKeepIndexChange?.(e.target.checked)}
+          />{" "}
+          {t("stashKeepIndex")}
+        </label>
+        <label title={t("stashStagedHint")}>
+          <input
+            type="checkbox"
+            checked={stagedOnly}
+            disabled={keepIndex || busy || !onStagedOnlyChange}
+            onChange={(e) => onStagedOnlyChange?.(e.target.checked)}
+          />{" "}
+          {t("stashStaged")}
+        </label>
+      </div>
+      {onPathspecChange && (
+        <div className={styles.rowFlex}>
+          <input
+            placeholder={t("stashPathspecPh")}
+            aria-label={t("stashPathspec")}
+            value={pathspec}
+            onChange={(event) => onPathspecChange(event.target.value)}
+            title={t("stashPathspecHint")}
+          />
+        </div>
+      )}
 
       <div className={styles.stashList}>
         {stashes.map((stash) => {
@@ -114,7 +164,49 @@ export function StashPanel({
                     <Trash2 size={11} /> {t("stashDrop")}
                   </button>
                 )}
+                {onBranch && (
+                  <span className={styles.rowFlex} style={{ alignItems: "center" }} title={t("stashBranchHint")}>
+                    <GitBranch size={11} />
+                    <input
+                      placeholder={t("stashBranchPh")}
+                      aria-label={t("stashBranch")}
+                      value={branchNames[stash.index] ?? ""}
+                      onChange={(e) => setBranchNames((p) => ({ ...p, [stash.index]: e.target.value }))}
+                      disabled={busy}
+                      style={{ width: 110, flex: "none" }}
+                    />
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => onBranch(stash.index, branchNames[stash.index] ?? "")}
+                      disabled={busy || !(branchNames[stash.index] ?? "").trim()}
+                    >
+                      {t("stashBranch")}
+                    </button>
+                  </span>
+                )}
               </div>
+              {onApplyFile && (
+                <div className={styles.rowFlex}>
+                  <input
+                    placeholder={t("stashFilePh")}
+                    aria-label={t("stashFile")}
+                    value={filePaths[stash.index] ?? ""}
+                    onChange={(e) => setFilePaths((p) => ({ ...p, [stash.index]: e.target.value }))}
+                    disabled={busy}
+                    title={t("stashFileHint")}
+                  />
+                  <button
+                    type="button"
+                    className={styles.actionBtn}
+                    onClick={() => onApplyFile(stash.index, filePaths[stash.index] ?? "")}
+                    disabled={busy || !(filePaths[stash.index] ?? "").trim()}
+                    title={t("stashFile")}
+                  >
+                    {t("stashFile")}
+                  </button>
+                </div>
+              )}
               {isViewingDiff && <pre className={styles.diffBox}>{loadingDiff ? t("loading") : diffText}</pre>}
             </div>
           )

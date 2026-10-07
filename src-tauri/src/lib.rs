@@ -122,6 +122,8 @@ pub fn run() {
             commands::sync::git_stash_drop,
             commands::sync::git_stash_show,
             commands::sync::git_stash_apply,
+            commands::sync::git_stash_branch,
+            commands::sync::git_stash_apply_file,
             commands::staging::git_cherry_pick,
             commands::staging::git_cherry_pick_continue,
             commands::staging::git_cherry_pick_abort,
@@ -164,6 +166,9 @@ pub fn run() {
             commands::rebase::git_rebase_start,
             commands::rebase::git_rebase_continue,
             commands::rebase::git_rebase_abort,
+            commands::worktrees::git_worktree_list,
+            commands::worktrees::git_worktree_add,
+            commands::worktrees::git_worktree_remove,
             commands::meta::git_clone,
         ])
         .run(tauri::generate_context!())

@@ -36,17 +36,23 @@ describe("referencia estavel das acoes de staging", () => {
   })
 
   it("useStashOps", () => {
-    const deps = { lang: "en" as const, repo, runAction, gitApi: { stash: vi.fn(async () => []) } }
+    const deps = {
+      lang: "en" as const,
+      repo,
+      runAction,
+      requestConfirm: vi.fn(async () => true),
+      setMsg: vi.fn(),
+    }
     expect(unstableAfterRerender(() => useStashOps(deps) as unknown as Record<string, unknown>)).toEqual([])
   })
 
   it("useStagingDiff", () => {
-    const deps = { lang: "en" as const, repo, runAction, gitApi: { diff: vi.fn(async () => "") } }
+    const deps = { lang: "en" as const, repo }
     expect(unstableAfterRerender(() => useStagingDiff(deps) as unknown as Record<string, unknown>)).toEqual([])
   })
 
   it("useStagingBlame", () => {
-    const deps = { lang: "en" as const, repo, runAction, gitApi: { blame: vi.fn(async () => ({})) } }
+    const deps = { repo }
     expect(unstableAfterRerender(() => useStagingBlame(deps) as unknown as Record<string, unknown>)).toEqual([])
   })
 })

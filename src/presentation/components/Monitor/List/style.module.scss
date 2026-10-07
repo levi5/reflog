@@ -49,6 +49,14 @@
   white-space: nowrap;
 }
 
+.itemText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
 .itemContent small {
   font-size: var(--font-sm);
   color: var(--muted);

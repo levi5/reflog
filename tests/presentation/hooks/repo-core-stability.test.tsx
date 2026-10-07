@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { MessageProvider } from "../../../src/presentation/context"
 import { useRepoCore } from "../../../src/presentation/hooks/repository/useRepoCore"
-import type { IGitApi } from "../../../src/presentation/infrastructure/git/types"
+import type { IGitApi } from "../../../src/infrastructure/git/types"
 
 function wrapper({ children }: { children: ReactNode }) {
   return <MessageProvider>{children}</MessageProvider>

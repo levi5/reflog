@@ -212,12 +212,14 @@ validated as repo-relative.
 | `git_pull` | Pull (sets upstream to `origin/<branch>` and retries if missing) |
 | `git_fetch` | Fetch all remotes (optional `--prune`) |
 | `git_merge_abort` | Abort merge |
-| `git_stash` | Create stash |
+| `git_stash` | Create stash (`push` with `--staged` / `--keep-index` / pathspec) |
 | `git_stash_pop` | Pop stash |
 | `git_stash_list` | List stashes |
 | `git_stash_drop` | Drop stash |
 | `git_stash_show` | Show stash contents |
 | `git_stash_apply` | Apply stash |
+| `git_stash_branch` | Create branch from stash (`stash branch`) |
+| `git_stash_apply_file` | Restore single file from stash (`restore --source` / `checkout`) |
 
 #### Rebase (`commands/rebase.rs`)
 
