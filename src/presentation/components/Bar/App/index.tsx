@@ -8,7 +8,6 @@ import {
   BookOpen,
   ChevronDown,
   FolderGit2,
-  FolderOpen,
   GitBranch,
   Layers,
   RefreshCw,
@@ -188,14 +187,6 @@ function AppBar() {
           onSelectProfile={profiles.apply}
           onDeleteProfile={profiles.remove}
         />
-        <NavToggleButton
-          title={t("openRepo")}
-          ariaLabel={t("openRepo")}
-          isActive={false}
-          onToggle={() => repo.setRepoInput("")}
-        >
-          <FolderOpen size={14} />
-        </NavToggleButton>
         <NavToggleButton
           title={t("refresh")}
           ariaLabel={t("refresh")}
