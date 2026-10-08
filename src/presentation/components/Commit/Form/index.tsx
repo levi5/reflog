@@ -1,9 +1,7 @@
 import {
-  Bookmark,
   BookOpen,
   Bug,
   Cog,
-  FileText,
   FlaskConical,
   Hammer,
   Package,
@@ -14,12 +12,11 @@ import {
   Undo2,
   Wand2,
 } from "lucide-react"
-import type { ReactNode } from "react"
 import type { CommitType } from "../../../../domain/entities/commit/commit-template"
-import { COMMIT_TYPES, SUBJECT_LIMIT } from "../../../../shared/constants/commit/commitTemplate"
+import { SUBJECT_LIMIT } from "../../../../shared/constants/commit/commitTemplate"
 import type { CommitTemplateApi } from "../../../hooks"
-import type { StringKey } from "../../../../i18n"
 import { useTranslation } from "../../../context"
+import { buildTemplateOptions, buildTypeOptions, handlePickTemplate } from "./options"
 import { EmojiPicker } from "../../Picker/Emoji"
 import { Select } from "../../Select"
 import { Switch } from "../../Switch"
@@ -44,63 +41,6 @@ export const TYPE_ICONS: Record<CommitTypeExtended, typeof Sparkles> = {
 interface CommitFormProps {
   api: CommitTemplateApi
   compact?: boolean
-}
-
-type Translate = (key: StringKey) => string
-
-function buildTypeOptions(
-  translate: Translate,
-  useIcons: boolean,
-): { value: string; label: string; icon?: ReactNode }[] {
-  return [
-    { value: "", label: translate("commitNoType") },
-    ...COMMIT_TYPES.map((commitType) => {
-      const TypeIcon = TYPE_ICONS[commitType]
-      return {
-        value: commitType,
-        label: commitType,
-        icon: useIcons && TypeIcon ? <TypeIcon size={13} aria-hidden /> : undefined,
-      }
-    }),
-  ]
-}
-
-interface TemplateOption {
-  value: string
-  label: string
-  icon?: ReactNode
-}
-
-function buildTemplateOptions(api: CommitTemplateApi): {
-  options: TemplateOption[]
-  currentValue: string
-} {
-  const options: TemplateOption[] = [
-    ...api.presets.map((preset) => ({
-      value: `preset:${preset.id}`,
-      label: preset.scope ? `${preset.name} (${preset.scope})` : preset.name,
-      icon: <Bookmark size={13} aria-hidden />,
-    })),
-    ...api.docs.map((doc) => ({
-      value: `doc:${doc.id}`,
-      label: doc.name,
-      icon: <FileText size={13} aria-hidden />,
-    })),
-  ]
-  const currentValue = `doc:${api.activeDocId}`
-  return { options, currentValue }
-}
-
-function handlePickTemplate(api: CommitTemplateApi, selectedValue: string) {
-  if (selectedValue.startsWith("preset:")) {
-    const preset = api.presets.find((candidate) => candidate.id === selectedValue.slice(7))
-    if (preset) api.applyPreset(preset)
-    return
-  }
-  if (selectedValue.startsWith("doc:")) {
-    const doc = api.docs.find((candidate) => candidate.id === selectedValue.slice(4))
-    if (doc) api.applyDocTemplate(doc)
-  }
 }
 
 function CommitTypeRow({ api }: { api: CommitTemplateApi }) {
