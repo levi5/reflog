@@ -64,15 +64,14 @@ function CommitTypeRow({ api }: { api: CommitTemplateApi }) {
         placeholder={t("commitScope")}
         onChange={(event) => api.setField("scope", event.target.value)}
       />
-      <label className={styles.check} title={t("breakingChange")}>
-        <input
-          type="checkbox"
-          checked={api.fields.breaking}
-          aria-label={t("breakingChange")}
-          onChange={(event) => api.setField("breaking", event.target.checked)}
-        />
-        <span aria-hidden>!</span>
-      </label>
+      <Switch
+        size="sm"
+        checked={api.fields.breaking}
+        onChange={(value) => api.setField("breaking", value)}
+        label="!"
+        ariaLabel={t("breakingChange")}
+        title={t("breakingChange")}
+      />
       {api.branch && api.canInfer && (
         <button
           type="button"

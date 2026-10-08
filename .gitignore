@@ -22,6 +22,7 @@ dist-ssr
 *.sw?
 dist
 tsconfig.tsbuildinfo
+tsconfig.node.tsbuildinfo
 
 test-results
 playwright-report

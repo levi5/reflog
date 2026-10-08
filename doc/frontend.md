@@ -122,12 +122,14 @@ The sidebar and header components themselves live under
   `Button.Action` (icon + label) and square `Button.IconAction` primitives
 - `Modal/` - Accessible modals (focus trap, Esc, backdrop close)
 - `Dialog/` - Confirm/prompt dialogs built on the modal stack
-- `Drawer/` - Side panels
+- `Drawer/` - Side panels, plus the `SearchField` and `ShortcutHints` pieces they share
 - `Tabs/` - Tabs
 - `Select/` - Custom dropdowns
 - `Toast/` - Notifications
 - `Pagination/`, `Skeleton/`, `Resizable/`, `Accordion/`, `Form/` - Paging, loading skeletons, split layouts, disclosure, inline forms
-- `Switch/`, `Search/`, `Command/` - Toggles, search box, palette
+- `Switch/` - The only toggle primitive: every labelled on/off control (sign-off,
+  GPG, stash options, submodule sync) renders through it, never a bare
+  checkbox. `Search/`, `Command/` - Search box, palette
 - `List/` - List primitives, including `List.Paged`
 - `Code/`, `Picker/`, `Wrapper/`, `Animation/` - Highlighting, pickers, layout helpers, spinners
 
@@ -383,7 +385,9 @@ resolution, semver, graph layout, commit-template round-trip, command-palette
 fuzzy matching, shared utils, theme/accent/contrast tokens, the modal stack,
 reduced motion, staging and discard semantics, repository action wiring
 (through an injected `IGitApi`), context providers, and a set of component
-renders, the silent-refresh cheap-path, and hidden-tab polling pauses.
+renders, the silent-refresh cheap-path, and hidden-tab polling pauses. The
+shared buttons, the commit detail hook and the side panels are covered too,
+the latter locking every toggle to `role="switch"`.
 E2E exists as a Playwright smoke suite for the static landing site
 (`e2e/`, `pnpm test:e2e`) — the only surface that runs without the Tauri
 runtime. App-level flows (staging, merge, rebase) stay on Vitest +
