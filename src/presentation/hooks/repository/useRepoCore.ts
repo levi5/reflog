@@ -4,12 +4,11 @@ import { useCallback, useMemo, useState } from "react"
 import { formatMessage, t } from "../../../i18n"
 import { gitApi as defaultGitApi } from "../../../infrastructure/git"
 import type { IGitApi } from "../../../infrastructure/git/types"
-import type { CommitInfo, CommitFileChange, Lang } from "../../../types"
-import type { LogFilter } from "../../../infrastructure/git/ipc-client"
-import type { CompareRefsResult } from "./useRepository"
+import type { Lang } from "../../../types"
 import { useMessageActions } from "../../context"
 import { useBranchOps } from "../branch/useBranchOps"
 import type { RunAction } from "./action-types"
+import { useCommitReads } from "./useCommitReads"
 import { useGitAction } from "./useGitAction"
 import { useUndoStack } from "../ui/useUndoStack"
 import { useRepositoryData } from "./useRepositoryData"
@@ -166,46 +165,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     [git, gitAction],
   )
 
-  const loadCommitFiles = useCallback(
-    (hash: string): Promise<CommitFileChange[]> => (repo && hash ? git.commitFiles(repo, hash) : Promise.resolve([])),
-    [repo, git],
-  )
-
-  const loadCommitDiff = useCallback(
-    (hash: string, file?: string) => (repo && hash ? git.commitDiff(repo, hash, file) : Promise.resolve("")),
-    [repo, git],
-  )
-
-  const compareRefs = useCallback(
-    async (base: string, target: string): Promise<CompareRefsResult> => {
-      if (!repo) return { base, target, mergeBase: "", files: [], ahead: [], behind: [], diff: "" }
-      const mergeBase = await git.mergeBase(repo, base, target)
-      const [files, ahead, behind, diff] = await Promise.all([
-        git.diffStatFiles(repo, base, target),
-        git.commitsAhead(repo, base, target, 100),
-        git.commitsBehind(repo, base, target, 100),
-        git.diffRefs(repo, base, target, false),
-      ])
-      return {
-        base,
-        target,
-        mergeBase,
-        files,
-        ahead,
-        behind,
-        diff,
-      }
-    },
-    [repo, git],
-  )
-
-  const searchHistory = useCallback(
-    async (filter: LogFilter, view: "log" | "graph", limit = 100): Promise<CommitInfo[]> => {
-      if (!repo) return []
-      return view === "graph" ? git.searchGraph(repo, filter, limit) : git.searchLog(repo, filter, limit)
-    },
-    [repo, git],
-  )
+  const { loadCommitFiles, loadCommitDiff, compareRefs, searchHistory } = useCommitReads({ repo, git })
 
   const openTerminalHint = useCallback(async () => {
     const target = status?.root ?? repo
