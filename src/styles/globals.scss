@@ -320,6 +320,7 @@ button {
   cursor: pointer;
   font-size: 1.2rem;
   font-family: inherit;
+  white-space: nowrap;
   backdrop-filter: var(--surface-filter);
   -webkit-backdrop-filter: var(--surface-filter);
   box-shadow: 0 0 0 1px var(--surface-ring) inset;

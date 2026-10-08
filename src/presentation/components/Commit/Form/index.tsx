@@ -22,6 +22,7 @@ import type { StringKey } from "../../../../i18n"
 import { useTranslation } from "../../../context"
 import { EmojiPicker } from "../../Picker/Emoji"
 import { Select } from "../../Select"
+import { Switch } from "../../Switch"
 import styles from "./style.module.scss"
 
 type CommitTypeExtended = CommitType | "chore" | "revert"
@@ -214,22 +215,22 @@ function CommitBodyFields({ api }: { api: CommitTemplateApi }) {
         />
       </div>
       <div className={styles.row}>
-        <label className={styles.check} title={t("commitSignoffHint")}>
-          <input
-            type="checkbox"
-            checked={api.fields.signoff}
-            onChange={(event) => api.setField("signoff", event.target.checked)}
-          />
-          <span>{t("commitSignoff")}</span>
-        </label>
-        <label className={styles.check} title={t("commitSignHint")}>
-          <input
-            type="checkbox"
-            checked={api.fields.sign}
-            onChange={(event) => api.setField("sign", event.target.checked)}
-          />
-          <span>{t("commitSign")}</span>
-        </label>
+        <Switch
+          size="sm"
+          checked={api.fields.signoff}
+          onChange={(value) => api.setField("signoff", value)}
+          label={t("commitSignoff")}
+          ariaLabel={t("commitSignoff")}
+          title={t("commitSignoffHint")}
+        />
+        <Switch
+          size="sm"
+          checked={api.fields.sign}
+          onChange={(value) => api.setField("sign", value)}
+          label={t("commitSign")}
+          ariaLabel={t("commitSign")}
+          title={t("commitSignHint")}
+        />
       </div>
     </>
   )
