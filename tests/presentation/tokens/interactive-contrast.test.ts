@@ -1,11 +1,10 @@
-import { readFileSync } from "node:fs"
-import path from "node:path"
-
 import { describe, expect, it } from "vitest"
 
 import { contrastRatio, MIN_TEXT_CONTRAST } from "../../../src/shared/constants/accent"
+import { flattenColor } from "../helpers/colors"
+import { readGlobalStyles } from "../helpers/source-files"
 
-const GLOBALS = readFileSync(path.resolve(import.meta.dirname, "../../../src/styles/globals.scss"), "utf8")
+const GLOBALS = readGlobalStyles()
 
 function blockBody(selector: string): string {
   const start = GLOBALS.indexOf(selector)
@@ -115,18 +114,25 @@ function declaration(body: string, property: string): string | null {
   return match ? match[1].trim() : null
 }
 
+interface HoverCandidate {
+  selector: string
+  value: string
+  index: number
+}
+
 function hoverBackground(buttonClass: string): string | null {
-  let winner: { selector: string; value: string; index: number } | null = null
+  const winner: { current: HoverCandidate | null } = { current: null }
   const consider = (selector: string, index: number) => {
     const rule = RULES.find((candidate) => candidate.selectors.includes(selector))
     if (!rule) return
     const value = declaration(rule.body, "background")
     if (value === null) return
-    if (winner === null || beats(selector, winner.selector)) {
-      winner = { selector, value, index }
-    } else if (!beats(winner.selector, selector) && index > winner.index) {
-      winner = { selector, value, index }
-    }
+    const current = winner.current
+    const wins =
+      current === null ||
+      beats(selector, current.selector) ||
+      (!beats(current.selector, selector) && index > current.index)
+    if (wins) winner.current = { selector, value, index }
   }
   for (const hover of HOVER_RULES) {
     if (hover.selector.startsWith(`button.${buttonClass}:`) || hover.selector === `button.${buttonClass}`) {
@@ -144,7 +150,7 @@ function hoverBackground(buttonClass: string): string | null {
       if (rule) consider(resting.selector, rule.index)
     }
   }
-  return winner?.value ?? null
+  return winner.current?.value ?? null
 }
 
 const ON_COLOR = ["primary", "push", "success", "complete-btn"]
@@ -192,50 +198,61 @@ describe("interaction tokens with AA contrast", () => {
 
   it("--on-primary on --primary", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
-      const ratio = contrastRatio(tokens["--on-primary"], tokens["--primary"])
-      expect(`${name} ${ratio.toFixed(2)}`).toBeTruthy()
-      expect(ratio).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+      expect(
+        contrastRatio(tokens["--on-primary"], tokens["--primary"]),
+        `${name} --on-primary on --primary`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
     }
   })
 
   it("--red on --red-container and --red-dim", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
-      expect(`${name} container`, true).toBeTruthy()
-      expect(contrastRatio(tokens["--red"], tokens["--red-container"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
-      expect(`${name} dim ${contrastRatio(tokens["--red"], tokens["--red-dim"]).toFixed(2)}`, true).toBeTruthy()
+      expect(
+        contrastRatio(tokens["--red"], tokens["--red-container"]),
+        `${name} --red on --red-container`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+      expect(
+        contrastRatio(tokens["--red"], flattenColor(tokens["--red-dim"], tokens["--bg-panel"])),
+        `${name} --red on --red-dim`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
     }
   })
 
   it("--fg on hover and resting surfaces", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
-      expect(`${name} hover`, true).toBeTruthy()
-      expect(contrastRatio(tokens["--fg"], tokens["--surface-hover"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
-      expect(contrastRatio(tokens["--fg"], tokens["--surface"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+      expect(
+        contrastRatio(tokens["--fg"], tokens["--surface-hover"]),
+        `${name} --fg on --surface-hover`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+      expect(contrastRatio(tokens["--fg"], tokens["--surface"]), `${name} --fg on --surface`).toBeGreaterThanOrEqual(
+        MIN_TEXT_CONTRAST,
+      )
     }
   })
 
   it("--primary-text on light and dark surfaces", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
       expect(
-        `${name} ${contrastRatio(tokens["--primary-text"], tokens["--surface-hover"]).toFixed(2)}`,
-        true,
-      ).toBeTruthy()
-      expect(contrastRatio(tokens["--primary-text"], tokens["--surface-hover"])).toBeGreaterThanOrEqual(
-        MIN_TEXT_CONTRAST,
-      )
-      expect(contrastRatio(tokens["--primary-text"], tokens["--surface"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+        contrastRatio(tokens["--primary-text"], tokens["--surface-hover"]),
+        `${name} --primary-text on --surface-hover`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+      expect(
+        contrastRatio(tokens["--primary-text"], tokens["--surface"]),
+        `${name} --primary-text on --surface`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
     }
   })
 
   it("--muted and --faint on --surface-hover", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
-      expect(`${name} muted`, true).toBeTruthy()
-      expect(contrastRatio(tokens["--muted"], tokens["--surface-hover"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
       expect(
-        `${name} faint ${contrastRatio(tokens["--faint"], tokens["--surface-hover"]).toFixed(2)}`,
-        true,
-      ).toBeTruthy()
-      expect(contrastRatio(tokens["--faint"], tokens["--surface-hover"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+        contrastRatio(tokens["--muted"], tokens["--surface-hover"]),
+        `${name} --muted on --surface-hover`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+      expect(
+        contrastRatio(tokens["--faint"], tokens["--surface-hover"]),
+        `${name} --faint on --surface-hover`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
     }
   })
 })

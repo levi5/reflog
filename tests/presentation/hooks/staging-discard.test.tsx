@@ -1,6 +1,7 @@
 import { renderToString } from "react-dom/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { FileStatus } from "../../../src/types"
+import type { RunAction } from "../../../src/presentation/hooks/repository/action-types"
 
 const gitMock = {
   diff: vi.fn(),
@@ -27,7 +28,7 @@ const tracked = (x: string, y: string, path: string): FileStatus => ({
 })
 
 function renderStaging(confirmed = true) {
-  const runAction = vi.fn(async (work: () => Promise<unknown>) => {
+  const runAction = vi.fn<RunAction>(async (work) => {
     await work()
   })
   const requestConfirm = vi.fn().mockResolvedValue(confirmed)

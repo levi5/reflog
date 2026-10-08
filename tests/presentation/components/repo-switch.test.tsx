@@ -15,7 +15,7 @@ const submodule = (path: string, state = " ", behind = 0): SubmoduleInfo => ({
   behind,
 })
 
-function render(node: React.ReactNode) {
+function render(node: React.ReactElement) {
   return renderString(node, { lang: "en" })
 }
 

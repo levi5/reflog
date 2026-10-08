@@ -11,6 +11,10 @@ import {
 import type { CanvasGraphLayout, GraphEdge, GraphNode } from "../../../../src/domain/entities/graph/graph-layout"
 import type { CommitInfo } from "../../../../src/types"
 
+function makeEdge(fromRow: number, toRow: number, toLane: number = 0): GraphEdge {
+  return { fromLane: 0, fromRow, toLane, toRow, merge: false }
+}
+
 function makeDummyCommit(hash: string, message: string): CommitInfo {
   return {
     hash,
@@ -48,12 +52,7 @@ describe("canvas-layout on-demand rendering", () => {
     const point = nodePoint(node)
     expect(point.y).toBe(CANVAS_PADDING + 2 * ROW_HEIGHT + ROW_HEIGHT / 2)
 
-    const edge: GraphEdge = {
-      fromLane: 0,
-      fromRow: 0,
-      toLane: 0,
-      toRow: 1,
-    }
+    const edge = makeEdge(0, 1)
     const shape = edgeShape(edge)
     expect(shape.path).toContain("M")
     expect(shape.path).toContain("C")
@@ -131,19 +130,19 @@ describe("canvas-layout on-demand rendering", () => {
     const startRow = 20
     const endRow = 40
 
-    const aboveEdge: GraphEdge = { fromLane: 0, fromRow: 5, toLane: 0, toRow: 10 }
+    const aboveEdge = makeEdge(5, 10)
     expect(isEdgeVisible(aboveEdge, startRow, endRow)).toBe(false)
 
-    const belowEdge: GraphEdge = { fromLane: 0, fromRow: 45, toLane: 0, toRow: 50 }
+    const belowEdge = makeEdge(45, 50)
     expect(isEdgeVisible(belowEdge, startRow, endRow)).toBe(false)
 
-    const insideEdge: GraphEdge = { fromLane: 0, fromRow: 25, toLane: 1, toRow: 30 }
+    const insideEdge = makeEdge(25, 30, 1)
     expect(isEdgeVisible(insideEdge, startRow, endRow)).toBe(true)
 
-    const crossingEdge: GraphEdge = { fromLane: 0, fromRow: 10, toLane: 0, toRow: 50 }
+    const crossingEdge = makeEdge(10, 50)
     expect(isEdgeVisible(crossingEdge, startRow, endRow)).toBe(true)
 
-    const enteringEdge: GraphEdge = { fromLane: 0, fromRow: 35, toLane: 0, toRow: 45 }
+    const enteringEdge = makeEdge(35, 45)
     expect(isEdgeVisible(enteringEdge, startRow, endRow)).toBe(true)
   })
 })

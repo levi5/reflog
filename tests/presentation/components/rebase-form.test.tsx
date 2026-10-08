@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { TranslationProvider } from "../../../src/presentation/context/translation/translation-context"
 import { RebaseForm } from "../../../src/presentation/components/Merge/Rebase/Form"
-import type { CommitInfo } from "../../../src/types"
+import type { CommitInfo, RebaseOp } from "../../../src/types"
 
 function commit(hash: string, message: string): CommitInfo {
   return {
@@ -67,7 +67,7 @@ describe("RebaseForm preserves the user-chosen plan", () => {
     await applyRebase()
 
     const [, ops] = onApply.mock.calls[0]
-    expect(ops.map((op) => op.hash)).toEqual(["ccc333", "aaa111", "bbb222"])
+    expect(ops.map((op: RebaseOp) => op.hash)).toEqual(["ccc333", "aaa111", "bbb222"])
   })
 
   it("keeps typed onto text when defaultOnto does not change", async () => {

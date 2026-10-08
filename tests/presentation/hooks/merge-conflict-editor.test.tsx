@@ -8,7 +8,7 @@ import type { RunAction } from "../../../src/presentation/hooks/repository/actio
 const repo = "/tmp/repo"
 
 function conflict(path: string, content: string): ConflictFile {
-  return { path, content, conflicts: 1 }
+  return { path, abs_path: `/repo/${path}`, content, conflicts: [] }
 }
 
 function renderMerge(initial: ConflictFile[]) {

@@ -32,8 +32,9 @@ describe("theme text tokens", () => {
   it("--faint reaches AA on both panel surfaces in every theme", () => {
     for (const [name, theme] of Object.entries(THEMES)) {
       for (const surface of [theme.panel, theme.panel2]) {
-        expect(`${name} ${contrastRatio(theme.faint, surface)}`, true).toBeTruthy()
-        expect(contrastRatio(theme.faint, surface)).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+        expect(contrastRatio(theme.faint, surface), `${name} --faint on ${surface}`).toBeGreaterThanOrEqual(
+          MIN_TEXT_CONTRAST,
+        )
       }
     }
   })
@@ -41,8 +42,9 @@ describe("theme text tokens", () => {
   it("--muted reaches AA on both panel surfaces in every theme", () => {
     for (const [name, theme] of Object.entries(THEMES)) {
       for (const surface of [theme.panel, theme.panel2]) {
-        expect(`${name} ${contrastRatio(theme.muted, surface)}`, true).toBeTruthy()
-        expect(contrastRatio(theme.muted, surface)).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+        expect(contrastRatio(theme.muted, surface), `${name} --muted on ${surface}`).toBeGreaterThanOrEqual(
+          MIN_TEXT_CONTRAST,
+        )
       }
     }
   })
@@ -50,23 +52,28 @@ describe("theme text tokens", () => {
   it("--green reaches AA on both panel surfaces in every theme", () => {
     for (const [name, theme] of Object.entries(THEMES)) {
       for (const surface of [theme.panel, theme.panel2]) {
-        expect(`${name} ${contrastRatio(theme.green, surface)}`, true).toBeTruthy()
-        expect(contrastRatio(theme.green, surface)).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+        expect(contrastRatio(theme.green, surface), `${name} --green on ${surface}`).toBeGreaterThanOrEqual(
+          MIN_TEXT_CONTRAST,
+        )
       }
     }
   })
 
   it("primary button labels reach AA on the accent fill", () => {
     for (const [name, theme] of Object.entries(THEMES)) {
-      expect(`${name} ${contrastRatio(theme.onAccent, theme.grapeBtn)}`, true).toBeTruthy()
-      expect(contrastRatio(theme.onAccent, theme.grapeBtn)).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
+      expect(
+        contrastRatio(theme.onAccent, theme.grapeBtn),
+        `${name} --on-accent on --grape-btn`,
+      ).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
     }
   })
 
   it("form borders are visible against the panel (UI contrast)", () => {
     for (const [name, theme] of Object.entries(THEMES)) {
-      expect(`${name} ${contrastRatio(theme.borderInput, theme.panel)}`, true).toBeTruthy()
-      expect(contrastRatio(theme.borderInput, theme.panel)).toBeGreaterThanOrEqual(1.5)
+      expect(
+        contrastRatio(theme.borderInput, theme.panel),
+        `${name} --border-input on --bg-panel`,
+      ).toBeGreaterThanOrEqual(1.5)
     }
   })
 
