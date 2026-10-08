@@ -1,7 +1,6 @@
 import { ArrowRight, OctagonX, TriangleAlert } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Outlet, useLocation, useNavigate } from "react-router-dom"
-import { listen } from "@tauri-apps/api/event"
 
 import { Bar } from "../../components/Bar"
 import { Command } from "../../components/Command"
@@ -14,13 +13,12 @@ import { Windows } from "../../components/Window"
 
 import { SearchProvider, useMessage, useRepo, useSettingsContext } from "../../context"
 import { t } from "../../../i18n"
-import { gitApi } from "../../../infrastructure/git"
 import { useAltShortcut, useAutoRefresh, useGlobalShortcuts, useProfiles } from "../../hooks"
 import { modalStackDepth } from "../../hooks/ui/useModalStack"
-import { VIEW_LABELS, VIEW_TABS } from "../../../shared/constants"
-import type { TabItem } from "../../../types/components"
 import type { View } from "../../hooks"
 
+import { useCliOpenPath } from "./useCliOpenPath"
+import { buildViewTabs } from "./viewTabs"
 import styles from "./styles.module.scss"
 
 export interface AppOutletContext {
@@ -61,24 +59,14 @@ export function AppLayout() {
     setMsg: repo.setMsg,
   })
 
-  const viewTabItems: TabItem<View>[] = useMemo(() => {
-    const getBadgeCount = (v: View): number =>
-      v === "merge" ? repo.stats.remainingHunks : v === "staging" ? (repo.status?.files.length ?? 0) : 0
-
-    const isAlert = (v: View): boolean => v === "merge" && repo.stats.remainingHunks > 0
-
-    return VIEW_TABS.map(({ id, icon: Icon }) => {
-      const count = getBadgeCount(id)
-      return {
-        id,
-        label: t(lang, VIEW_LABELS[id]),
-        icon: <Icon size={13} />,
-        count: count > 0 ? count : undefined,
-        alert: isAlert(id),
-        title: id === "merge" ? t(lang, "conflictsDetected") : id === "staging" ? t(lang, "stagingDiff") : undefined,
-      }
-    })
-  }, [lang, repo.stats.remainingHunks, repo.status?.files.length])
+  const viewTabItems = useMemo(
+    () =>
+      buildViewTabs(lang, {
+        remainingHunks: repo.stats.remainingHunks,
+        changedFiles: repo.status?.files.length ?? 0,
+      }),
+    [lang, repo.stats.remainingHunks, repo.status?.files.length],
+  )
 
   useEffect(() => {
     if (!repo.msg) return
@@ -95,35 +83,10 @@ export function AppLayout() {
     void navigate("/merge")
   }, [repo.conflicts.length, repo.repo, isWelcome, location.pathname, navigate])
 
-  useEffect(() => {
-    let disposed = false
-    let unlisten: (() => void) | undefined
-    const openCliPath = async (path: string) => {
-      if (!path.trim()) return
-      const ok = await repo.handleOpen(path)
-      if (ok && !disposed) {
-        navigate("/staging", { replace: true })
-      }
-    }
-
-    void listen<string>("cli-open-path", ({ payload }) => void openCliPath(payload))
-      .then((stop) => {
-        if (disposed) stop()
-        else unlisten = stop
-      })
-      .catch(() => undefined)
-    void gitApi
-      .takeCliPath()
-      .then((path) => {
-        if (!disposed && path) void openCliPath(path)
-      })
-      .catch(() => undefined)
-
-    return () => {
-      disposed = true
-      unlisten?.()
-    }
-  }, [repo.handleOpen, navigate])
+  useCliOpenPath({
+    openPath: repo.handleOpen,
+    onOpened: () => navigate("/staging", { replace: true }),
+  })
 
   useAltShortcut("p", profiles.cycle)
 
