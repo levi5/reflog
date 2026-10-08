@@ -1,8 +1,7 @@
-import { commitMarkdownUseCase, commitTemplateUseCase } from "../../../data"
 import { useCallback, useMemo, useRef, useState } from "react"
 import type { TemplateDoc } from "../../../domain/entities/commit/commit-markdown"
 import { BUILTIN_DOCS, STANDARD_ID } from "../../../shared/constants/commit/commitMarkdown"
-import type { CommitFields, CommitPreset } from "../../../domain/entities/commit/commit-template"
+import type { CommitPreset } from "../../../domain/entities/commit/commit-template"
 import { t } from "../../../i18n"
 import { DEFAULT_TEMPLATE_FOLDER, gitApi } from "../../../infrastructure/git"
 import { newId } from "../../../shared/utils/id"
@@ -11,6 +10,7 @@ import { cleanTemplateFileName, serializeTemplateDoc, type ViewTab } from "../..
 import type { TemplateStartMode } from "../../components/Template/CreateDialog"
 import { BLANK_START } from "../../components/Template/CreateDialog"
 import { useCommitConfig, useTranslation } from "../../context"
+import { useCommitPresets } from "./useCommitPresets"
 import { useTemplateDocs } from "./useTemplateDocs"
 
 interface UseTemplateManagerOptions {
@@ -203,63 +203,14 @@ export function useTemplateManager({ lang: propLang, repoPath }: UseTemplateMana
     [draft],
   )
 
-  const handleAddPreset = useCallback(
-    (preset: CommitPreset) => {
-      savePresets([...presets, preset])
-    },
-    [presets, savePresets],
-  )
-
-  const handleStartEditPreset = useCallback((preset: CommitPreset) => {
-    setEditingPreset(preset)
-    setViewTab("presets")
-  }, [])
-
-  const handleCancelEditPreset = useCallback(() => {
-    setEditingPreset(null)
-  }, [])
-
-  const handleUpdatePreset = useCallback(
-    (preset: CommitPreset) => {
-      savePresets(presets.map((candidate) => (candidate.id === preset.id ? preset : candidate)))
-      setEditingPreset(null)
-    },
-    [presets, savePresets],
-  )
-
-  const handleDeletePreset = useCallback(
-    (id: string) => {
-      savePresets(presets.filter((candidate) => candidate.id !== id))
-      setEditingPreset((current) => (current?.id === id ? null : current))
-    },
-    [presets, savePresets],
-  )
-
-  const livePreview = useMemo(() => {
-    if (!draft) return ""
-    const sampleFields: CommitFields = {
-      type: draft.defaults.type || "feat",
-      scope: draft.defaults.scope || "app",
-      subject: "implement commit templates UI",
-      body: "Add template editor with live preview, variable chips and commit preferences.",
-      footer: "Refs #42",
-      breaking: false,
-      coauthor: "Reflog Team <team@reflog.dev>",
-      signoff: false,
-      sign: false,
-    }
-
-    if (!draft.pattern) {
-      return commitTemplateUseCase.formatCommit(sampleFields)
-    }
-
-    const vars = commitMarkdownUseCase.buildVars(sampleFields, {
-      branch: "feat/PROJ-1234-templates",
-      author: identity.name || "Reflog User",
-      email: identity.email || "user@example.com",
-    })
-    return commitMarkdownUseCase.renderTemplate(draft.pattern, vars)
-  }, [draft, identity])
+  const {
+    addPreset: handleAddPreset,
+    startEditPreset: handleStartEditPreset,
+    cancelEditPreset: handleCancelEditPreset,
+    updatePreset: handleUpdatePreset,
+    deletePreset: handleDeletePreset,
+    livePreview,
+  } = useCommitPresets({ presets, savePresets, setEditingPreset, setViewTab, draft, identity })
 
   return {
     viewTab,
