@@ -1,4 +1,3 @@
-import classnames from "classnames"
 import { Check, FileCode, Sparkles, Trash2 } from "lucide-react"
 
 import { List } from "../../List"
@@ -7,6 +6,7 @@ import type { TemplateDoc, CommitPrefs } from "@/domain/entities"
 
 import styles from "./style.module.scss"
 import { useTranslation } from "@/presentation/context"
+import { IconActionButton } from "../../Button"
 
 const TEMPLATES_PER_PAGE = 10
 
@@ -72,14 +72,12 @@ export function TemplateList({
         </button>
         {hasActions && (
           <div className={styles.itemActions}>
-            <button
-              type="button"
-              className={classnames(styles.actionBtn, styles.danger)}
+            <IconActionButton
+              icon={<Trash2 size={15} />}
+              tone="danger"
               onClick={() => onDeleteTemplate?.(doc)}
-              aria-label={t("templateDelete")}
-            >
-              <Trash2 size={15} />
-            </button>
+              label={t("templateDelete")}
+            />
           </div>
         )}
       </>

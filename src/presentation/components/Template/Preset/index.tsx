@@ -1,11 +1,11 @@
 import { Pencil, Trash2 } from "lucide-react"
-import classnames from "classnames"
 
 import { List } from "../../List"
 import type { CommitPreset } from "@/domain/entities"
 import { useTranslation } from "@/presentation/context"
 
 import styles from "./style.module.scss"
+import { IconActionButton } from "../../Button"
 
 const PRESETS_PER_PAGE = 100
 
@@ -38,25 +38,14 @@ export function PresetList({ presets, onDeletePreset, onEditPreset }: PresetList
       </div>
       <div className={styles.itemActions}>
         {onEditPreset && (
-          <button
-            type="button"
-            className={styles.actionBtn}
-            onClick={() => onEditPreset(preset)}
-            aria-label={t("presetEdit")}
-            title={t("presetEdit")}
-          >
-            <Pencil size={14} />
-          </button>
+          <IconActionButton icon={<Pencil size={14} />} onClick={() => onEditPreset(preset)} label={t("presetEdit")} />
         )}
-        <button
-          type="button"
-          className={classnames(styles.actionBtn, styles.danger)}
+        <IconActionButton
+          icon={<Trash2 size={14} />}
+          tone="danger"
           onClick={() => onDeletePreset(preset.id)}
-          aria-label={t("presetDelete")}
-          title={t("presetDelete")}
-        >
-          <Trash2 size={14} />
-        </button>
+          label={t("presetDelete")}
+        />
       </div>
     </>
   )

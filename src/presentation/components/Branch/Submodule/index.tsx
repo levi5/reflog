@@ -1,8 +1,9 @@
 import classnames from "classnames"
-import { Check, FolderOpen, RefreshCw } from "lucide-react"
+import { Check, FolderOpen, Plus, RefreshCw, Trash2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "../../../context"
 import type { SubmoduleInfo } from "../../../../types"
+import { ActionButton } from "../../Button"
 import { EmptyState } from "../../Empty/State"
 import styles from "./style.module.scss"
 import { hasOutdated, isKnownSubmoduleState, isOutdated, submoduleStateView, submodulesChanged } from "./state"
@@ -13,13 +14,26 @@ const CONFIRMATION_MS = 1500
 interface SubmodulePanelProps {
   submodules: SubmoduleInfo[]
   onUpdate: (submodulePath?: string) => void
+  onSync?: () => void
+  onAdd?: (url: string, path: string) => void
+  onRemove?: (path: string) => void
   onOpen?: (path: string) => void
   busy?: boolean
 }
 
-export function SubmodulePanel({ submodules, onUpdate, onOpen, busy = false }: SubmodulePanelProps) {
+export function SubmodulePanel({
+  submodules,
+  onUpdate,
+  onSync,
+  onAdd,
+  onRemove,
+  onOpen,
+  busy = false,
+}: SubmodulePanelProps) {
   const { t } = useTranslation()
   const [updatedTarget, setUpdatedTarget] = useState<string | null>(null)
+  const [addUrl, setAddUrl] = useState("")
+  const [addPath, setAddPath] = useState("")
   const requestRef = useRef<{ modules: SubmoduleInfo[]; target: string } | null>(null)
 
   useEffect(() => {
@@ -44,23 +58,69 @@ export function SubmodulePanel({ submodules, onUpdate, onOpen, busy = false }: S
     return <RefreshCw size={11} className={outdated ? styles.targetOutdated : undefined} />
   }
 
+  const submitAdd = () => {
+    if (!addUrl.trim() || !addPath.trim()) return
+    onAdd?.(addUrl.trim(), addPath.trim())
+    setAddUrl("")
+    setAddPath("")
+  }
+
   return (
     <div className={styles.submoduleContainer}>
       <div className={styles.topBar}>
         <span className={styles.title}>{t("submodules")}</span>
+        {onSync && (
+          <ActionButton
+            size="md"
+            icon={<RefreshCw size={11} />}
+            disabled={busy}
+            onClick={onSync}
+            title={t("submoduleSyncHint")}
+            ariaLabel={t("submoduleSync")}
+          >
+            {t("submoduleSync")}
+          </ActionButton>
+        )}
         {submodules.length > 0 && (
-          <button
-            type="button"
-            className={styles.updateAllBtn}
+          <ActionButton
+            size="md"
+            icon={updateIcon(ALL_SUBMODULES, outdatedAll)}
             disabled={busy}
             onClick={() => requestUpdate(ALL_SUBMODULES)}
             title={t("submoduleUpdate")}
-            aria-label={t("submoduleUpdate")}
+            ariaLabel={t("submoduleUpdate")}
           >
-            {updateIcon(ALL_SUBMODULES, outdatedAll)} {t("submoduleUpdate")}
-          </button>
+            {t("submoduleUpdate")}
+          </ActionButton>
         )}
       </div>
+      {onAdd && (
+        <div className={styles.addRow}>
+          <input
+            value={addUrl}
+            onChange={(event) => setAddUrl(event.target.value)}
+            placeholder={t("submoduleUrlPh")}
+            aria-label={t("submoduleUrlPh")}
+            onKeyDown={(event) => event.key === "Enter" && submitAdd()}
+          />
+          <input
+            value={addPath}
+            onChange={(event) => setAddPath(event.target.value)}
+            placeholder={t("submodulePathPh")}
+            aria-label={t("submodulePathPh")}
+            onKeyDown={(event) => event.key === "Enter" && submitAdd()}
+          />
+          <ActionButton
+            size="md"
+            icon={<Plus size={11} />}
+            disabled={busy || !addUrl.trim() || !addPath.trim()}
+            onClick={submitAdd}
+            title={t("submoduleAdd")}
+          >
+            {t("submoduleAdd")}
+          </ActionButton>
+        </div>
+      )}
 
       <div className={styles.submoduleList}>
         {submodules.map((sub) => {
@@ -81,26 +141,36 @@ export function SubmodulePanel({ submodules, onUpdate, onOpen, busy = false }: S
               </div>
               <div className={styles.submodulePath}>{sub.path}</div>
               <div className={styles.cardActions}>
-                <button
-                  type="button"
-                  className={styles.actionBtn}
+                <ActionButton
+                  icon={updateIcon(sub.path, isOutdated(sub))}
                   disabled={busy}
                   onClick={() => requestUpdate(sub.path, sub.path)}
                   title={t("submoduleUpdate")}
-                  aria-label={`${t("submoduleUpdate")} ${sub.path}`}
+                  ariaLabel={`${t("submoduleUpdate")} ${sub.path}`}
                 >
-                  {updateIcon(sub.path, isOutdated(sub))} {t("submoduleUpdate")}
-                </button>
+                  {t("submoduleUpdate")}
+                </ActionButton>
                 {onOpen && (
-                  <button
-                    type="button"
-                    className={styles.actionBtn}
+                  <ActionButton
+                    icon={<FolderOpen size={11} />}
                     onClick={() => onOpen(sub.path)}
                     title={t("openSubmodule")}
-                    aria-label={`${t("openSubmodule")} ${sub.path}`}
+                    ariaLabel={`${t("openSubmodule")} ${sub.path}`}
                   >
-                    <FolderOpen size={11} /> {t("openSubmodule")}
-                  </button>
+                    {t("openSubmodule")}
+                  </ActionButton>
+                )}
+                {onRemove && (
+                  <ActionButton
+                    icon={<Trash2 size={11} />}
+                    disabled={busy}
+                    onClick={() => onRemove(sub.path)}
+                    title={t("submoduleRemove")}
+                    ariaLabel={`${t("submoduleRemove")} ${sub.path}`}
+                    tone="danger"
+                  >
+                    {t("submoduleRemove")}
+                  </ActionButton>
                 )}
               </div>
             </div>

@@ -77,33 +77,6 @@
   opacity: 1;
 }
 
-.actionBtn {
-  display: grid;
-  place-items: center;
-  width: 3.2rem;
-  height: 3.2rem;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.actionBtn:hover:not(:disabled) {
-  background: var(--bg-raised);
-}
-
-.actionBtn.danger:hover:not(:disabled) {
-  color: var(--red);
-}
-
-.actionBtn:focus-visible {
-  outline: 2px solid var(--grape);
-  outline-offset: 2px;
-}
-
 .emptyText {
   margin: 0;
   font-size: 12px;

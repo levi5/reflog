@@ -6,6 +6,7 @@ import type { MonitorAutomation } from "@/domain/entities"
 import { useTranslation } from "@/presentation/context"
 
 import styles from "./style.module.scss"
+import { IconActionButton } from "../../Button"
 
 const MONITORS_PER_PAGE = 10
 
@@ -68,23 +69,14 @@ export function MonitorsList({
         </span>
       </button>
       <div className={styles.itemActions}>
-        <button
-          type="button"
-          className={styles.actionBtn}
+        <IconActionButton
+          icon={<Play size={15} />}
+          tone="success"
           disabled={isRunning || monitor.blocks.length === 0}
           onClick={() => onRunMonitor(monitor)}
-          aria-label={t("saveAndRun")}
-        >
-          <Play size={15} />
-        </button>
-        <button
-          type="button"
-          className={styles.actionBtn}
-          onClick={() => onDeleteMonitor(monitor.id)}
-          aria-label={t("delete")}
-        >
-          <Trash2 size={15} />
-        </button>
+          label={t("saveAndRun")}
+        />
+        <IconActionButton icon={<Trash2 size={15} />} onClick={() => onDeleteMonitor(monitor.id)} label={t("delete")} />
       </div>
     </>
   )

@@ -98,20 +98,3 @@
   margin-top: 4px;
 }
 
-.actionBtn {
-  background: var(--bg-deep);
-  border: 1px solid var(--border-soft);
-  color: var(--fg);
-  border-radius: 4px;
-  padding: 2px 7px;
-  font-size: var(--font-sm);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.actionBtn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border);
-}

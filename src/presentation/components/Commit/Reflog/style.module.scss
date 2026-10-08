@@ -109,23 +109,5 @@
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.actionBtn {
-  background: var(--bg-deep);
-  border: 1px solid var(--border-soft);
-  color: var(--fg);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: var(--font-sm);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
-
-.actionBtn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border);
+  flex-wrap: wrap;
 }

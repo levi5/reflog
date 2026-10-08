@@ -1,18 +1,20 @@
 import { semverUseCase } from "../../../../data"
-import { ArrowUpCircle, Tag, Trash2 } from "lucide-react"
+import { ArrowUpCircle, ArrowUpFromLine, Tag, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "../../../context"
 
 import { InlineForm } from "../../Form/Inline"
 import { ListItem } from "../../List/Item"
+import { Switch } from "../../Switch"
 import styles from "./style.module.scss"
 
 const INITIAL_VERSION = "v0.1.0"
 
 type TagPanelProps = {
   tags: string[]
-  onCreateTag: (tagName: string, tagMessage?: string) => void
+  onCreateTag: (tagName: string, tagMessage?: string, signed?: boolean) => void
   onDeleteTag: (tagName: string) => void
+  onPushTag?: (tagName: string) => void
   busy?: boolean
 }
 
@@ -54,12 +56,22 @@ const VersionSuggestion = ({ existingTags, onPickVersion }: VersionSuggestionPro
 interface TagCreateFormProps {
   tagName: string
   tagMessage: string
+  tagSigned: boolean
   onTagNameChange: (tagName: string) => void
   onTagMessageChange: (tagMessage: string) => void
+  onTagSignedChange: (signed: boolean) => void
   onSubmit: () => void
 }
 
-function TagCreateForm({ tagName, tagMessage, onTagNameChange, onTagMessageChange, onSubmit }: TagCreateFormProps) {
+function TagCreateForm({
+  tagName,
+  tagMessage,
+  tagSigned,
+  onTagNameChange,
+  onTagMessageChange,
+  onTagSignedChange,
+  onSubmit,
+}: TagCreateFormProps) {
   const { t } = useTranslation()
   return (
     <InlineForm
@@ -68,12 +80,22 @@ function TagCreateForm({ tagName, tagMessage, onTagNameChange, onTagMessageChang
       submitIcon={<Tag size={14} />}
       disabled={!tagName.trim()}
       details={
-        <input
-          aria-label={t("tagMsg")}
-          placeholder={t("tagMsg")}
-          value={tagMessage}
-          onChange={(event) => onTagMessageChange(event.target.value)}
-        />
+        <>
+          <input
+            aria-label={t("tagMsg")}
+            placeholder={t("tagMsg")}
+            value={tagMessage}
+            onChange={(event) => onTagMessageChange(event.target.value)}
+          />
+          <Switch
+            size="sm"
+            checked={tagSigned}
+            onChange={onTagSignedChange}
+            label={t("tagSign")}
+            ariaLabel={t("tagSign")}
+            title={t("tagSignHint")}
+          />
+        </>
       }
     >
       <input
@@ -89,10 +111,11 @@ function TagCreateForm({ tagName, tagMessage, onTagNameChange, onTagMessageChang
 interface TagCardProps {
   tagName: string
   onDeleteTag: (tagName: string) => void
+  onPushTag?: (tagName: string) => void
   busy?: boolean
 }
 
-function TagCard({ tagName, onDeleteTag, busy = false }: TagCardProps) {
+function TagCard({ tagName, onDeleteTag, onPushTag, busy = false }: TagCardProps) {
   const { t } = useTranslation()
   return (
     <ListItem
@@ -102,31 +125,47 @@ function TagCard({ tagName, onDeleteTag, busy = false }: TagCardProps) {
         </>
       }
       actions={
-        <button
-          type="button"
-          className="mini-btn"
-          title={t("deleteTag")}
-          aria-label={`${t("deleteTag")}: ${tagName}`}
-          disabled={busy}
-          onClick={() => onDeleteTag(tagName)}
-        >
-          <Trash2 size={12} />
-        </button>
+        <>
+          {onPushTag && (
+            <button
+              type="button"
+              className="mini-btn"
+              title={t("pushTag")}
+              aria-label={`${t("pushTag")}: ${tagName}`}
+              disabled={busy}
+              onClick={() => onPushTag(tagName)}
+            >
+              <ArrowUpFromLine size={12} />
+            </button>
+          )}
+          <button
+            type="button"
+            className="mini-btn"
+            title={t("deleteTag")}
+            aria-label={`${t("deleteTag")}: ${tagName}`}
+            disabled={busy}
+            onClick={() => onDeleteTag(tagName)}
+          >
+            <Trash2 size={12} />
+          </button>
+        </>
       }
     />
   )
 }
 
-export function TagPanel({ tags, onCreateTag, onDeleteTag, busy = false }: TagPanelProps) {
+export function TagPanel({ tags, onCreateTag, onDeleteTag, onPushTag, busy = false }: TagPanelProps) {
   const [tagName, setTagName] = useState("")
   const [tagMessage, setTagMessage] = useState("")
+  const [tagSigned, setTagSigned] = useState(false)
 
   const handleCreateTag = () => {
     const trimmedName = tagName.trim()
     if (!trimmedName) return
-    onCreateTag(trimmedName, tagMessage.trim() || undefined)
+    onCreateTag(trimmedName, tagMessage.trim() || undefined, tagSigned)
     setTagName("")
     setTagMessage("")
+    setTagSigned(false)
   }
 
   const handlePickVersion = (version: string) => {
@@ -140,12 +179,14 @@ export function TagPanel({ tags, onCreateTag, onDeleteTag, busy = false }: TagPa
       <TagCreateForm
         tagName={tagName}
         tagMessage={tagMessage}
+        tagSigned={tagSigned}
         onTagNameChange={setTagName}
         onTagMessageChange={setTagMessage}
+        onTagSignedChange={setTagSigned}
         onSubmit={handleCreateTag}
       />
       {tags.map((tagName) => (
-        <TagCard key={tagName} tagName={tagName} busy={busy} onDeleteTag={onDeleteTag} />
+        <TagCard key={tagName} tagName={tagName} busy={busy} onDeleteTag={onDeleteTag} onPushTag={onPushTag} />
       ))}
     </div>
   )

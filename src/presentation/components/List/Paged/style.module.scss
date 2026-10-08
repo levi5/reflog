@@ -52,7 +52,6 @@
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-
 .listItem:hover {
   background: var(--bg-raised);
 }
@@ -87,33 +86,6 @@
 .listItem:hover .itemActions,
 .itemActions:focus-within {
   opacity: 1;
-}
-
-.actionBtn {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.actionBtn:hover:not(:disabled) {
-  background: var(--bg-raised);
-}
-
-.actionBtn:focus-visible {
-  outline: 2px solid var(--grape);
-  outline-offset: 2px;
-}
-
-.actionBtn.danger:hover:not(:disabled) {
-  color: var(--red);
 }
 
 .emptyState {

@@ -111,25 +111,6 @@
   margin-top: 4px;
 }
 
-.actionBtn {
-  background: var(--bg-deep);
-  border: 1px solid var(--border-soft);
-  color: var(--fg);
-  border-radius: 4px;
-  padding: 3px 7px;
-  font-size: var(--font-sm);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: background 0.12s ease;
-}
-
-.actionBtn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border);
-}
-
 .sectionTitle {
   font-size: var(--font-sm);
   font-weight: 700;
@@ -296,9 +277,4 @@
   background: var(--bg-deep) !important;
   border-color: var(--border-soft) !important;
   max-width: 140px !important;
-}
-
-.dangerBtn {
-  color: var(--red);
-  border-color: var(--red);
 }

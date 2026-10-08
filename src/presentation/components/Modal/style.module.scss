@@ -1,6 +1,14 @@
 .overlay {
+  margin: 0;
+  padding: 0;
+  border: 0;
   position: fixed;
   inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  color: var(--fg);
   background: var(--overlay);
   backdrop-filter: var(--overlay-filter);
   -webkit-backdrop-filter: var(--overlay-filter);

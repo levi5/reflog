@@ -6,8 +6,10 @@
 
 .topBar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
   padding: 4px 0;
 }
 
@@ -16,25 +18,31 @@
   font-weight: 700;
   color: var(--muted);
   text-transform: uppercase;
+  flex: 1 0 100%;
 }
 
-.updateAllBtn {
-  background: var(--bg-deep);
-  border: 1px solid var(--border-soft);
-  color: var(--fg);
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: var(--font-sm);
-  cursor: pointer;
-  display: inline-flex;
+.addRow {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  transition: background 0.12s ease;
+  gap: 6px;
+  padding: 4px 0;
 }
 
-.updateAllBtn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border);
+.addRow input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
+.addRow input:focus {
+  border-color: var(--grape);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(124, 108, 255, 0.25);
 }
 
 .submoduleList {
@@ -120,26 +128,8 @@
 
 .cardActions {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.actionBtn {
-  background: var(--bg-deep);
-  border: 1px solid var(--border-soft);
-  color: var(--fg);
-  border-radius: 4px;
-  padding: 2px 7px;
-  font-size: var(--font-sm);
-  cursor: pointer;
-  display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  transition: background 0.12s ease;
-}
-
-.actionBtn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border);
+  margin-top: 4px;
 }

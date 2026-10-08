@@ -1,0 +1,36 @@
+.iconAction {
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  flex-shrink: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.iconAction:hover:not(:disabled) {
+  background: var(--bg-raised);
+}
+
+.iconAction.md {
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 4px;
+}
+
+.iconAction.danger:hover:not(:disabled) {
+  color: var(--red);
+}
+
+.iconAction.success:hover:not(:disabled) {
+  color: var(--green);
+}
+
+.iconAction:focus-visible {
+  outline: 2px solid var(--grape);
+  outline-offset: 2px;
+}

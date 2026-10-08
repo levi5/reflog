@@ -154,19 +154,16 @@ export function CompareRefsPage(_props: Props) {
       )}
 
       {selectedCommit && (
-        <Modal title={t(lang, "commitDetails")} size="lg" onClose={() => setSelectedCommit(null)}>
-          <Commit.Detail
-            commit={selectedCommit}
-            expanded
-            resizable={false}
-            onCherryPick={repo.cherryPick}
-            onRevert={repo.revert}
-            onReset={repo.resetBranch}
-            onCheckout={(hash) => repo.checkoutBranch(hash)}
-            loadFiles={repo.loadCommitFiles}
-            loadDiff={repo.loadCommitDiff}
-          />
-        </Modal>
+        <Commit.DetailModal
+          commit={selectedCommit}
+          onClose={() => setSelectedCommit(null)}
+          onCherryPick={repo.cherryPick}
+          onRevert={repo.revert}
+          onReset={repo.resetBranch}
+          onCheckout={(hash) => repo.checkoutBranch(hash)}
+          loadFiles={repo.loadCommitFiles}
+          loadDiff={repo.loadCommitDiff}
+        />
       )}
     </div>
   )

@@ -110,7 +110,7 @@ The sidebar and header components themselves live under
 
 - `Status/` - File status rows (staged/unstaged/conflicted)
 - `Branch/` - Branch panel (create, checkout, delete, rename)
-- `Commit/` - Commit list, detail, message form
+- `Commit/` - Commit list, detail, message form and the shared detail modal (`Commit.DetailModal`)
 - `Diff/` - Diff viewer + preview (syntax highlighted)
 - `Merge/` - Conflict resolver, merge tool
 - `Tag/`, `Console/`, `Graph/` - Tags, git console, DAG cells
@@ -118,7 +118,8 @@ The sidebar and header components themselves live under
 
 #### Base UI
 
-- `Button/` - Variants (primary, secondary, ghost, danger)
+- `Button/` - Variants (primary, secondary, ghost, danger) plus the compact
+  `Button.Action` (icon + label) and square `Button.IconAction` primitives
 - `Modal/` - Accessible modals (focus trap, Esc, backdrop close)
 - `Dialog/` - Confirm/prompt dialogs built on the modal stack
 - `Drawer/` - Side panels
@@ -382,8 +383,12 @@ resolution, semver, graph layout, commit-template round-trip, command-palette
 fuzzy matching, shared utils, theme/accent/contrast tokens, the modal stack,
 reduced motion, staging and discard semantics, repository action wiring
 (through an injected `IGitApi`), context providers, and a set of component
-renders. There is no E2E setup — no Playwright or Cypress — so full IPC flows
-against a real repository are still untested.
+renders, the silent-refresh cheap-path, and hidden-tab polling pauses.
+E2E exists as a Playwright smoke suite for the static landing site
+(`e2e/`, `pnpm test:e2e`) — the only surface that runs without the Tauri
+runtime. App-level flows (staging, merge, rebase) stay on Vitest +
+`MockRunner`, so full IPC flows against a real repository are still
+untested pending a Tauri-aware harness.
 
 ## Build and Deploy
 
@@ -392,7 +397,7 @@ against a real repository are still untested.
 ```bash
 pnpm dev            # Vite dev server (hot reload)
 pnpm tauri dev      # Tauri app with dev server
-pnpm lint           # Biome over src, tests, scripts and web
+pnpm lint           # Biome over src, tests, scripts, web, e2e
 ```
 
 ### Production

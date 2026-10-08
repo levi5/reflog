@@ -3,7 +3,7 @@ import type { AutomationRecipe } from "../../../../domain/entities/automations/a
 import { List } from "../../List"
 import { useTranslation } from "../../../context"
 import styles from "./style.module.scss"
-import classnames from "classnames"
+import { IconActionButton } from "../../Button"
 
 const RECIPES_PER_PAGE = 10
 
@@ -78,25 +78,19 @@ export function RecipeList({
         </span>
       </button>
       <div className={styles.itemActions}>
-        <button
-          type="button"
-          className={styles.actionBtn}
+        <IconActionButton
+          icon={<Play size={16} />}
+          tone="success"
           disabled={isRunning || recipe.steps.length === 0}
           onClick={() => onRunRecipe(recipe)}
-          aria-label={t("runRecipe")}
-          title={t("runRecipe")}
-        >
-          <Play size={16} />
-        </button>
-        <button
-          type="button"
-          className={classnames(styles.actionBtn, styles.danger)}
+          label={t("runRecipe")}
+        />
+        <IconActionButton
+          icon={<Trash2 size={16} />}
+          tone="danger"
           onClick={() => onDeleteRecipe(recipe.id)}
-          aria-label={t("deleteRecipe")}
-          title={t("deleteRecipe")}
-        >
-          <Trash2 size={16} />
-        </button>
+          label={t("deleteRecipe")}
+        />
       </div>
     </>
   )

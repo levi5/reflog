@@ -1,11 +1,11 @@
 import { Check, Trash2 } from "lucide-react"
-import classnames from "classnames"
 
 import type { GitProfile } from "@/domain/entities"
 import { List } from "../../List"
 import { useTranslation } from "@/presentation/context/translation"
 
 import styles from "./style.module.scss"
+import { IconActionButton } from "../../Button"
 
 const PROFILES_PER_PAGE = 100
 
@@ -32,24 +32,19 @@ export function ProfileList({ profiles, activeProfileId, onApplyProfile, onRemov
         {activeProfileId === profile.id && <span className={styles.activeBadge}>{t("active")}</span>}
       </button>
       <div className={styles.itemActions}>
-        <button
-          type="button"
-          className={styles.actionBtn}
+        <IconActionButton
+          icon={<Check size={18} />}
+          size="md"
           onClick={() => onApplyProfile(profile.id)}
-          title={t("useProfile")}
-          aria-label={t("useProfile")}
-        >
-          <Check size={18} />
-        </button>
-        <button
-          type="button"
-          className={classnames(styles.actionBtn, styles.danger)}
+          label={t("useProfile")}
+        />
+        <IconActionButton
+          icon={<Trash2 size={18} />}
+          size="md"
+          tone="danger"
           onClick={() => onRemoveProfile(profile.id)}
-          title={t("deleteProfile")}
-          aria-label={t("deleteProfile")}
-        >
-          <Trash2 size={18} />
-        </button>
+          label={t("deleteProfile")}
+        />
       </div>
     </>
   )

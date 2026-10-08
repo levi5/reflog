@@ -3,6 +3,8 @@ import { useState } from "react"
 import { useTranslation } from "../../../context"
 import type { StashItem } from "../../../../types"
 import { EmptyState } from "../../Empty/State"
+import { ActionButton } from "../../Button"
+import { Switch } from "../../Switch"
 import styles from "./style.module.scss"
 
 interface StashPanelProps {
@@ -15,7 +17,8 @@ interface StashPanelProps {
   pathspec?: string
   onPathspecChange?: (v: string) => void
   onStash: () => void
-  onPop: () => void
+  onPop: (index?: number) => void
+  onClear?: () => void
   stashes?: StashItem[]
   onApply?: (index: number) => void
   onApplyFile?: (index: number, file: string) => void
@@ -36,6 +39,7 @@ export function StashPanel({
   onPathspecChange,
   onStash,
   onPop,
+  onClear,
   stashes = [],
   onApply,
   onApplyFile,
@@ -73,7 +77,7 @@ export function StashPanel({
 
   return (
     <div className={styles.stashContainer}>
-      <div className={styles.rowFlex}>
+      <div className={styles.topRow}>
         <input
           placeholder={`${t("stash")}...`}
           aria-label={t("stashMessage")}
@@ -84,30 +88,35 @@ export function StashPanel({
         <button type="button" onClick={onStash} disabled={busy} title={t("saveStash")}>
           {t("saveStash")}
         </button>
-        <button type="button" onClick={onPop} disabled={busy} title={t("stashPop")}>
-          {t("stashPop")}
+        <button type="button" onClick={() => onPop()} disabled={busy} title={t("stashPop")}>
+          {t("stashPopIndex")}
         </button>
+        {onClear && stashes.length > 0 && (
+          <button type="button" onClick={onClear} disabled={busy} title={t("stashClear")}>
+            {t("stashClear")}
+          </button>
+        )}
       </div>
 
       <div className={styles.rowFlex}>
-        <label title={t("stashKeepIndexHint")}>
-          <input
-            type="checkbox"
-            checked={keepIndex}
-            disabled={stagedOnly || busy || !onKeepIndexChange}
-            onChange={(e) => onKeepIndexChange?.(e.target.checked)}
-          />{" "}
-          {t("stashKeepIndex")}
-        </label>
-        <label title={t("stashStagedHint")}>
-          <input
-            type="checkbox"
-            checked={stagedOnly}
-            disabled={keepIndex || busy || !onStagedOnlyChange}
-            onChange={(e) => onStagedOnlyChange?.(e.target.checked)}
-          />{" "}
-          {t("stashStaged")}
-        </label>
+        <Switch
+          size="sm"
+          checked={keepIndex}
+          disabled={stagedOnly || busy || !onKeepIndexChange}
+          onChange={(value) => onKeepIndexChange?.(value)}
+          label={t("stashKeepIndex")}
+          ariaLabel={t("stashKeepIndex")}
+          title={t("stashKeepIndexHint")}
+        />
+        <Switch
+          size="sm"
+          checked={stagedOnly}
+          disabled={keepIndex || busy || !onStagedOnlyChange}
+          onChange={(value) => onStagedOnlyChange?.(value)}
+          label={t("stashStaged")}
+          ariaLabel={t("stashStaged")}
+          title={t("stashStagedHint")}
+        />
       </div>
       {onPathspecChange && (
         <div className={styles.rowFlex}>
@@ -132,57 +141,63 @@ export function StashPanel({
               </div>
               <div className={styles.message}>{stash.message}</div>
               <div className={styles.cardActions}>
+                <ActionButton
+                  icon={<Play size={11} />}
+                  onClick={() => onPop(stash.index)}
+                  disabled={busy}
+                  title={t("stashPopIndex")}
+                >
+                  {t("stashPopIndex")}
+                </ActionButton>
                 {onApply && (
-                  <button
-                    type="button"
-                    className={styles.actionBtn}
+                  <ActionButton
+                    icon={<Play size={11} />}
                     onClick={() => onApply(stash.index)}
                     disabled={busy}
                     title={t("stashApply")}
                   >
-                    <Play size={11} /> {t("stashApply")}
-                  </button>
+                    {t("stashApply")}
+                  </ActionButton>
                 )}
                 {onShowDiff && (
-                  <button
-                    type="button"
-                    className={styles.actionBtn}
+                  <ActionButton
+                    icon={<Eye size={11} />}
                     onClick={() => void handleToggleDiff(stash.index)}
                     title={t("stashViewDiff")}
                   >
-                    <Eye size={11} /> {t("stashViewDiff")}
-                  </button>
+                    {t("stashViewDiff")}
+                  </ActionButton>
                 )}
                 {onDrop && (
-                  <button
-                    type="button"
-                    className={`${styles.actionBtn} ${styles.dangerBtn}`}
+                  <ActionButton
+                    icon={<Trash2 size={11} />}
                     onClick={() => onDrop(stash.index)}
                     disabled={busy}
                     title={t("stashDrop")}
+                    tone="danger"
                   >
-                    <Trash2 size={11} /> {t("stashDrop")}
-                  </button>
+                    {t("stashDrop")}
+                  </ActionButton>
                 )}
                 {onBranch && (
-                  <span className={styles.rowFlex} style={{ alignItems: "center" }} title={t("stashBranchHint")}>
+                  <span className={styles.branchRow} title={t("stashBranchHint")}>
                     <GitBranch size={11} />
                     <input
+                      className={styles.branchInput}
                       placeholder={t("stashBranchPh")}
                       aria-label={t("stashBranch")}
                       value={branchNames[stash.index] ?? ""}
-                      onChange={(e) => setBranchNames((p) => ({ ...p, [stash.index]: e.target.value }))}
+                      onChange={(event) =>
+                        setBranchNames((current) => ({ ...current, [stash.index]: event.target.value }))
+                      }
                       disabled={busy}
-                      style={{ width: 110, flex: "none" }}
                     />
-                    <button
-                      type="button"
-                      className={styles.actionBtn}
+                    <ActionButton
                       onClick={() => onBranch(stash.index, branchNames[stash.index] ?? "")}
                       disabled={busy || !(branchNames[stash.index] ?? "").trim()}
                     >
                       {t("stashBranch")}
-                    </button>
+                    </ActionButton>
                   </span>
                 )}
               </div>
@@ -192,19 +207,17 @@ export function StashPanel({
                     placeholder={t("stashFilePh")}
                     aria-label={t("stashFile")}
                     value={filePaths[stash.index] ?? ""}
-                    onChange={(e) => setFilePaths((p) => ({ ...p, [stash.index]: e.target.value }))}
+                    onChange={(event) => setFilePaths((current) => ({ ...current, [stash.index]: event.target.value }))}
                     disabled={busy}
                     title={t("stashFileHint")}
                   />
-                  <button
-                    type="button"
-                    className={styles.actionBtn}
+                  <ActionButton
                     onClick={() => onApplyFile(stash.index, filePaths[stash.index] ?? "")}
                     disabled={busy || !(filePaths[stash.index] ?? "").trim()}
                     title={t("stashFile")}
                   >
                     {t("stashFile")}
-                  </button>
+                  </ActionButton>
                 </div>
               )}
               {isViewingDiff && <pre className={styles.diffBox}>{loadingDiff ? t("loading") : diffText}</pre>}

@@ -13,7 +13,6 @@ interface Props {
   title: ReactNode
   onClose: () => void
   actions?: ReactNode
-  /** @deprecated use size="lg" instead */
   wide?: boolean
   size?: "sm" | "md" | "lg"
   open?: boolean
@@ -87,9 +86,10 @@ export function Modal({
   const resolvedSize = size ?? (wide ? "lg" : "md")
 
   return createPortal(
-    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close on a presentational overlay; the inner dialog carries semantics
-    <div
+    <dialog
+      open
       className={styles.overlay}
+      aria-labelledby={titleId}
       onMouseDown={(event) => {
         if (closeOnBackdrop && isTopModal(modalId.current) && event.target === event.currentTarget) {
           onClose()
@@ -99,9 +99,6 @@ export function Modal({
       <div
         ref={boxRef}
         className={classnames(styles.box, resolvedSize === "sm" && styles.sm, resolvedSize === "lg" && styles.wide)}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
       >
         <div className={styles.head}>
           <h4 id={titleId}>{title}</h4>
@@ -114,7 +111,7 @@ export function Modal({
         </div>
         {actions && <div className={styles.foot}>{actions}</div>}
       </div>
-    </div>,
+    </dialog>,
     document.body,
   )
 }

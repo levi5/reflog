@@ -1,0 +1,33 @@
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: var(--font-sm);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.action:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.action.md {
+  padding: 3px 7px;
+}
+
+.action.danger {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 45%, transparent);
+}
+
+.action.danger:hover:not(:disabled) {
+  background: var(--red-dim);
+  border-color: var(--red);
+}
