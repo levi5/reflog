@@ -1,10 +1,12 @@
 import classnames from "classnames"
-import { Bolt, Bot, ListChecks, Play, Search, Trash2 } from "lucide-react"
-import { type KeyboardEvent, type RefObject, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { Bolt, Bot, ListChecks, Play, Trash2 } from "lucide-react"
+import { type KeyboardEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { useTranslation } from "../../../context"
 
 import { Drawer } from "../../Drawer"
+import { SearchField } from "../../Drawer/SearchField"
+import { ShortcutHints } from "../../Drawer/ShortcutHints"
 
 import type { AutomationShortcut } from "../../../../domain/entities/automations"
 import { useRepoCore } from "../../../context"
@@ -18,45 +20,16 @@ interface QuickActionsSidebarProps {
   onClose: () => void
 }
 
-interface SearchToolbarProps {
-  searchQuery: string
-  searchInputRef: RefObject<HTMLInputElement | null>
-  onSearchChange: (searchQuery: string) => void
-  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
-}
-
-function SearchToolbar({ searchQuery, searchInputRef, onSearchChange, onKeyDown }: SearchToolbarProps) {
-  const { t } = useTranslation()
-  return (
-    <div className={styles.searchBox}>
-      <Search size={16} className={styles.searchIcon} aria-hidden />
-      <input
-        ref={searchInputRef}
-        type="search"
-        placeholder={t("searchQuickActions")}
-        aria-label={t("searchQuickActions")}
-        value={searchQuery}
-        onChange={(event) => onSearchChange(event.target.value)}
-        onKeyDown={onKeyDown}
-      />
-    </div>
-  )
-}
-
 function FooterHints() {
   const { t } = useTranslation()
   return (
-    <>
-      <span>
-        <kbd>↑ ↓</kbd> {t("quickActionsNavigate")}
-      </span>
-      <span>
-        <kbd>Enter</kbd> {t("quickActionsRun")}
-      </span>
-      <span>
-        <kbd>Esc</kbd> {t("close")}
-      </span>
-    </>
+    <ShortcutHints
+      hints={[
+        { keys: ["↑ ↓"], label: t("quickActionsNavigate") },
+        { keys: ["Enter"], label: t("quickActionsRun") },
+        { keys: ["Esc"], label: t("close") },
+      ]}
+    />
   )
 }
 
@@ -255,10 +228,11 @@ export function QuickActionsSidebar({ isOpen, onClose }: QuickActionsSidebarProp
         icon={<Bolt size={18} />}
         closeLabel={t("close")}
         toolbar={
-          <SearchToolbar
-            searchQuery={searchQuery}
-            searchInputRef={searchInputRef}
-            onSearchChange={handleSearchChange}
+          <SearchField
+            label={t("searchQuickActions")}
+            value={searchQuery}
+            inputRef={searchInputRef}
+            onChange={handleSearchChange}
             onKeyDown={handleSearchKeyDown}
           />
         }

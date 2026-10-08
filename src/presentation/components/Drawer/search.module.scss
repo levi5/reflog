@@ -1,0 +1,29 @@
+.searchBox {
+  position: relative;
+}
+
+.searchBox input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px 10px 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-deep);
+  color: var(--fg);
+  font-size: 13px;
+
+  &:focus {
+    border-color: var(--grape-btn);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--grape-dim);
+  }
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--faint);
+  pointer-events: none;
+}

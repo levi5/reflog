@@ -1,10 +1,9 @@
 import classnames from "classnames"
-import { ArrowUpRight, Boxes, ChevronRight, FolderGit2, History, Layers, Search } from "lucide-react"
+import { ArrowUpRight, Boxes, ChevronRight, FolderGit2, History, Layers } from "lucide-react"
 import { _Either } from "funcio"
 import {
   type KeyboardEvent,
   type ReactNode,
-  type RefObject,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -18,6 +17,8 @@ import { gitApi } from "../../../../infrastructure/git"
 import type { SubmoduleInfo } from "../../../../types"
 import { useRepoCore, useStagingSlice, useTranslation } from "../../../context"
 import { Drawer } from "../../Drawer"
+import { SearchField } from "../../Drawer/SearchField"
+import { ShortcutHints } from "../../Drawer/ShortcutHints"
 import {
   buildScopeGroups,
   filterScopeGroups,
@@ -48,52 +49,17 @@ const KIND_ICON: Record<ScopeGroupId, ReactNode> = {
   recents: <History size={15} />,
 }
 
-function SearchToolbar({
-  searchQuery,
-  searchInputRef,
-  onSearchChange,
-  onKeyDown,
-}: {
-  searchQuery: string
-  searchInputRef: RefObject<HTMLInputElement | null>
-  onSearchChange: (value: string) => void
-  onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void
-}) {
-  const { t } = useTranslation()
-  return (
-    <div className={styles.searchBox}>
-      <Search size={16} className={styles.searchIcon} aria-hidden />
-      <input
-        ref={searchInputRef}
-        type="search"
-        placeholder={t("searchRepoSwitcher")}
-        aria-label={t("searchRepoSwitcher")}
-        value={searchQuery}
-        onChange={(event) => onSearchChange(event.target.value)}
-        onKeyDown={onKeyDown}
-      />
-    </div>
-  )
-}
-
 function FooterHints() {
   const { t } = useTranslation()
   return (
-    <>
-      <span>
-        <kbd>↑ ↓</kbd> {t("quickActionsNavigate")}
-      </span>
-      <span>
-        <kbd>Enter</kbd> {t("repoSwitcherOpen")}
-      </span>
-      <span>
-        <kbd>Alt</kbd>
-        <kbd>R</kbd> {t("repoSwitcherToggle")}
-      </span>
-      <span>
-        <kbd>Esc</kbd> {t("close")}
-      </span>
-    </>
+    <ShortcutHints
+      hints={[
+        { keys: ["↑ ↓"], label: t("quickActionsNavigate") },
+        { keys: ["Enter"], label: t("repoSwitcherOpen") },
+        { keys: ["Alt", "R"], label: t("repoSwitcherToggle") },
+        { keys: ["Esc"], label: t("close") },
+      ]}
+    />
   )
 }
 
@@ -283,10 +249,11 @@ export function RepoSwitcher({ isOpen, onClose }: RepoSwitchProps) {
         icon={<FolderGit2 size={18} />}
         closeLabel={t("close")}
         toolbar={
-          <SearchToolbar
-            searchQuery={searchQuery}
-            searchInputRef={searchInputRef}
-            onSearchChange={handleSearchChange}
+          <SearchField
+            label={t("searchRepoSwitcher")}
+            value={searchQuery}
+            inputRef={searchInputRef}
+            onChange={handleSearchChange}
             onKeyDown={handleSearchKeyDown}
           />
         }
