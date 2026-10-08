@@ -1,20 +1,3 @@
-.searchBox input {
-  width: 100%;
-  min-width: 0;
-  padding: 10px 12px 10px 36px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-deep);
-  color: var(--fg);
-  font-size: 13px;
-
-  &:focus {
-    border-color: var(--grape);
-    outline: none;
-    box-shadow: 0 0 0 2px var(--grape-dim);
-  }
-}
-
 .currentPath {
   margin: 0 0 12px;
   padding: 8px 10px;
