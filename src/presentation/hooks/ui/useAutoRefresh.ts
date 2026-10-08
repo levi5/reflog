@@ -31,17 +31,23 @@ export function useAutoRefresh({
     const tryRefresh = () => {
       const current = stateRef.current
       if (current.busy || current.opening) return
+      if (typeof document !== "undefined" && document.hidden) return
       const now = Date.now()
       if (now - lastRun < focusGapMs) return
       lastRun = now
       void refreshRef.current(root, "silent")
     }
+    const onVisible = () => {
+      if (!document.hidden) tryRefresh()
+    }
     const id = setInterval(tryRefresh, intervalMs)
     const onFocus = () => tryRefresh()
     window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onVisible)
     return () => {
       clearInterval(id)
       window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onVisible)
     }
   }, [repoRoot, intervalMs, focusGapMs])
 }

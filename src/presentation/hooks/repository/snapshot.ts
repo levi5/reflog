@@ -20,6 +20,7 @@ export function sameStatus(a: StatusResult | null, b: StatusResult): boolean {
     a.cherryPicking === b.cherryPicking &&
     a.reverting === b.reverting &&
     a.rebasing === b.rebasing &&
+    a.bisecting === b.bisecting &&
     sameFiles(a.files, b.files)
   )
 }

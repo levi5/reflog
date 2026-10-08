@@ -1,6 +1,6 @@
 import { diffParserUseCase } from "../../../../data"
 import classnames from "classnames"
-import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { type KeyboardEvent, useCallback, useMemo, useRef, useState } from "react"
 import type { ParsedDiff } from "../../../../domain/entities/diff/diff"
 import { MAX_DIFF_LINES, MAX_DIFF_BYTES } from "../../../../shared/constants/limits"
 import { EmptyState } from "../../Empty/State"
@@ -286,12 +286,13 @@ export function DiffPanel({
   )
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [visibleLineCount, setVisibleLineCount] = useState(LARGE_DIFF_PAGE_LINES)
+  const [selectionScope, setSelectionScope] = useState(() => [diffContent, filePath])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: selecting a new file or a new diff must clear the per-hunk selection
-  useEffect(() => {
+  if (selectionScope[0] !== diffContent || selectionScope[1] !== filePath) {
+    setSelectionScope([diffContent, filePath])
     setSelectedKeys(new Set())
     setVisibleLineCount(LARGE_DIFF_PAGE_LINES)
-  }, [diffContent, filePath])
+  }
 
   if (!filePath) {
     return <EmptyState message={t("selectFileHint")} />

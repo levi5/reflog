@@ -48,7 +48,7 @@ describe("repository actions", () => {
     await actions.cherryPick("abc123")
     expect(git.checkout).toHaveBeenCalledWith("/repo", "feature", false)
     expect(git.branchRename).toHaveBeenCalledWith("/repo", "feature", "renamed")
-    expect(git.tagCreate).toHaveBeenCalledWith("/repo", "v1.0.0", "Release")
+    expect(git.tagCreate).toHaveBeenCalledWith("/repo", "v1.0.0", "Release", false)
     expect(git.remoteAdd).toHaveBeenCalledWith("/repo", "upstream", "/other/repo")
     expect(git.cherryPick).toHaveBeenCalledWith("/repo", "abc123")
     expect(runAction).toHaveBeenCalledWith(expect.any(Function), undefined, {

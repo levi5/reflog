@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { act, render } from "@testing-library/react"
 import { useState } from "react"
 import { beforeEach, describe, expect, it } from "vitest"
@@ -43,7 +42,7 @@ function mount(initial: string): HarnessApi {
 
   return {
     get api() {
-      if (!api) throw new Error("hook nao montado")
+      if (!api) throw new Error("hook not mounted")
       return api
     },
     setValue,
@@ -53,12 +52,12 @@ function mount(initial: string): HarnessApi {
 
 const RENDER_LIMIT = 25
 
-describe("commit template: feedback entre formatted e value", () => {
+describe("commit template: feedback between formatted and value", () => {
   beforeEach(() => {
     window.localStorage.clear()
   })
 
-  it("nao entra em loop quando o template injeta um trailer e o valor vem de fora", () => {
+  it("does not loop when the template injects a trailer and the value comes from outside", () => {
     window.localStorage.setItem(
       PREFS_KEY,
       JSON.stringify({ templateId: "builtin:jira", useIcons: false, strict: false }),
@@ -73,7 +72,7 @@ describe("commit template: feedback entre formatted e value", () => {
     expect(host.renders()).toBeLessThan(RENDER_LIMIT)
   })
 
-  it("nao cresce a mensagem a cada edicao quando o valor ja traz o trailer do template", () => {
+  it("does not grow the message on each edit when the value already has the template trailer", () => {
     window.localStorage.setItem(
       PREFS_KEY,
       JSON.stringify({ templateId: "builtin:jira", useIcons: false, strict: false }),
@@ -101,7 +100,7 @@ describe("commit template: feedback entre formatted e value", () => {
     expect(host.renders()).toBeLessThan(RENDER_LIMIT)
   })
 
-  it("nao entra em loop com BREAKING CHANGE", () => {
+  it("does not loop with BREAKING CHANGE", () => {
     window.localStorage.setItem(
       PREFS_KEY,
       JSON.stringify({ templateId: "builtin:conventional", useIcons: false, strict: false }),
@@ -117,19 +116,19 @@ describe("commit template: feedback entre formatted e value", () => {
     expect(host.api.formatted.match(/BREAKING CHANGE/g)?.length ?? 0).toBeLessThanOrEqual(1)
   })
 
-  it("ainda popula os campos quando o valor muda por fora", () => {
+  it("still populates the fields when the value changes externally", () => {
     const host = mount("")
 
     act(() => {
-      host.setValue("fix(api): corrige o parse")
+      host.setValue("fix(api): fix the parse")
     })
 
     expect(host.api.fields.type).toBe("fix")
     expect(host.api.fields.scope).toBe("api")
-    expect(host.api.fields.subject).toBe("corrige o parse")
+    expect(host.api.fields.subject).toBe("fix the parse")
   })
 
-  it("ainda propaga o subject digitado para o valor", () => {
+  it("still propagates the typed subject to the value", () => {
     const host = mount("")
 
     act(() => {

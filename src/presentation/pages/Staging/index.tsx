@@ -286,8 +286,9 @@ export function Staging(_props: Props) {
           {tab === "tags" && (
             <Tag.Panel
               tags={tags}
-              onCreateTag={(tagName, tagMessage) => repo.createTag(tagName, tagMessage)}
+              onCreateTag={(tagName, tagMessage, signed) => repo.createTag(tagName, tagMessage, signed)}
               onDeleteTag={repo.deleteTag}
+              onPushTag={repo.pushTag}
               busy={repo.busy}
             />
           )}
@@ -306,6 +307,7 @@ export function Staging(_props: Props) {
               onPathspecChange={repo.setStashPaths}
               onStash={repo.stashPush}
               onPop={repo.stashPopIt}
+              onClear={repo.stashClear}
               stashes={repo.stashes}
               onApply={repo.stashApply}
               onApplyFile={repo.stashApplyFile}
@@ -331,6 +333,9 @@ export function Staging(_props: Props) {
             <Branch.Submodule
               submodules={repo.submodules}
               onUpdate={repo.submoduleUpdate}
+              onSync={repo.submoduleSync}
+              onAdd={repo.submoduleAdd}
+              onRemove={repo.submoduleRemove}
               onOpen={(subPath) => repo.handleOpen(`${repo.repo}/${subPath}`)}
               busy={repo.busy}
             />
@@ -340,6 +345,9 @@ export function Staging(_props: Props) {
               worktrees={worktrees.worktrees}
               onAdd={(path, branch) => void worktrees.addWorktree(path, branch)}
               onRemove={(path) => void worktrees.removeWorktree(path)}
+              onLock={(path) => void worktrees.lockWorktree(path)}
+              onUnlock={(path) => void worktrees.unlockWorktree(path)}
+              onPrune={() => void worktrees.pruneWorktrees()}
               onOpen={(worktreePath) => repo.handleOpen(worktreePath)}
               busy={repo.busy}
             />

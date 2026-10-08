@@ -10,10 +10,18 @@ export function useTagOps(deps: RepositoryActionDeps) {
   const gitAction = useGitAction(lang, runAction)
 
   const createTag = useCallback(
-    (name: string, message?: string) => {
+    (name: string, message?: string, signed = false) => {
       const cleanName = _pipe(name, (s: string) => s.trim())
       if (!repo || !cleanName) return Promise.resolve()
-      return gitAction(() => git.tagCreate(repo, cleanName, message), "createTagLoading", "createTagSuccess")
+      return gitAction(() => git.tagCreate(repo, cleanName, message, signed), "createTagLoading", "createTagSuccess")
+    },
+    [git, repo, gitAction],
+  )
+
+  const pushTag = useCallback(
+    (name: string) => {
+      if (!repo || !name) return Promise.resolve()
+      return gitAction(() => git.tagPush(repo, name), "pushTagLoading", "pushTagSuccess")
     },
     [git, repo, gitAction],
   )
@@ -49,5 +57,6 @@ export function useTagOps(deps: RepositoryActionDeps) {
   return {
     createTag,
     deleteTag,
+    pushTag,
   }
 }

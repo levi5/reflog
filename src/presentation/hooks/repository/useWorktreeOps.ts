@@ -46,5 +46,35 @@ export function useWorktreeOps({ lang, repo, runAction }: { lang: Lang; repo: st
     [repo, runAction, lang, loadWorktrees],
   )
 
-  return { worktrees, loadWorktrees, addWorktree, removeWorktree }
+  const lockWorktree = useCallback(
+    (path: string, reason?: string) => {
+      if (!repo || !path) return Promise.resolve()
+      return runAction(() => gitApi.worktreeLock(repo, path, reason), loadWorktrees, {
+        loadingMessage: t(lang, "worktreeLocking"),
+        successMessage: t(lang, "worktreeLocked"),
+      })
+    },
+    [repo, runAction, lang, loadWorktrees],
+  )
+
+  const unlockWorktree = useCallback(
+    (path: string) => {
+      if (!repo || !path) return Promise.resolve()
+      return runAction(() => gitApi.worktreeUnlock(repo, path), loadWorktrees, {
+        loadingMessage: t(lang, "worktreeUnlocking"),
+        successMessage: t(lang, "worktreeUnlocked"),
+      })
+    },
+    [repo, runAction, lang, loadWorktrees],
+  )
+
+  const pruneWorktrees = useCallback(() => {
+    if (!repo) return Promise.resolve()
+    return runAction(() => gitApi.worktreePrune(repo), loadWorktrees, {
+      loadingMessage: t(lang, "worktreePruning"),
+      successMessage: t(lang, "worktreePruned"),
+    })
+  }, [repo, runAction, lang, loadWorktrees])
+
+  return { worktrees, loadWorktrees, addWorktree, removeWorktree, lockWorktree, unlockWorktree, pruneWorktrees }
 }

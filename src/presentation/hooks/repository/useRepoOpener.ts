@@ -96,15 +96,24 @@ export function useRepoOpener({
   }, [pickDirectory, setRepoInput, handleOpen])
 
   const cloneRepo = useCallback(
-    (url: string, dir: string) => {
+    (url: string, dir: string, options?: { depth?: number; branch?: string; recurseSubmodules?: boolean }) => {
       const trimmedUrl = url.trim()
       const trimmedDir = dir.trim()
       if (!trimmedUrl || !trimmedDir || opening) return Promise.resolve(false)
+      const depth = options?.depth
+      if (depth !== undefined && (!Number.isInteger(depth) || depth <= 0)) {
+        fail(new Error(t(lang, "cloneDepthInvalid")), t(lang, "actionFailed"))
+        return Promise.resolve(false)
+      }
       setOpening(true)
       setBusy(true)
       const loadingId = messageService.loading(t(lang, "cloningRepo"))
       return git
-        .clone(trimmedUrl, trimmedDir)
+        .clone(trimmedUrl, trimmedDir, {
+          depth,
+          branch: options?.branch?.trim() || undefined,
+          recurseSubmodules: options?.recurseSubmodules,
+        })
         .then((message) => {
           const text = message.trim() || t(lang, "clonedRepo")
           setMsg(text)

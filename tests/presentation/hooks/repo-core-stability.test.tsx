@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { renderHook } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { describe, expect, it, vi } from "vitest"
@@ -25,8 +24,8 @@ const gitStub = {
   config: vi.fn(async () => ({})),
 } as unknown as IGitApi
 
-describe("estabilidade da coreSlice", () => {
-  it("useRepoCore mantem a referencia das acoes quando nenhum input muda", () => {
+describe("coreSlice stability", () => {
+  it("useRepoCore keeps the actions reference when no input changes", () => {
     const { result, rerender } = renderHook(() => useRepoCore("en", gitStub), { wrapper })
     const first = result.current as unknown as Record<string, unknown>
     rerender()
@@ -36,7 +35,7 @@ describe("estabilidade da coreSlice", () => {
     expect(unstable.join(" ")).toBe("")
   })
 
-  it("useRepoCore mantem a referencia dos valores quando nenhum input muda", () => {
+  it("useRepoCore keeps the values reference when no input changes", () => {
     const { result, rerender } = renderHook(() => useRepoCore("en", gitStub), { wrapper })
     const first = result.current as unknown as Record<string, unknown>
     rerender()

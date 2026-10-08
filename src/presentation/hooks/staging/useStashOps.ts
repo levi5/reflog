@@ -60,9 +60,9 @@ export function useStashOps(deps: StashOpsDeps) {
   }, [repo, stashMsg, stashPaths, stashKeepIndex, stashStagedOnly, lang, runAction, loadStashes, setMsg])
 
   const stashPopIt = useCallback(
-    () =>
+    (index?: number) =>
       runAction(
-        () => gitApi.stashPop(repo).then((output) => output || "stash pop"),
+        () => gitApi.stashPop(repo, index).then((output) => output || "stash pop"),
         () => void loadStashes(),
         {
           loadingMessage: t(lang, "stashPopping"),
@@ -115,6 +115,15 @@ export function useStashOps(deps: StashOpsDeps) {
 
   const stashShow = useCallback((index: number) => (repo ? gitApi.stashShow(repo, index) : Promise.resolve("")), [repo])
 
+  const stashClear = useCallback(async () => {
+    if (!repo) return Promise.resolve()
+    if (!(await requestConfirm(t(lang, "stashClear"), t(lang, "stashClearConfirm")))) return Promise.resolve()
+    return runAction(() => gitApi.stashClear(repo), loadStashes, {
+      loadingMessage: t(lang, "stashClearing"),
+      successMessage: t(lang, "stashCleared"),
+    })
+  }, [repo, lang, runAction, requestConfirm, loadStashes])
+
   const stashBranch = useCallback(
     (index: number, branch: string) => {
       const name = branch.trim()
@@ -152,6 +161,7 @@ export function useStashOps(deps: StashOpsDeps) {
     loadStashes,
     stashPush,
     stashPopIt,
+    stashClear,
     stashApply,
     stashBranch,
     stashApplyFile,

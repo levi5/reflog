@@ -1,13 +1,11 @@
-/// <reference types="vitest" />
-import { defineConfig } from "vite"
+import { defineConfig } from "vitest/config"
 import react from "@vitejs/plugin-react"
 import path from "node:path"
-import { readFileSync } from "node:fs"
-// @ts-expect-error type error without @types/node package
-import process from "node:process"
-const host = process.env.TAURI_DEV_HOST
-// @ts-expect-error type error without @types/node package
-const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"))
+import { fileURLToPath } from "node:url"
+import pkg from "./package.json" with { type: "json" }
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url))
+const host = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.TAURI_DEV_HOST
 
 export default defineConfig(() => ({
   plugins: [react()],
@@ -15,17 +13,25 @@ export default defineConfig(() => ({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   resolve: {
+    dedupe: ["react", "react-dom"],
     alias: {
-      "@": path.resolve(import.meta.dirname, "./src"),
-      "@domain": path.resolve(import.meta.dirname, "./src/domain"),
-      "@components": path.resolve(import.meta.dirname, "./src/presentation/components"),
-      "@infrastructure": path.resolve(import.meta.dirname, "./src/infrastructure"),
+      "@": path.resolve(rootDir, "./src"),
+      "@domain": path.resolve(rootDir, "./src/domain"),
+      "@components": path.resolve(rootDir, "./src/presentation/components"),
+      "@infrastructure": path.resolve(rootDir, "./src/infrastructure"),
       funcio: "funcio/lib/main.js",
+      react: path.resolve(rootDir, "./node_modules/react"),
+      "react-dom": path.resolve(rootDir, "./node_modules/react-dom"),
     },
+  },
+  optimizeDeps: {
+    entries: ["index.html"],
+    include: ["react", "react-dom", "react-dom/client"],
   },
   test: {
     globals: true,
-    environment: "node",
+    environment: "jsdom",
+    exclude: ["**/node_modules/**", "**/dist/**", "e2e"],
   },
 
   clearScreen: false,

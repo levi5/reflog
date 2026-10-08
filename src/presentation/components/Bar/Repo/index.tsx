@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "../../../context"
 import { RecentSelect } from "../../Recent"
+import { Switch } from "../../Switch"
 import styles from "./style.module.scss"
 
 type Mode = "open" | "clone"
@@ -13,10 +14,16 @@ interface Props {
   openPath: string
   cloneUrl: string
   cloneDir: string
+  cloneBranch: string
+  cloneDepth: string
+  cloneRecurse: boolean
   recents: string[]
   onOpenPath: (v: string) => void
   onCloneUrl: (v: string) => void
   onCloneDir: (v: string) => void
+  onCloneBranch: (v: string) => void
+  onCloneDepth: (v: string) => void
+  onCloneRecurse: (v: boolean) => void
   onOpen: () => Promise<boolean>
   onBrowseDir: () => Promise<boolean>
   onBrowseCloneDir: () => void
@@ -32,10 +39,16 @@ export function RepoBar(props: Props) {
     openPath,
     cloneUrl,
     cloneDir,
+    cloneBranch,
+    cloneDepth,
+    cloneRecurse,
     recents,
     onOpenPath,
     onCloneUrl,
     onCloneDir,
+    onCloneBranch,
+    onCloneDepth,
+    onCloneRecurse,
     onOpen,
     onBrowseDir,
     onBrowseCloneDir,
@@ -140,6 +153,29 @@ export function RepoBar(props: Props) {
             placeholder={t("cloneDir")}
             aria-label={t("cloneDir")}
             onKeyDown={(event) => event.key === "Enter" && clone()}
+          />
+          <input
+            value={cloneBranch}
+            onChange={(event) => onCloneBranch(event.target.value)}
+            placeholder={t("cloneBranchPh")}
+            aria-label={t("cloneBranchPh")}
+            onKeyDown={(event) => event.key === "Enter" && clone()}
+          />
+          <input
+            value={cloneDepth}
+            onChange={(event) => onCloneDepth(event.target.value)}
+            placeholder={t("cloneDepthPh")}
+            aria-label={t("cloneDepthPh")}
+            inputMode="numeric"
+            onKeyDown={(event) => event.key === "Enter" && clone()}
+          />
+          <Switch
+            size="sm"
+            checked={cloneRecurse}
+            onChange={onCloneRecurse}
+            label={t("cloneRecurse")}
+            title={t("cloneRecurseHint")}
+            ariaLabel={t("cloneRecurse")}
           />
           <button
             type="button"

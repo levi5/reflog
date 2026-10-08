@@ -127,7 +127,10 @@ export function useMerge(deps: MergeDeps) {
     const msg = readCommitMessage().trim() || "Merge conflict resolved"
     const opts = commitTemplateUseCase.getLastCommitOpts()
     return runAction(
-      () => gitApi.add(repo, []).then(() => gitApi.commit(repo, msg, opts.signoff, opts.sign)),
+      () =>
+        gitApi
+          .mergeContinue(repo)
+          .catch(() => gitApi.add(repo, []).then(() => gitApi.commit(repo, msg, opts.signoff, opts.sign))),
       () => {
         commitTemplateUseCase.pushHistory(msg)
         clearCommitMessage()

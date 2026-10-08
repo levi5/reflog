@@ -16,7 +16,7 @@ const submodule = (path: string, state = " ", behind = 0): SubmoduleInfo => ({
 })
 
 function render(node: React.ReactNode) {
-  return renderString(node, { lang: "pt" })
+  return renderString(node, { lang: "en" })
 }
 
 const noop = () => undefined
@@ -35,7 +35,7 @@ describe("RepoSwitcher presentation", () => {
 
   it("renders the superproject row and marks the desynchronized sibling on its icon", () => {
     const [parents, siblings] = buildScopeGroups({
-      lang: "pt",
+      lang: "en",
       repo: "/work/super/libs/lib",
       chain: ["/work/super", "/work/super/libs/lib"],
       submodules: [],
@@ -50,9 +50,9 @@ describe("RepoSwitcher presentation", () => {
       </>,
     )
 
-    expect(html).toContain("Superprojeto")
+    expect(html).toContain("Superproject")
     expect(html).toContain('title="/work/super/libs/api"')
-    expect(html).toContain('title="4 atrás do upstream"')
+    expect(html).toContain('title="4 behind upstream"')
     expect(html).toContain("toneWarn")
     expect(html).not.toContain(">divergente<")
     expect(html).not.toContain("libs/lib")
@@ -60,7 +60,7 @@ describe("RepoSwitcher presentation", () => {
 
   it("renders the submodules of a plain repo", () => {
     const [children] = buildScopeGroups({
-      lang: "pt",
+      lang: "en",
       repo: "/work/super",
       chain: ["/work/super"],
       submodules: [submodule("libs/lib"), submodule("apps/web", "-")],
@@ -70,7 +70,7 @@ describe("RepoSwitcher presentation", () => {
 
     const html = render(<ScopeGroupSection group={children} activeId="" onSelect={noop} onOpen={noop} />)
 
-    expect(html).toContain("Submódulos")
+    expect(html).toContain("Submodules")
     expect(html).toContain('title="/work/super/libs/lib"')
     expect(html).toContain("toneOk")
     expect(html).not.toContain("toneWarn")

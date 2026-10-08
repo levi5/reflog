@@ -37,6 +37,9 @@ export function AppLayout() {
   const [rebaseCount, setRebaseCount] = useState(0)
   const [cloneUrl, setCloneUrl] = useState("")
   const [cloneDir, setCloneDir] = useState("")
+  const [cloneBranch, setCloneBranch] = useState("")
+  const [cloneDepth, setCloneDepth] = useState("")
+  const [cloneRecurse, setCloneRecurse] = useState(false)
   const [quickOpen, setQuickOpen] = useState(false)
 
   const navigate = useNavigate()
@@ -169,14 +172,26 @@ export function AppLayout() {
             openPath={repo.repoInput}
             cloneUrl={cloneUrl}
             cloneDir={cloneDir}
+            cloneBranch={cloneBranch}
+            cloneDepth={cloneDepth}
+            cloneRecurse={cloneRecurse}
             recents={repo.recents}
             onOpenPath={repo.setRepoInput}
             onCloneUrl={setCloneUrl}
             onCloneDir={setCloneDir}
+            onCloneBranch={setCloneBranch}
+            onCloneDepth={setCloneDepth}
+            onCloneRecurse={setCloneRecurse}
             onOpen={() => repo.handleOpen()}
             onBrowseDir={repo.handleBrowse}
             onBrowseCloneDir={() => repo.pickDir().then((p: string | null) => p && setCloneDir(p))}
-            onClone={() => repo.cloneRepo(cloneUrl, cloneDir)}
+            onClone={() =>
+              repo.cloneRepo(cloneUrl, cloneDir, {
+                branch: cloneBranch.trim() || undefined,
+                depth: cloneDepth.trim() ? Number.parseInt(cloneDepth.trim(), 10) : undefined,
+                recurseSubmodules: cloneRecurse,
+              })
+            }
             onSelectRecent={(path) => repo.openRecent(path)}
             onClearRecents={repo.clearRecents}
             onDone={() => setShowRepoBar(false)}

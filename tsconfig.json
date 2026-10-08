@@ -11,19 +11,18 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "types": ["vite/client", "node"],
     "paths": {
       "@/*": ["./src/*"],
       "@domain/*": ["./src/domain/*"],
       "@components/*": ["./src/presentation/components/*"],
       "@infrastructure/*": ["./src/infrastructure/*"],
     },
-
-    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "include": ["src", "tests", "vite.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

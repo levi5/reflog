@@ -83,9 +83,9 @@ export function WindowFrame({ children }: Props) {
   return (
     <div className={styles.backdrop}>
       <div className={classnames(styles.window, maximized && styles.maximized)}>
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: Tauri window drag region, mouse-only window management */}
         <div
           className={styles.titlebar}
+          role="toolbar"
           data-tauri-drag-region
           onMouseDown={drag.onMouseDown}
           onDoubleClick={drag.onDoubleClick}

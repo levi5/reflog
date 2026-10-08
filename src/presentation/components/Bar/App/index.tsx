@@ -120,9 +120,9 @@ function AppBar() {
 
   return (
     <>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: Tauri window drag region */}
-      <div
+      <header
         className={styles.appbar}
+        role="toolbar"
         data-tauri-drag-region
         onMouseDown={windowDrag.onMouseDown}
         onDoubleClick={windowDrag.onDoubleClick}
@@ -221,7 +221,7 @@ function AppBar() {
         </NavToggleButton>
 
         <BusyBar visible={repo.busy} label={repo.busyLabel ?? undefined} startedAt={repo.busyStartedAt} />
-      </div>
+      </header>
       <SideBar.QuickActions isOpen={quickActionsOpen} onClose={() => setQuickActionsOpen(false)} />
       <Repo.Switch isOpen={repoSwitchOpen} onClose={() => setRepoSwitchOpen(false)} />
     </>

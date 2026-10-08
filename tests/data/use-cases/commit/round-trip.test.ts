@@ -8,12 +8,12 @@ import type { CommitFields } from "../../../../src/domain/entities/commit/commit
 const auto = { branch: "feature/PROJ-123-x", author: "Dev", email: "dev@x.io" }
 
 const states: [string, CommitFields][] = [
-  ["vazio", { ...EMPTY_FIELDS }],
-  ["so type", { ...EMPTY_FIELDS, type: "feat" }],
+  ["empty", { ...EMPTY_FIELDS }],
+  ["only type", { ...EMPTY_FIELDS, type: "feat" }],
   ["type+subject", { ...EMPTY_FIELDS, type: "feat", subject: "abc" }],
   ["type+scope+subject", { ...EMPTY_FIELDS, type: "feat", scope: "api", subject: "abc" }],
   ["breaking", { ...EMPTY_FIELDS, type: "feat", subject: "abc", breaking: true }],
-  ["body", { ...EMPTY_FIELDS, type: "feat", subject: "abc", body: "linha 1" }],
+  ["body", { ...EMPTY_FIELDS, type: "feat", subject: "abc", body: "line 1" }],
   ["footer", { ...EMPTY_FIELDS, type: "feat", subject: "abc", footer: "Refs: 1" }],
   ["coauthor", { ...EMPTY_FIELDS, type: "feat", subject: "abc", coauthor: "Dev" }],
 ]
@@ -24,7 +24,7 @@ const reparse = (template: (typeof BUILTIN_DOCS)[number], fields: CommitFields):
 }
 
 describe("format -> parse -> format converge", () => {
-  it("o commit padrao nao muda a mensagem ao reparsear", () => {
+  it("default commit does not change the message on reparse", () => {
     for (const [label, fields] of states) {
       const once = commitTemplateUseCase.formatCommit(fields)
       const twice = commitTemplateUseCase.formatCommit(commitTemplateUseCase.parseConventional(once))
@@ -33,7 +33,7 @@ describe("format -> parse -> format converge", () => {
   })
 
   for (const template of BUILTIN_DOCS.filter((doc) => doc.id !== "builtin:jira")) {
-    it(`o template ${template.id} nao muda a mensagem ao reparsear`, () => {
+    it(`template ${template.id} does not change the message on reparse`, () => {
       for (const [label, fields] of states) {
         const once = reparse(template, fields)
         const twice = reparse(template, commitTemplateUseCase.parseConventional(once))
@@ -42,7 +42,7 @@ describe("format -> parse -> format converge", () => {
     })
   }
 
-  it("o BREAKING CHANGE no corpo vira flag e nao duplica", () => {
+  it("BREAKING CHANGE in body becomes a flag and is not duplicated", () => {
     const parsed = commitTemplateUseCase.parseConventional("feat!: abc\n\nBREAKING CHANGE")
     expect(parsed.breaking).toBe(true)
     expect(parsed.body).toBe("")

@@ -91,7 +91,7 @@
   flex-direction: column;
   gap: 8px;
 }
-.cloneForm input {
+.cloneForm input:not([type="checkbox"]) {
   width: 100%;
   background: var(--bg-deep);
   border: 1px solid var(--border);
@@ -101,7 +101,7 @@
   font-size: 12px;
   font-family: inherit;
 }
-.cloneForm input:focus {
+.cloneForm input:not([type="checkbox"]):focus {
   border-color: var(--grape);
   outline: none;
   box-shadow: 0 0 0 2px rgba(124, 108, 255, 0.25);
@@ -110,8 +110,9 @@
 .cloneRow {
   display: flex;
   gap: 6px;
+  align-items: center;
 }
-.cloneRow input {
+.cloneRow input:not([type="checkbox"]) {
   flex: 1;
   min-width: 0;
 }

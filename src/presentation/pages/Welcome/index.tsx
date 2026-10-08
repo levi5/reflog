@@ -6,6 +6,7 @@ import { Download, FolderPlus, FolderSearch, GitFork, History } from "lucide-rea
 import { Spinner } from "../../components/Animation/Spinner"
 import { LogoMark } from "../../components/Brand/Logo"
 import { RecentCard } from "../../components/Recent"
+import { Switch } from "../../components/Switch"
 
 import { t } from "../../../i18n"
 import { useRepoCore, useSettingsContext } from "../../context"
@@ -36,13 +37,23 @@ export function Welcome(props: Props) {
   const recents = props.recents ?? repo.recents
   const [localCloneUrl, setLocalCloneUrl] = useState("")
   const [localCloneDir, setLocalCloneDir] = useState("")
+  const [localCloneBranch, setLocalCloneBranch] = useState("")
+  const [localCloneDepth, setLocalCloneDepth] = useState("")
+  const [localCloneRecurse, setLocalCloneRecurse] = useState(false)
   const cloneUrl = props.cloneUrl ?? localCloneUrl
   const cloneDir = props.cloneDir ?? localCloneDir
   const onCloneUrl = props.onCloneUrl ?? setLocalCloneUrl
   const onCloneDir = props.onCloneDir ?? setLocalCloneDir
   const onBrowseCloneDir =
     props.onBrowseCloneDir ?? (() => repo.pickDir().then((p: string | null) => p && onCloneDir(p)))
-  const onClone = props.onClone ?? (() => repo.cloneRepo(cloneUrl, cloneDir))
+  const onClone =
+    props.onClone ??
+    (() =>
+      repo.cloneRepo(cloneUrl, cloneDir, {
+        branch: localCloneBranch.trim() || undefined,
+        depth: localCloneDepth.trim() ? Number.parseInt(localCloneDepth.trim(), 10) : undefined,
+        recurseSubmodules: localCloneRecurse,
+      }))
   const onSelectRecent = props.onSelectRecent ?? repo.openRecent
   const onClearRecents = props.onClearRecents ?? repo.clearRecents
   const onRemoveRecent = props.onRemoveRecent ?? repo.removeRecent
@@ -166,6 +177,29 @@ export function Welcome(props: Props) {
               >
                 <Download size={14} />
               </button>
+            </div>
+            <div className={styles.cloneRow}>
+              <input
+                value={localCloneBranch}
+                onChange={(event) => setLocalCloneBranch(event.target.value)}
+                placeholder={t(lang, "cloneBranchPh")}
+                aria-label={t(lang, "cloneBranchPh")}
+              />
+              <input
+                value={localCloneDepth}
+                onChange={(event) => setLocalCloneDepth(event.target.value)}
+                placeholder={t(lang, "cloneDepthPh")}
+                aria-label={t(lang, "cloneDepthPh")}
+                inputMode="numeric"
+              />
+              <Switch
+                size="sm"
+                checked={localCloneRecurse}
+                onChange={setLocalCloneRecurse}
+                label={t(lang, "cloneRecurse")}
+                title={t(lang, "cloneRecurseHint")}
+                ariaLabel={t(lang, "cloneRecurse")}
+              />
             </div>
           </div>
         </div>

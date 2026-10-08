@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { act, render } from "@testing-library/react"
 import { useState } from "react"
 import { describe, expect, it } from "vitest"
@@ -14,7 +13,7 @@ interface HarnessProps {
 function Harness({ extra, stableAction, onRenders }: HarnessProps) {
   const [unrelated, setUnrelated] = useState(0)
   const slice = useStableSlice({
-    label: "valor fixo",
+    label: "fixed value",
     count: unrelated,
     action: stableAction,
   })
@@ -27,14 +26,14 @@ function Harness({ extra, stableAction, onRenders }: HarnessProps) {
 }
 
 describe("useStableSlice", () => {
-  it("mantem a identidade quando nenhum campo muda", () => {
+  it("keeps identity when no field changes", () => {
     const stableAction = () => {}
     const seen: Record<string, unknown>[] = []
     let renders = 0
 
     render(
       <Harness
-        extra="alvo"
+        extra="target"
         stableAction={stableAction}
         onRenders={() => {
           renders += 1
@@ -48,29 +47,29 @@ describe("useStableSlice", () => {
     expect(renders).toBe(1)
   })
 
-  it("devolve o mesmo objeto quando so estado alheio muda", () => {
+  it("returns the same object when only unrelated state changes", () => {
     const stableAction = () => {}
     const identities: unknown[] = []
 
     const view = render(
-      <Harness extra="alvo" stableAction={stableAction} onRenders={(_renders, slice) => identities.push(slice)} />,
+      <Harness extra="target" stableAction={stableAction} onRenders={(_renders, slice) => identities.push(slice)} />,
     )
 
     const first = identities.at(-1)
     act(() => {
       view.rerender(
-        <Harness extra="alvo" stableAction={stableAction} onRenders={(_renders, slice) => identities.push(slice)} />,
+        <Harness extra="target" stableAction={stableAction} onRenders={(_renders, slice) => identities.push(slice)} />,
       )
     })
 
     expect(identities.at(-1)).toBe(first)
   })
 
-  it("devolve um objeto novo quando um campo muda", () => {
+  it("returns a new object when a field changes", () => {
     const stableAction = () => {}
     const identities: unknown[] = []
     const view = render(
-      <Harness extra="alvo" stableAction={stableAction} onRenders={(_renders, slice) => identities.push(slice)} />,
+      <Harness extra="target" stableAction={stableAction} onRenders={(_renders, slice) => identities.push(slice)} />,
     )
 
     const before = identities.at(-1)

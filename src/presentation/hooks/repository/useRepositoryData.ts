@@ -60,6 +60,7 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
   const reflogLoadingRef = useRef(false)
   const countPendingRef = useRef(false)
   const countRepoRef = useRef<string | null>(null)
+  const statusRef = useRef<StatusResult | null>(null)
   const staticCacheRef = useRef<{ repo: string; version: string; remoteUrl: string; gpg: string } | null>(null)
 
   const loadReflog = useCallback(async () => {
@@ -103,6 +104,31 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
       }
       const needsCount = !countPendingRef.current && (full || countRepoRef.current === null)
       if (needsCount) countPendingRef.current = true
+      if (silent) {
+        try {
+          const nextStatus = await git.status(root)
+          if (request !== refreshRequestRef.current) return
+          if (sameStatus(statusRef.current, nextStatus)) return
+          const [nextBranches, nextConflicts, nextTags, nextRemotes, nextModules] = await Promise.all([
+            git.branches(root),
+            git.conflicted(root),
+            git.tagList(root),
+            git.remoteList(root),
+            git.submodules(root).catch(() => [] as SubmoduleInfo[]),
+          ])
+          if (request !== refreshRequestRef.current) return
+          statusRef.current = nextStatus
+          setStatus((prev) => (sameStatus(prev, nextStatus) ? prev : nextStatus))
+          setBranches((prev) => (sameBranches(prev, nextBranches) ? prev : nextBranches))
+          setConflicts((prev) => (sameConflicts(prev, nextConflicts) ? prev : nextConflicts))
+          setTags((prev) => (sameStrings(prev, nextTags) ? prev : nextTags))
+          setRemotes((prev) => (sameRemotes(prev, nextRemotes) ? prev : nextRemotes))
+          setSubmodules((prev) => (sameSubmodules(prev, nextModules) ? prev : nextModules))
+        } catch {
+          return
+        }
+        return
+      }
       try {
         const cached = staticCacheRef.current
         const staticPromise =
@@ -138,6 +164,7 @@ export function useRepositoryData({ repo, git, setBusy, setMsg }: RepositoryData
           setTotalCommits(nextTotal)
         }
         setStatus((prev) => (sameStatus(prev, nextStatus) ? prev : nextStatus))
+        statusRef.current = nextStatus
         setBranches((prev) => (sameBranches(prev, nextBranches) ? prev : nextBranches))
         setConflicts((prev) => (sameConflicts(prev, nextConflicts) ? prev : nextConflicts))
         setTags((prev) => (sameStrings(prev, nextTags) ? prev : nextTags))

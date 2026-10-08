@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { renderHook } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
@@ -21,7 +20,7 @@ function unstableAfterRerender(hook: () => Record<string, unknown>): string[] {
   return Object.keys(first).filter((key) => typeof first[key] === "function" && first[key] !== second[key])
 }
 
-describe("referencia estavel das acoes de staging", () => {
+describe("stable reference of staging actions", () => {
   it("useStagingIndexOps", () => {
     const deps = {
       lang: "en" as const,
@@ -57,7 +56,7 @@ describe("referencia estavel das acoes de staging", () => {
   })
 })
 
-describe("referencia estavel das acoes de staging e do commit box", () => {
+describe("stable reference of staging and commit box actions", () => {
   it("useFileEditor", () => {
     const deps = {
       lang: "en" as const,
@@ -69,7 +68,7 @@ describe("referencia estavel das acoes de staging e do commit box", () => {
     expect(unstableAfterRerender(() => useFileEditor(deps) as unknown as Record<string, unknown>)).toEqual([])
   })
 
-  it("useStaging mantem estaveis doCommit, createBranch e as acoes de hunk", () => {
+  it("useStaging keeps doCommit, createBranch and the hunk actions stable", () => {
     const deps = {
       lang: "en" as const,
       repo,

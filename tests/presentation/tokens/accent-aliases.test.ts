@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
+import path from "node:path"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -68,7 +68,7 @@ describe("accentFillForEveryAccent", () => {
 })
 
 describe("nativeControlAccent", () => {
-  const globals = readFileSync(fileURLToPath(new URL("../../../src/styles/globals.scss", import.meta.url)), "utf8")
+  const globals = readFileSync(path.resolve(import.meta.dirname, "../../../src/styles/globals.scss"), "utf8")
 
   it("paints native inputs with the accent so unstyled checkboxes follow the theme", () => {
     const inputsBlock = /input,\s*\ntextarea,\s*\nselect\s*\{([^}]*)\}/.exec(globals)
@@ -78,7 +78,7 @@ describe("nativeControlAccent", () => {
 
   it("keeps the per-file checkbox rule on the same variable", () => {
     const fileStyles = readFileSync(
-      fileURLToPath(new URL("../../../src/presentation/components/Status/File/style.module.scss", import.meta.url)),
+      path.resolve(import.meta.dirname, "../../../src/presentation/components/Status/File/style.module.scss"),
       "utf8",
     )
     const rule = /\.fcheck\s*\{([^}]*)\}/.exec(fileStyles)

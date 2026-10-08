@@ -7,19 +7,19 @@ import { renderString } from "../helpers/render"
 
 describe("EmptyState", () => {
   it("renders the message and the optional hint", () => {
-    const html = renderToString(<EmptyState message="Nada aqui" hint="Tente outra busca" />)
-    expect(html).toContain("Nada aqui")
-    expect(html).toContain("Tente outra busca")
+    const html = renderToString(<EmptyState message="Nothing here" hint="Try another search" />)
+    expect(html).toContain("Nothing here")
+    expect(html).toContain("Try another search")
   })
 
   it("omits the hint when it is not provided", () => {
-    const html = renderToString(<EmptyState message="Nada aqui" />)
-    expect(html).toContain("Nada aqui")
+    const html = renderToString(<EmptyState message="Nothing here" />)
+    expect(html).toContain("Nothing here")
     expect(html).not.toMatch(/<p class="_hint/)
   })
 
   it("marks the success variant", () => {
-    const html = renderToString(<EmptyState message="Tudo certo" ok />)
+    const html = renderToString(<EmptyState message="All good" ok />)
     expect(html).toMatch(/_ok_/)
   })
 })

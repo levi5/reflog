@@ -1,15 +1,15 @@
 import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
+import path from "node:path"
 
 import { describe, expect, it } from "vitest"
 
 import { contrastRatio, MIN_TEXT_CONTRAST } from "../../../src/shared/constants/accent"
 
-const GLOBALS = readFileSync(fileURLToPath(new URL("../../../src/styles/globals.scss", import.meta.url)), "utf8")
+const GLOBALS = readFileSync(path.resolve(import.meta.dirname, "../../../src/styles/globals.scss"), "utf8")
 
 function blockBody(selector: string): string {
   const start = GLOBALS.indexOf(selector)
-  if (start === -1) throw new Error(`seletor nao encontrado: ${selector}`)
+  if (start === -1) throw new Error(`selector not found: ${selector}`)
   const open = GLOBALS.indexOf("{", start)
   let depth = 0
   for (let index = open; index < GLOBALS.length; index++) {
@@ -19,7 +19,7 @@ function blockBody(selector: string): string {
       if (depth === 0) return GLOBALS.slice(open + 1, index)
     }
   }
-  throw new Error(`bloco nao fechado: ${selector}`)
+  throw new Error(`unclosed block: ${selector}`)
 }
 
 function themeTokens(selector: string): Record<string, string> {
@@ -149,8 +149,8 @@ function hoverBackground(buttonClass: string): string | null {
 
 const ON_COLOR = ["primary", "push", "success", "complete-btn"]
 
-describe("hover nao troca a cor dos botes", () => {
-  it("todo bote com texto --on-primary continua sobre --primary no hover", () => {
+describe("hover does not change button color", () => {
+  it("every button with --on-primary text stays on --primary on hover", () => {
     const withOnText = RULES.flatMap((rule) =>
       rule.selectors
         .filter(
@@ -165,7 +165,7 @@ describe("hover nao troca a cor dos botes", () => {
     }
   })
 
-  it("o hover generico nao vence a especificidade dos modificadores", () => {
+  it("generic hover does not beat modifier specificity", () => {
     const generic = RULES.find((rule) => rule.selectors.includes("button:where(:hover):not(:disabled)"))
     expect(generic).toBeDefined()
     for (const buttonClass of ON_COLOR) {
@@ -173,7 +173,7 @@ describe("hover nao troca a cor dos botes", () => {
     }
   })
 
-  it("push, success e primary clareiam a propria cor no hover", () => {
+  it("push, success and primary lighten their own color on hover", () => {
     for (const buttonClass of ["push", "success", "primary"]) {
       const selector = `button.${buttonClass}:hover:not(:disabled)`
       const rule = RULES.find((candidate) => candidate.selectors.includes(selector))
@@ -182,15 +182,15 @@ describe("hover nao troca a cor dos botes", () => {
     }
   })
 
-  it("danger usa o container no hover para manter o contraste", () => {
+  it("danger uses the container on hover to keep contrast", () => {
     expect(hoverBackground("danger")).toBe("var(--red-container)")
   })
 })
 
-describe("tokens de interacao com contraste AA", () => {
+describe("interaction tokens with AA contrast", () => {
   const THEMES = { dark: DARK, light: LIGHT }
 
-  it("--on-primary sobre --primary", () => {
+  it("--on-primary on --primary", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
       const ratio = contrastRatio(tokens["--on-primary"], tokens["--primary"])
       expect(`${name} ${ratio.toFixed(2)}`).toBeTruthy()
@@ -198,7 +198,7 @@ describe("tokens de interacao com contraste AA", () => {
     }
   })
 
-  it("--red sobre --red-container e --red-dim", () => {
+  it("--red on --red-container and --red-dim", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
       expect(`${name} container`, true).toBeTruthy()
       expect(contrastRatio(tokens["--red"], tokens["--red-container"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
@@ -206,7 +206,7 @@ describe("tokens de interacao com contraste AA", () => {
     }
   })
 
-  it("--fg sobre as superficies de hover e de repouso", () => {
+  it("--fg on hover and resting surfaces", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
       expect(`${name} hover`, true).toBeTruthy()
       expect(contrastRatio(tokens["--fg"], tokens["--surface-hover"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)
@@ -214,7 +214,7 @@ describe("tokens de interacao com contraste AA", () => {
     }
   })
 
-  it("--primary-text sobre as superficies clara e escura", () => {
+  it("--primary-text on light and dark surfaces", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
       expect(
         `${name} ${contrastRatio(tokens["--primary-text"], tokens["--surface-hover"]).toFixed(2)}`,
@@ -227,7 +227,7 @@ describe("tokens de interacao com contraste AA", () => {
     }
   })
 
-  it("--muted e --faint sobre --surface-hover", () => {
+  it("--muted and --faint on --surface-hover", () => {
     for (const [name, tokens] of Object.entries(THEMES)) {
       expect(`${name} muted`, true).toBeTruthy()
       expect(contrastRatio(tokens["--muted"], tokens["--surface-hover"])).toBeGreaterThanOrEqual(MIN_TEXT_CONTRAST)

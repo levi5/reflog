@@ -26,7 +26,7 @@ export const AUTOMATION_HUB_COPY: Record<Lang, AutomationHubCopy> = {
         hint: "Monte um fluxo de comandos Git e execute quando precisar.",
       },
       monitors: {
-        label: "Monitores",
+        label: "Monitors",
         hint: "Agrupe verificações manuais para rodar no repositório aberto.",
       },
       templates: {

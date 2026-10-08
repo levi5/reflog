@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs"
+import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-const GLOBALS = readFileSync(fileURLToPath(new URL("../../../src/styles/globals.scss", import.meta.url)), "utf8")
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const GLOBALS = readFileSync(path.resolve(__dirname, "../../../src/styles/globals.scss"), "utf8")
 
 function blockBody(selector: string): string {
   const start = GLOBALS.indexOf(selector)
-  if (start === -1) throw new Error(`seletor nao encontrado: ${selector}`)
+  if (start === -1) throw new Error(`selector not found: ${selector}`)
   const open = GLOBALS.indexOf("{", start)
   let depth = 0
   for (let index = open; index < GLOBALS.length; index++) {
@@ -15,7 +17,7 @@ function blockBody(selector: string): string {
       if (depth === 0) return GLOBALS.slice(open + 1, index)
     }
   }
-  throw new Error(`bloco nao fechado: ${selector}`)
+  throw new Error(`unclosed block: ${selector}`)
 }
 
 function themeTokens(selector: string): Record<string, string> {
@@ -42,6 +44,6 @@ export const LIGHT_TOKENS = themeTokens("[data-theme=light] {")
 
 export function token(name: string, theme: "dark" | "light"): string {
   const value = theme === "dark" ? DARK_TOKENS[name] : LIGHT_TOKENS[name]
-  if (!value) throw new Error(`token ausente em globals.scss: ${name} (${theme})`)
+  if (!value) throw new Error(`missing token in globals.scss: ${name} (${theme})`)
   return value
 }

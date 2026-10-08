@@ -262,6 +262,7 @@ permissions. Releases are unsigned, so Windows SmartScreen warns on first run.
 | `pnpm lint` | Run Biome linter over `src`, `tests`, `scripts`, `web` |
 | `pnpm lint:fix` | Auto-fix lint issues |
 | `pnpm test` | Run Vitest (unit, component and hook tests) |
+| `pnpm test:e2e` | Run Playwright smoke tests for the landing site |
 | `node scripts/check-version.mjs` | Validate the version across the three manifests |
 
 The landing site is built from `web/` with its own scripts:

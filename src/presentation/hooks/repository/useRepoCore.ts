@@ -287,6 +287,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     setUpstream: syncOps.setUpstream,
     createTag: tagOps.createTag,
     deleteTag: tagOps.deleteTag,
+    pushTag: tagOps.pushTag,
     addRemote: remoteOps.addRemote,
     removeRemote: remoteOps.removeRemote,
     pullIt: syncOps.pullIt,

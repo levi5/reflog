@@ -14,7 +14,7 @@ import type {
   SubmoduleInfo,
   WorktreeInfo,
 } from "../../types"
-import type { LogFilter, PushOptions, StashPushOptions } from "./ipc-client"
+import type { CloneOptions, LogFilter, PushOptions, StashPushOptions } from "./ipc-client"
 
 export interface IGitApi {
   checkRepo(path: string): Promise<boolean>
@@ -51,10 +51,17 @@ export interface IGitApi {
   discardUntracked(repoPath: string, files: string[]): Promise<string>
   mergeOpts(repoPath: string, branch: string, squash: boolean, noFf: boolean): Promise<string>
   mergeAbort(repoPath: string): Promise<string>
+  mergeContinue(repoPath: string): Promise<string>
   rebaseCommits(repoPath: string, onto: string): Promise<CommitInfo[]>
   rebaseStart(repoPath: string, onto: string, ops: RebaseOp[]): Promise<string>
   rebaseContinue(repoPath: string): Promise<string>
   rebaseAbort(repoPath: string): Promise<string>
+  bisectStart(repoPath: string, bad: string, good: string): Promise<string>
+  bisectGood(repoPath: string, rev?: string): Promise<string>
+  bisectBad(repoPath: string, rev?: string): Promise<string>
+  bisectSkip(repoPath: string): Promise<string>
+  bisectReset(repoPath: string): Promise<string>
+  bisectLog(repoPath: string): Promise<string>
   fetch(repoPath: string, prune?: boolean): Promise<string>
   pull(repoPath: string): Promise<string>
   push(repoPath: string): Promise<string>
@@ -75,11 +82,12 @@ export interface IGitApi {
   version(): Promise<string>
   remoteUrl(repoPath: string): Promise<string>
   gpg(repoPath: string): Promise<string>
-  clone(url: string, path: string): Promise<string>
+  clone(url: string, path: string, options?: CloneOptions): Promise<string>
   blame(repoPath: string, file: string): Promise<string>
   lsFiles(repoPath: string): Promise<string[]>
   tagList(repoPath: string): Promise<string[]>
-  tagCreate(repoPath: string, name: string, message?: string): Promise<string>
+  tagCreate(repoPath: string, name: string, message?: string, signed?: boolean): Promise<string>
+  tagPush(repoPath: string, name: string, remote?: string): Promise<string>
   tagDelete(repoPath: string, name: string): Promise<string>
   remoteList(repoPath: string): Promise<RemoteInfo[]>
   remoteAdd(repoPath: string, name: string, url: string): Promise<string>
@@ -90,12 +98,19 @@ export interface IGitApi {
   templateDelete(repoPath: string, folder: string, name: string): Promise<string>
   submodules(repoPath: string): Promise<SubmoduleInfo[]>
   submoduleUpdate(repoPath: string, submodulePath?: string): Promise<string>
+  submoduleSync(repoPath: string): Promise<string>
+  submoduleAdd(repoPath: string, url: string, path: string): Promise<string>
+  submoduleRemove(repoPath: string, path: string): Promise<string>
   worktrees(repoPath: string): Promise<WorktreeInfo[]>
   worktreeAdd(repoPath: string, path: string, branch?: string, detach?: boolean): Promise<string>
   worktreeRemove(repoPath: string, path: string, force?: boolean): Promise<string>
+  worktreeLock(repoPath: string, path: string, reason?: string): Promise<string>
+  worktreeUnlock(repoPath: string, path: string): Promise<string>
+  worktreePrune(repoPath: string): Promise<string>
   superprojectChain(repoPath: string): Promise<string[]>
   stash(repoPath: string, message?: string, options?: StashPushOptions): Promise<string>
-  stashPop(repoPath: string): Promise<string>
+  stashPop(repoPath: string, index?: number): Promise<string>
+  stashClear(repoPath: string): Promise<string>
   stashList(repoPath: string): Promise<StashItem[]>
   stashShow(repoPath: string, index: number): Promise<string>
   stashDrop(repoPath: string, index: number): Promise<string>

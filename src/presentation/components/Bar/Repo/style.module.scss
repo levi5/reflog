@@ -9,7 +9,7 @@
   flex-wrap: wrap;
   align-items: center;
 }
-.repobar input {
+.repobar input:not([type="checkbox"]) {
   width: 220px;
   background: var(--bg-deep);
   border: 1px solid var(--border);
@@ -18,7 +18,7 @@
   padding: 6px 9px;
   font-size: 12px;
 }
-.repobar input:focus {
+.repobar input:not([type="checkbox"]):focus {
   border-color: var(--grape);
   outline: none;
   box-shadow: 0 0 0 2px rgba(124, 108, 255, 0.25);

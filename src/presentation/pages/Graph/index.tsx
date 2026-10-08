@@ -18,6 +18,7 @@ import { Skeleton } from "../../components/Skeleton"
 import { t } from "../../../i18n"
 import { useIntersectionObserver } from "../../hooks"
 import { useAmendCommit, useHistorySearch } from "../../hooks/repository/useHistorySearch"
+import { useBisect } from "../../hooks/repository/useBisect"
 import { useRepo, useSearch, useSettingsContext } from "../../context"
 import type { CommitInfo } from "../../../types"
 
@@ -34,8 +35,13 @@ export function Graph(_props: Props) {
   const [viewMode, setViewMode] = useState<"graph" | "log" | "reflog">("graph")
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null)
   const [commitPage, setCommitPage] = useState(0)
+  const [paginationScope, setPaginationScope] = useState(() => [viewMode, repo.repo, query, scope])
+  const [showBisect, setShowBisect] = useState(false)
+  const [bisectBad, setBisectBad] = useState("HEAD")
+  const [bisectGood, setBisectGood] = useState("")
   const dismissedCommitHashRef = useRef("")
   const headHash = repo.status?.head ?? ""
+  const bisect = useBisect({ lang, repo: repo.repo, runAction: repo.runAction })
 
   const amend = useAmendCommit({
     lang,
@@ -69,6 +75,16 @@ export function Graph(_props: Props) {
   )
 
   const repoPath = repo.repo
+
+  if (
+    paginationScope[0] !== viewMode ||
+    paginationScope[1] !== repoPath ||
+    paginationScope[2] !== query ||
+    paginationScope[3] !== scope
+  ) {
+    setPaginationScope([viewMode, repoPath, query, scope])
+    setCommitPage(0)
+  }
 
   const currentHasMore = viewMode === "log" ? repo.logHasMore : repo.graphHasMore
   const currentLoading = viewMode === "log" ? repo.logLoading : repo.graphLoading
@@ -116,11 +132,6 @@ export function Graph(_props: Props) {
   useEffect(() => {
     handleLoadMoreRef.current = handleLoadMore
   }, [handleLoadMore])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: switching view, repo, scope or query must reset pagination
-  useEffect(() => {
-    setCommitPage(0)
-  }, [viewMode, repoPath, query, scope])
 
   const filteredCommits = useMemo(() => {
     const availableCommits = viewMode === "log" ? repo.log : repo.graph
@@ -194,6 +205,10 @@ export function Graph(_props: Props) {
       graphCommits.find((commit) => commit.hash === hashParam || commit.short === hashParam)
     if (found) setSelectedCommit(found)
   }, [hashParam, logCommits, graphCommits, selectedHash])
+
+  useEffect(() => {
+    if (repo.status?.bisecting) void bisect.loadLog()
+  }, [repo.status?.bisecting, bisect.loadLog])
   const branches = useMemo(
     () =>
       scope === "commits" || scope === "files"
@@ -268,6 +283,85 @@ export function Graph(_props: Props) {
                 <span>{t(lang, "reflog")}</span>
               </button>
             </div>
+            <section className={styles.bisectPanel} aria-label={t(lang, "bisect")}>
+              <div className={styles.bisectHead}>
+                <strong>{repo.status?.bisecting ? t(lang, "bisectInProgress") : t(lang, "bisect")}</strong>
+                {!repo.status?.bisecting && (
+                  <button type="button" className="mini-btn" onClick={() => setShowBisect((show) => !show)}>
+                    {showBisect ? t(lang, "cancel") : t(lang, "bisectStart")}
+                  </button>
+                )}
+              </div>
+              {!repo.status?.bisecting && showBisect && (
+                <div className={styles.bisectControls}>
+                  <input
+                    value={bisectBad}
+                    onChange={(event) => setBisectBad(event.target.value)}
+                    placeholder={t(lang, "bisectBadPh")}
+                    aria-label={t(lang, "bisectBadPh")}
+                  />
+                  <input
+                    value={bisectGood}
+                    onChange={(event) => setBisectGood(event.target.value)}
+                    placeholder={t(lang, "bisectGoodPh")}
+                    aria-label={t(lang, "bisectGoodPh")}
+                  />
+                  <button
+                    type="button"
+                    className="mini-btn primary"
+                    disabled={repo.busy || !bisectBad.trim() || !bisectGood.trim()}
+                    onClick={() => {
+                      void bisect.start(bisectBad, bisectGood)
+                      setShowBisect(false)
+                    }}
+                  >
+                    {t(lang, "bisectStart")}
+                  </button>
+                </div>
+              )}
+              {repo.status?.bisecting && (
+                <>
+                  <div className={styles.bisectControls}>
+                    <button
+                      type="button"
+                      className="mini-btn"
+                      disabled={repo.busy}
+                      onClick={() => void bisect.mark("good")}
+                    >
+                      {t(lang, "bisectGood")}
+                    </button>
+                    <button
+                      type="button"
+                      className="mini-btn"
+                      disabled={repo.busy}
+                      onClick={() => void bisect.mark("bad")}
+                    >
+                      {t(lang, "bisectBad")}
+                    </button>
+                    <button type="button" className="mini-btn" disabled={repo.busy} onClick={() => void bisect.skip()}>
+                      {t(lang, "bisectSkip")}
+                    </button>
+                    <button
+                      type="button"
+                      className="mini-btn danger"
+                      disabled={repo.busy}
+                      onClick={() => void bisect.reset()}
+                    >
+                      {t(lang, "bisectReset")}
+                    </button>
+                    <button
+                      type="button"
+                      className="mini-btn"
+                      disabled={repo.busy}
+                      onClick={() => void bisect.loadLog()}
+                    >
+                      {t(lang, "bisectLog")}
+                    </button>
+                  </div>
+                  {bisect.log && <pre className={styles.bisectLog}>{bisect.log}</pre>}
+                </>
+              )}
+            </section>
             <h3>{t(lang, viewMode === "reflog" ? "reflogView" : viewMode === "log" ? "logView" : "logGraph")}</h3>
             {viewMode === "reflog" ? (
               <Commit.Reflog

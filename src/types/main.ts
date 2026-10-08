@@ -17,6 +17,7 @@ export interface StatusResult {
   cherryPicking: boolean
   reverting: boolean
   rebasing: boolean
+  bisecting?: boolean
 }
 
 export interface BranchInfo {
@@ -56,6 +57,8 @@ export interface WorktreeInfo {
   detached: boolean
   bare: boolean
   main: boolean
+  locked?: boolean
+  prunable?: boolean
 }
 
 export interface FileTreeNode {

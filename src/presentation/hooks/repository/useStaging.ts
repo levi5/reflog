@@ -111,6 +111,39 @@ export function useStaging(deps: StagingDeps) {
     [repo, lang, runAction],
   )
 
+  const submoduleSync = useCallback(
+    () =>
+      runAction(() => gitApi.submoduleSync(repo), undefined, {
+        loadingMessage: t(lang, "submoduleSyncing"),
+        successMessage: t(lang, "submoduleSynced"),
+      }),
+    [repo, lang, runAction],
+  )
+
+  const submoduleAdd = useCallback(
+    (url: string, path: string) => {
+      if (!repo || !url.trim() || !path.trim()) return Promise.resolve()
+      return runAction(() => gitApi.submoduleAdd(repo, url.trim(), path.trim()), undefined, {
+        loadingMessage: t(lang, "submoduleAdding"),
+        successMessage: t(lang, "submoduleAdded"),
+      })
+    },
+    [repo, lang, runAction],
+  )
+
+  const submoduleRemove = useCallback(
+    async (path: string) => {
+      if (!repo || !path) return Promise.resolve()
+      if (!(await requestConfirm(t(lang, "submoduleRemove"), t(lang, "submoduleRemoveConfirm"))))
+        return Promise.resolve()
+      return runAction(() => gitApi.submoduleRemove(repo, path), undefined, {
+        loadingMessage: t(lang, "submoduleRemoving"),
+        successMessage: t(lang, "submoduleRemoved"),
+      })
+    },
+    [repo, lang, runAction, requestConfirm],
+  )
+
   const stageHunk = useCallback(
     (patch: string) =>
       runAction(() => gitApi.applyPatch(repo, patch, true, false), diffPanel.reloadDiff, {
@@ -207,8 +240,12 @@ export function useStaging(deps: StagingDeps) {
     stashShow: stashOps.stashShow,
     stashPush: stashOps.stashPush,
     stashPopIt: stashOps.stashPopIt,
+    stashClear: stashOps.stashClear,
     submodules,
     submoduleUpdate,
+    submoduleSync,
+    submoduleAdd,
+    submoduleRemove,
     trackedFiles,
     loadTracked,
     doCommit,

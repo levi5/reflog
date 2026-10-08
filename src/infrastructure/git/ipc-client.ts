@@ -24,6 +24,12 @@ export interface PushOptions {
   deleteRemoteBranch?: string
 }
 
+export interface CloneOptions {
+  depth?: number
+  branch?: string
+  recurseSubmodules?: boolean
+}
+
 export interface StashPushOptions {
   keepIndex?: boolean
   stagedOnly?: boolean
@@ -93,6 +99,7 @@ export const gitApi = {
   mergeOpts: (repoPath: string, branch: string, squash: boolean, noFf: boolean) =>
     invokeTyped<string>("git_merge_opts", { repoPath, branch, squash, noFf }),
   mergeAbort: (repoPath: string) => invokeTyped<string>("git_merge_abort", { repoPath }),
+  mergeContinue: (repoPath: string) => invokeTyped<string>("git_merge_continue", { repoPath }),
   fetch: (repoPath: string, prune = false) => invokeTyped<string>("git_fetch", { repoPath, prune }),
   pull: (repoPath: string) => invokeTyped<string>("git_pull", { repoPath }),
   push: (repoPath: string) => invokeTyped<string>("git_push", { repoPath }),
@@ -134,7 +141,9 @@ export const gitApi = {
       stagedOnly: options.stagedOnly ?? false,
       paths: options.paths ?? [],
     }),
-  stashPop: (repoPath: string) => invokeTyped<string>("git_stash_pop", { repoPath }),
+  stashPop: (repoPath: string, index?: number) =>
+    invokeTyped<string>("git_stash_pop", { repoPath, index: index ?? null }),
+  stashClear: (repoPath: string) => invokeTyped<string>("git_stash_clear", { repoPath }),
   stashList: (repoPath: string) => invokeTyped<StashItem[]>("git_stash_list", { repoPath }),
   stashShow: (repoPath: string, index: number) => invokeTyped<string>("git_stash_show", { repoPath, index }),
   stashDrop: (repoPath: string, index: number) => invokeTyped<string>("git_stash_drop", { repoPath, index }),
@@ -158,7 +167,14 @@ export const gitApi = {
   version: () => invokeTyped<string>("git_version", {}),
   remoteUrl: (repoPath: string) => invokeTyped<string>("git_remote_url", { repoPath }),
   gpg: (repoPath: string) => invokeTyped<string>("git_gpg", { repoPath }),
-  clone: (url: string, path: string) => invokeTyped<string>("git_clone", { url, path }),
+  clone: (url: string, path: string, options: CloneOptions = {}) =>
+    invokeTyped<string>("git_clone", {
+      url,
+      path,
+      depth: options.depth ?? null,
+      branch: options.branch ?? null,
+      recurseSubmodules: options.recurseSubmodules ?? false,
+    }),
   blame: (repoPath: string, file: string) => invokeTyped<string>("git_blame", { repoPath, file }),
   lsFiles: (repoPath: string) => invokeTyped<string[]>("git_ls_files", { repoPath }),
   applyPatch: (repoPath: string, patch: string, cached: boolean, reverse: boolean) =>
@@ -175,8 +191,10 @@ export const gitApi = {
   branchRename: (repoPath: string, oldName: string, newName: string) =>
     invokeTyped<string>("git_branch_rename", { repoPath, old: oldName, new: newName }),
   tagList: (repoPath: string) => invokeTyped<string[]>("git_tag_list", { repoPath }),
-  tagCreate: (repoPath: string, name: string, message?: string) =>
-    invokeTyped<string>("git_tag_create", { repoPath, name, message }),
+  tagCreate: (repoPath: string, name: string, message?: string, signed = false) =>
+    invokeTyped<string>("git_tag_create", { repoPath, name, message, signed }),
+  tagPush: (repoPath: string, name: string, remote?: string) =>
+    invokeTyped<string>("git_tag_push", { repoPath, name, remote: remote ?? null }),
   tagDelete: (repoPath: string, name: string) => invokeTyped<string>("git_tag_delete", { repoPath, name }),
   remoteList: (repoPath: string) => invokeTyped<RemoteInfo[]>("git_remote_list", { repoPath }),
   remoteAdd: (repoPath: string, name: string, url: string) =>
@@ -196,14 +214,30 @@ export const gitApi = {
     invokeTyped<string>("git_rebase_start", { repoPath, onto, ops }),
   rebaseContinue: (repoPath: string) => invokeTyped<string>("git_rebase_continue", { repoPath }),
   rebaseAbort: (repoPath: string) => invokeTyped<string>("git_rebase_abort", { repoPath }),
+  bisectStart: (repoPath: string, bad: string, good: string) =>
+    invokeTyped<string>("git_bisect_start", { repoPath, bad, good }),
+  bisectGood: (repoPath: string, rev?: string) =>
+    invokeTyped<string>("git_bisect_good", { repoPath, rev: rev ?? null }),
+  bisectBad: (repoPath: string, rev?: string) => invokeTyped<string>("git_bisect_bad", { repoPath, rev: rev ?? null }),
+  bisectSkip: (repoPath: string) => invokeTyped<string>("git_bisect_skip", { repoPath }),
+  bisectReset: (repoPath: string) => invokeTyped<string>("git_bisect_reset", { repoPath }),
+  bisectLog: (repoPath: string) => invokeTyped<string>("git_bisect_log", { repoPath }),
   submodules: (repoPath: string) => invokeTyped<SubmoduleInfo[]>("git_submodule_list", { repoPath }),
   submoduleUpdate: (repoPath: string, submodulePath?: string) =>
     invokeTyped<string>("git_submodule_update", { repoPath, submodulePath }),
+  submoduleSync: (repoPath: string) => invokeTyped<string>("git_submodule_sync", { repoPath }),
+  submoduleAdd: (repoPath: string, url: string, path: string) =>
+    invokeTyped<string>("git_submodule_add", { repoPath, url, path }),
+  submoduleRemove: (repoPath: string, path: string) => invokeTyped<string>("git_submodule_remove", { repoPath, path }),
   worktrees: (repoPath: string) => invokeTyped<WorktreeInfo[]>("git_worktree_list", { repoPath }),
   worktreeAdd: (repoPath: string, path: string, branch?: string, detach = false) =>
     invokeTyped<string>("git_worktree_add", { repoPath, path, branch: branch ?? null, detach }),
   worktreeRemove: (repoPath: string, path: string, force = false) =>
     invokeTyped<string>("git_worktree_remove", { repoPath, path, force }),
+  worktreeLock: (repoPath: string, path: string, reason?: string) =>
+    invokeTyped<string>("git_worktree_lock", { repoPath, path, reason: reason ?? null }),
+  worktreeUnlock: (repoPath: string, path: string) => invokeTyped<string>("git_worktree_unlock", { repoPath, path }),
+  worktreePrune: (repoPath: string) => invokeTyped<string>("git_worktree_prune", { repoPath }),
   superprojectChain: (repoPath: string) => invokeTyped<string[]>("git_superproject_chain", { repoPath }),
 }
 

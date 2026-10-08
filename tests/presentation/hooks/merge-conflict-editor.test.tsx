@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
@@ -32,31 +31,31 @@ function renderMerge(initial: ConflictFile[]) {
   })
 }
 
-describe("o editor de conflito nao descarta edicoes nao salvas", () => {
-  it("mantem o buffer digitado quando um refresh traz o mesmo arquivo", () => {
-    const onDisk = conflict("src/app.ts", "<<<<<<< HEAD\noriginal\n=======\nremoto\n>>>>>>> branch")
+describe("conflict editor does not discard unsaved edits", () => {
+  it("keeps the typed buffer when a refresh brings the same file", () => {
+    const onDisk = conflict("src/app.ts", "<<<<<<< HEAD\noriginal\n=======\ntheirs\n>>>>>>> branch")
     const { result, rerender } = renderMerge([onDisk])
 
-    act(() => result.current.setEditorContent("minha resolucao manual"))
+    act(() => result.current.setEditorContent("my manual resolution"))
 
     rerender({ conflicts: [onDisk] })
 
-    expect(result.current.editorContent).toBe("minha resolucao manual")
+    expect(result.current.editorContent).toBe("my manual resolution")
   })
 
-  it("mantem o buffer quando o refresh traz conteudo novo do disco", () => {
-    const before = conflict("src/app.ts", "conteudo antigo")
+  it("keeps the buffer when the refresh brings new content from disk", () => {
+    const before = conflict("src/app.ts", "old content")
     const { result, rerender } = renderMerge([before])
 
-    act(() => result.current.setEditorContent("trabalho em andamento"))
+    act(() => result.current.setEditorContent("work in progress"))
 
-    rerender({ conflicts: [conflict("src/app.ts", "conteudo novo em disco")] })
+    rerender({ conflicts: [conflict("src/app.ts", "new content from disk")] })
 
-    expect(result.current.editorContent).toBe("trabalho em andamento")
+    expect(result.current.editorContent).toBe("work in progress")
   })
 
-  it("mantem o buffer mesmo quando o usuario limpa o campo para reescrever", () => {
-    const onDisk = conflict("src/app.ts", "conteudo original")
+  it("keeps the buffer even when the user clears the field to rewrite", () => {
+    const onDisk = conflict("src/app.ts", "original content")
     const { result, rerender } = renderMerge([onDisk])
 
     act(() => result.current.setEditorContent(""))
@@ -66,34 +65,34 @@ describe("o editor de conflito nao descarta edicoes nao salvas", () => {
     expect(result.current.editorContent).toBe("")
   })
 
-  it("recarrega o buffer quando o arquivo ativo sai da lista", () => {
-    const first = conflict("a.ts", "conteudo de a")
-    const second = conflict("b.ts", "conteudo de b")
+  it("reloads the buffer when the active file leaves the list", () => {
+    const first = conflict("a.ts", "content of a")
+    const second = conflict("b.ts", "content of b")
     const { result, rerender } = renderMerge([first, second])
 
-    act(() => result.current.setEditorContent("editando a"))
-    expect(result.current.editorContent).toBe("editando a")
+    act(() => result.current.setEditorContent("editing a"))
+    expect(result.current.editorContent).toBe("editing a")
 
     rerender({ conflicts: [second] })
 
     expect(result.current.activeConflict).toBe("b.ts")
-    expect(result.current.editorContent).toBe("conteudo de b")
+    expect(result.current.editorContent).toBe("content of b")
   })
 
-  it("recarrega o conteudo do disco quando o usuario nao editou nada", () => {
-    const { result, rerender } = renderMerge([conflict("a.ts", "versao 1")])
+  it("reloads the disk content when the user edited nothing", () => {
+    const { result, rerender } = renderMerge([conflict("a.ts", "version 1")])
 
-    rerender({ conflicts: [conflict("a.ts", "versao 2")] })
+    rerender({ conflicts: [conflict("a.ts", "version 2")] })
 
-    expect(result.current.editorContent).toBe("versao 2")
+    expect(result.current.editorContent).toBe("version 2")
   })
 
-  it("selectConflictFile troca o arquivo e descarta o rascunho do anterior", () => {
-    const { result } = renderMerge([conflict("a.ts", "conteudo de a"), conflict("b.ts", "conteudo de b")])
+  it("selectConflictFile switches the file and discards the previous draft", () => {
+    const { result } = renderMerge([conflict("a.ts", "content of a"), conflict("b.ts", "content of b")])
 
     act(() => result.current.selectConflictFile("b.ts"))
 
     expect(result.current.activeConflict).toBe("b.ts")
-    expect(result.current.editorContent).toBe("conteudo de b")
+    expect(result.current.editorContent).toBe("content of b")
   })
 })

@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
@@ -18,9 +17,9 @@ function commit(hash: string, message: string): CommitInfo {
   } as unknown as CommitInfo
 }
 
-const first = commit("aaa111", "primeiro")
-const second = commit("bbb222", "segundo")
-const third = commit("ccc333", "terceiro")
+const first = commit("aaa111", "first")
+const second = commit("bbb222", "second")
+const third = commit("ccc333", "third")
 
 function renderForm(commits: CommitInfo[], onApply = vi.fn()) {
   const utils = render(
@@ -43,8 +42,8 @@ async function applyRebase() {
   await userEvent.click(screen.getByRole("button", { name: /apply rebase/i }))
 }
 
-describe("RebaseForm preserva o plano escolhido pelo usuario", () => {
-  it("mantem a ordem manual quando a lista de commits e recriada com os mesmos hashes", async () => {
+describe("RebaseForm preserves the user-chosen plan", () => {
+  it("keeps manual order when the commit list is recreated with the same hashes", async () => {
     const { rerender } = renderForm([first, second, third])
 
     const moveUp = screen.getAllByRole("button", { name: /up|acima|↑/i })
@@ -71,7 +70,7 @@ describe("RebaseForm preserva o plano escolhido pelo usuario", () => {
     expect(ops.map((op) => op.hash)).toEqual(["ccc333", "aaa111", "bbb222"])
   })
 
-  it("mantem o texto digitado em onto quando defaultOnto nao muda de valor", async () => {
+  it("keeps typed onto text when defaultOnto does not change", async () => {
     const onApply = vi.fn()
     const { rerender } = render(
       <TranslationProvider>
@@ -108,7 +107,7 @@ describe("RebaseForm preserva o plano escolhido pelo usuario", () => {
     expect((input as HTMLInputElement).value).toBe("release/2.0")
   })
 
-  it("reaplica o default quando defaultOnto muda de verdade", async () => {
+  it("reapplies the default when defaultOnto actually changes", async () => {
     const onApply = vi.fn()
     const { rerender } = render(
       <TranslationProvider>
@@ -126,7 +125,7 @@ describe("RebaseForm preserva o plano escolhido pelo usuario", () => {
 
     const input = screen.getByLabelText(/rebase onto/i)
     await userEvent.clear(input)
-    await userEvent.type(input, "qualquer")
+    await userEvent.type(input, "anything")
 
     rerender(
       <TranslationProvider>
