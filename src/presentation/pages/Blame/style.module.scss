@@ -1,12 +1,3 @@
-.simpleLayout {
-  margin-top: 1.2rem;
-  min-height: 0;
-  flex: 1;
-  display: flex;
-  gap: 0;
-  overflow: hidden;
-}
-
 .wrapperMain {
   position: relative;
   justify-content: space-between;
@@ -15,48 +6,7 @@
   .wrapperFile {
     width: 100%;
     height: 100%;
-  }
-
-  .wrapperCommitDetail {
-    width: var(--side-w, 300px);
-    min-width: 220px;
-  }
-}
-
-.conflictSide {
-  width: var(--side-w, 300px);
-  min-width: 220px;
-  border-right: 1px solid var(--border-soft);
-  background: var(--bg-panel);
-  padding: 12px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.mergeMain {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 14px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: var(--bg-win);
-}
-
-.mergeMain h3 {
-  margin: 0 0 8px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.sideHead {
+  }}.sideHead {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -243,19 +193,7 @@
   flex: 1;
 }
 
-@media (max-width: 980px) {
-  .simpleLayout {
-    flex-direction: column;
-    overflow-y: auto;
-  }
-
-  .conflictSide {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--border-soft);
-  }
-
-  .mergeMain {
+@media (max-width: 980px) {  .mergeMain {
     overflow: visible;
   }
 }

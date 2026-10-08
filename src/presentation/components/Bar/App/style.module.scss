@@ -16,17 +16,6 @@
   flex-shrink: 0;
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 800;
-  font-size: 13px;
-  color: var(--fg);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
 .repoPill {
   display: inline-flex;
   align-items: center;
@@ -135,7 +124,6 @@
     }
   }
 
-
 }
 
 @media (max-width: 760px) {
@@ -148,5 +136,4 @@
     display: none;
   }
 }
-
 

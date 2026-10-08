@@ -66,29 +66,7 @@
   outline-offset: 2px;
 }
 
-.itemContent {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
-}
-
-.itemActions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.listItem:hover .itemActions,
-.itemActions:focus-within {
-  opacity: 1;
-}
-
-.emptyState {
+.listItem:hover .itemActions,.emptyState {
   display: flex;
   flex-direction: column;
   gap: 8px;
