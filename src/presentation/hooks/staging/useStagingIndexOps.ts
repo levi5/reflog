@@ -6,6 +6,7 @@ import type { FileStatus, Lang } from "../../../types"
 import { isUntrackedFile } from "../../components/Status/Sections/section-groups"
 
 import type { RunAction } from "../repository/action-types"
+import { type CapturedPatch, usePatchCapture } from "./usePatchCapture"
 
 interface IndexOpsDeps {
   lang: Lang
@@ -15,11 +16,6 @@ interface IndexOpsDeps {
   loadDiff: (file?: string, staged?: boolean) => Promise<void>
   reloadDiff: () => void
   clearDiffIfSelected: (file: string) => void
-}
-
-interface CapturedPatch {
-  file: string
-  patch: string
 }
 
 export function useStagingIndexOps({
@@ -141,42 +137,7 @@ export function useStagingIndexOps({
     [repo, runAction, reloadDiff, lang],
   )
 
-  const capturePatches = useCallback(
-    async (files: string[], staged: boolean): Promise<CapturedPatch[]> => {
-      const captured = await Promise.all(
-        files.map(async (file) => {
-          const result = await _Either.try.async(() => gitApi.diff(repo, file, staged))
-          const patch = result.isRight() ? String(result.value ?? "") : ""
-          return patch.trim() ? { file, patch } : null
-        }),
-      )
-      return captured.filter((entry): entry is CapturedPatch => entry !== null)
-    },
-    [repo],
-  )
-
-  const reapplyPatches = useCallback(
-    (entries: CapturedPatch[], cached: boolean) =>
-      runAction(
-        async () => {
-          const failed: string[] = []
-          for (const entry of entries) {
-            const applied = await _Either.try.async(() => gitApi.applyPatch(repo, entry.patch, cached, false))
-            if (applied.isLeft()) failed.push(entry.file)
-          }
-          if (failed.length > 0) {
-            throw new Error(`${t(lang, "partialRollbackFailed")}: ${failed.join(", ")}`)
-          }
-          return ""
-        },
-        reloadDiff,
-        {
-          loadingMessage: t(lang, "actionProcessing"),
-          successMessage: t(lang, "actionSuccess"),
-        },
-      ),
-    [repo, lang, runAction, reloadDiff],
-  )
+  const { capturePatches, reapplyPatches } = usePatchCapture({ lang, repo, runAction, reloadDiff })
 
   const unstageFiles = useCallback(
     (files: string[]) => {
