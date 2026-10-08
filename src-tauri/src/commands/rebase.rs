@@ -44,7 +44,7 @@ pub fn rebase_commits(
         .run(Some(&root), &["rev-parse", "--verify", &verify])
         .is_err()
     {
-        return Err(format!("base inválida para rebase: {onto}"));
+        return Err(format!("invalid rebase base: {onto}"));
     }
     let range = format!("{onto}..HEAD");
     let out = runner.run_limited(
@@ -97,7 +97,7 @@ fn build_todo(ops: &[RebaseOp], subjects: &std::collections::HashMap<String, Str
     todo
 }
 
-#[cfg(unix)]
+#[cfg(not(windows))]
 fn write_sequence_editor(todo_path: &std::path::Path) -> Result<std::path::PathBuf, String> {
     let script_path = todo_path.with_extension("sh");
     let script = format!(
@@ -111,6 +111,17 @@ fn write_sequence_editor(todo_path: &std::path::Path) -> Result<std::path::PathB
     Ok(script_path)
 }
 
+#[cfg(windows)]
+fn sequence_editor_cmd(todo_path: &std::path::Path) -> String {
+    format!("cmd /C copy /Y \"{}\"", todo_path.to_string_lossy())
+}
+
+#[cfg(not(windows))]
+#[allow(dead_code)]
+fn sequence_editor_cmd(todo_path: &std::path::Path) -> String {
+    format!("cp \"{}\" \"$1\"", todo_path.to_string_lossy())
+}
+
 pub fn rebase_start(
     runner: &dyn GitRunner,
     repo_path: &str,
@@ -119,24 +130,24 @@ pub fn rebase_start(
 ) -> Result<String, String> {
     validate_commit_oid(onto)?;
     if ops.is_empty() {
-        return Err("nenhum commit para o rebase".to_string());
+        return Err("no commits for rebase".to_string());
     }
     let mut seen = HashSet::new();
     for op in &ops {
         validate_commit_oid(&op.hash)?;
         if !seen.insert(op.hash.clone()) {
-            return Err("commit duplicado nas instruções".to_string());
+            return Err("duplicate commit in instructions".to_string());
         }
     }
     if ops.iter().all(|op| op.action == RebaseAction::Drop) {
-        return Err("nada para aplicar: todos os commits seriam descartados".to_string());
+        return Err("nothing to apply: all commits would be dropped".to_string());
     }
 
     let commits = rebase_commits(runner, repo_path, onto)?;
     let expected: HashSet<&str> = commits.iter().map(|commit| commit.hash.as_str()).collect();
     let given: HashSet<&str> = ops.iter().map(|op| op.hash.as_str()).collect();
     if expected != given {
-        return Err("instruções divergem dos commits atuais; recarregue a lista".to_string());
+        return Err("instructions differ from current commits; reload the list".to_string());
     }
     let subjects: std::collections::HashMap<String, String> = commits
         .iter()
@@ -154,13 +165,20 @@ pub fn rebase_start(
     let todo_path = std::env::temp_dir().join(format!("{stem}.todo"));
     std::fs::write(&todo_path, build_todo(&ops, &subjects)).map_err(|e| e.to_string())?;
 
-    #[cfg(not(unix))]
+    #[cfg(windows)]
     {
+        let root = runner.repo_root(repo_path)?;
+        let editor = sequence_editor_cmd(&todo_path);
+        let result = runner.run_env(
+            Some(&root),
+            &["rebase", "-i", onto],
+            &[("GIT_SEQUENCE_EDITOR", editor.as_str())],
+        );
         let _ = std::fs::remove_file(&todo_path);
-        return Err("rebase interativo não suportado nesta plataforma".to_string());
+        result
     }
 
-    #[cfg(unix)]
+    #[cfg(not(windows))]
     {
         let root = runner.repo_root(repo_path)?;
         let script_path = write_sequence_editor(&todo_path)?;
@@ -242,7 +260,7 @@ mod tests {
         assert!(rebase_start(&runner, "/r", "nope", vec![op("bbb", RebaseAction::Pick)]).is_err());
         assert_eq!(
             rebase_commits(&runner, "/r", "nope").unwrap_err(),
-            "base inválida para rebase: nope"
+            "invalid rebase base: nope"
         );
     }
 
@@ -263,6 +281,32 @@ mod tests {
             vec![op("bbb", RebaseAction::Pick), op("zzz", RebaseAction::Pick)]
         )
         .is_err());
+    }
+
+    #[test]
+    fn sequence_editor_cmd_quotes_todo_path() {
+        let cmd = sequence_editor_cmd(std::path::Path::new("/tmp/x.todo"));
+        assert!(cmd.contains("/tmp/x.todo"));
+        #[cfg(windows)]
+        assert!(cmd.starts_with("cmd /C copy /Y"));
+    }
+
+    #[test]
+    fn starts_rebase_through_sequence_editor() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("rev-parse --verify main^{commit}", "aaa"),
+                (
+                    "log main..HEAD --pretty=format:%H%x1f%h%x1f%an%x1f%ad%x1f%s --date=short",
+                    "bbb\x1fbbb\x1fA\x1f2026-01-01\x1fsecond",
+                ),
+                ("rebase -i main", "rebased"),
+            ],
+            &[],
+        );
+        let ops = vec![op("bbb", RebaseAction::Pick)];
+        assert_eq!(rebase_start(&runner, "/r", "main", ops).unwrap(), "rebased");
     }
 
     #[test]

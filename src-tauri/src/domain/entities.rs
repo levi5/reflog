@@ -15,6 +15,8 @@ pub struct StatusResult {
     pub reverting: bool,
     #[serde(default)]
     pub rebasing: bool,
+    #[serde(default)]
+    pub bisecting: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -154,4 +156,8 @@ pub struct WorktreeInfo {
     pub bare: bool,
     #[serde(default)]
     pub main: bool,
+    #[serde(default)]
+    pub locked: bool,
+    #[serde(default)]
+    pub prunable: bool,
 }

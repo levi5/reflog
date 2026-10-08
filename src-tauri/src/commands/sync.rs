@@ -47,6 +47,38 @@ pub fn merge_abort(runner: &dyn GitRunner, repo_path: &str) -> Result<String, St
     runner.run(Some(&root), &["merge", "--abort"])
 }
 
+pub fn merge_continue(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    runner.run(Some(&root), &["merge", "--continue"])
+}
+
+pub(crate) fn resolve_push_remote(runner: &dyn GitRunner, root: &str, branch: &str) -> String {
+    let key = format!("branch.{branch}.remote");
+    if let Ok(out) = runner.run(Some(root), &["config", "--get", &key]) {
+        let remote = out.trim().to_string();
+        if !remote.is_empty() && validate_remote_name(&remote).is_ok() {
+            return remote;
+        }
+    }
+    if let Ok(out) = runner.run(Some(root), &["remote"]) {
+        let remotes: Vec<String> = out
+            .lines()
+            .map(|l| l.trim().to_string())
+            .filter(|l| !l.is_empty())
+            .collect();
+        if remotes.len() == 1 {
+            return remotes[0].clone();
+        }
+        if remotes.iter().any(|r| r == "origin") {
+            return "origin".to_string();
+        }
+        if let Some(first) = remotes.first() {
+            return first.clone();
+        }
+    }
+    "origin".to_string()
+}
+
 pub fn pull(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
     match runner.run_with_timeout(Some(&root), &["pull", "--progress"], NETWORK_TIMEOUT) {
@@ -62,18 +94,19 @@ pub fn pull(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
                     let branch = branch_out.trim();
                     if !branch.is_empty() && branch != "HEAD" {
                         validate_ref_name(branch)?;
+                        let remote = resolve_push_remote(runner, &root, branch);
                         let _ = runner.run(
                             Some(&root),
                             &[
                                 "branch",
                                 "--set-upstream-to",
-                                &format!("origin/{branch}"),
+                                &format!("{remote}/{branch}"),
                                 branch,
                             ],
                         );
                         return runner.run_with_timeout(
                             Some(&root),
-                            &["pull", "--progress", "origin", branch],
+                            &["pull", "--progress", &remote, branch],
                             NETWORK_TIMEOUT,
                         );
                     }
@@ -99,9 +132,10 @@ pub fn push(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
                     let branch = branch_out.trim();
                     if !branch.is_empty() && branch != "HEAD" {
                         validate_ref_name(branch)?;
+                        let remote = resolve_push_remote(runner, &root, branch);
                         return runner.run_with_timeout(
                             Some(&root),
-                            &["push", "--progress", "-u", "origin", branch],
+                            &["push", "--progress", "-u", &remote, branch],
                             NETWORK_TIMEOUT,
                         );
                     }
@@ -170,8 +204,9 @@ pub fn push_with(
                 || err.contains("--set-upstream")
                 || err.contains("no upstream")
             {
+                let remote = resolve_push_remote(runner, &root, &branch);
                 let mut with_set_upstream =
-                    vec!["push".to_string(), "-u".to_string(), "origin".to_string()];
+                    vec!["push".to_string(), "-u".to_string(), remote];
                 if force {
                     with_set_upstream.insert(1, "--force-with-lease".to_string());
                 }
@@ -251,7 +286,7 @@ pub fn stash(
         validate_stash_message(m)?;
     }
     if keep_index && staged_only {
-        return Err("opções --keep-index e --staged são mutuamente exclusivas".to_string());
+        return Err("options --keep-index and --staged are mutually exclusive".to_string());
     }
     for p in &paths {
         validate_repo_relative_path(p)?;
@@ -280,9 +315,17 @@ pub fn stash(
     runner.run(Some(&root), &refs)
 }
 
-pub fn stash_pop(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
+    pub fn stash_pop(runner: &dyn GitRunner, repo_path: &str, index: Option<usize>) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
-    runner.run(Some(&root), &["stash", "pop"])
+    match index {
+        Some(i) => runner.run(Some(&root), &["stash", "pop", &format!("stash@{{{i}}}")]),
+        None => runner.run(Some(&root), &["stash", "pop"]),
+    }
+}
+
+pub fn stash_clear(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    runner.run(Some(&root), &["stash", "clear"])
 }
 
 pub fn stash_list(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<StashItem>, String> {
@@ -364,8 +407,6 @@ pub fn stash_apply_file(
     let root = runner.repo_root(repo_path)?;
     let selector = format!("stash@{{{index}}}");
     let source = format!("--source={selector}");
-    // `restore --source` is the modern spelling; fall back to `checkout <stash> --`
-    // for older Git versions (same pattern as `discard`).
     match runner.run(Some(&root), &["restore", &source, "--", file]) {
         Ok(o) => Ok(o),
         Err(_) => runner.run(Some(&root), &["checkout", &selector, "--", file]),
@@ -376,7 +417,9 @@ git_command!(git_merge_opts, String, merge_opts, (repo_path: String, branch: Str
 
 git_command!(git_fetch, String, fetch, (repo_path: String), (prune: bool));
 
-git_command!(git_merge_abort, String, merge_abort, (repo_path: String), ());
+    git_command!(git_merge_abort, String, merge_abort, (repo_path: String), ());
+
+    git_command!(git_merge_continue, String, merge_continue, (repo_path: String), ());
 
 git_command!(git_pull, String, pull, (repo_path: String), ());
 
@@ -398,7 +441,9 @@ git_command!(git_fetch_ref, String, fetch_ref, (repo_path: String, remote: Strin
 
 git_command!(git_stash, String, stash, (repo_path: String), (message: Option<String>, keep_index: bool, staged_only: bool, paths: Vec<String>));
 
-git_command!(git_stash_pop, String, stash_pop, (repo_path: String), ());
+    git_command!(git_stash_pop, String, stash_pop, (repo_path: String), (index: Option<usize>));
+
+    git_command!(git_stash_clear, String, stash_clear, (repo_path: String), ());
 
 git_command!(git_stash_list, Vec<StashItem>, stash_list, (repo_path: String), ());
 
@@ -588,7 +633,6 @@ mod tests {
             "Saved"
         );
 
-        // mutually exclusive + path traversal rejected
         let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
         assert!(stash(&runner, "/r", None, true, true, vec![]).is_err());
         assert!(stash(&runner, "/r", None, false, false, vec!["../evil".to_string()]).is_err());
@@ -619,7 +663,6 @@ mod tests {
 
     #[test]
     fn stash_apply_file_restores_single_path_with_fallback() {
-        // Modern git: restore --source works
         let runner = MockRunner::new(
             &[
                 ("rev-parse --show-toplevel", "/r"),
@@ -629,7 +672,6 @@ mod tests {
         );
         assert_eq!(stash_apply_file(&runner, "/r", "src/a.ts", 0).unwrap(), "restored");
 
-        // Old git: restore fails -> fallback to checkout
         let runner = MockRunner::with_failures(
             &[("restore --source=stash@{2} -- src/b.ts", "unknown option")],
             &[
@@ -639,8 +681,85 @@ mod tests {
         );
         assert_eq!(stash_apply_file(&runner, "/r", "src/b.ts", 2).unwrap(), "checked out");
 
-        // traversal rejected
         let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
         assert!(stash_apply_file(&runner, "/r", "../evil", 0).is_err());
+    }
+
+    #[test]
+    fn merge_continue_runs_native_continue() {
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("merge --continue", "ok")],
+            &[],
+        );
+        assert_eq!(merge_continue(&runner, "/r").unwrap(), "ok");
+    }
+
+    #[test]
+    fn stash_pop_targets_selector_when_indexed() {
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("stash pop stash@{2}", "popped")],
+            &[],
+        );
+        assert_eq!(stash_pop(&runner, "/r", Some(2)).unwrap(), "popped");
+
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("stash pop", "popped")],
+            &[],
+        );
+        assert_eq!(stash_pop(&runner, "/r", None).unwrap(), "popped");
+    }
+
+    #[test]
+    fn stash_clear_runs_clear() {
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("stash clear", "cleared")],
+            &[],
+        );
+        assert_eq!(stash_clear(&runner, "/r").unwrap(), "cleared");
+    }
+
+    #[test]
+    fn resolve_push_remote_prefers_branch_config() {
+        let runner = MockRunner::new(
+            &[("config --get branch.feat.remote", "upstream")],
+            &[],
+        );
+        assert_eq!(resolve_push_remote(&runner, "/r", "feat"), "upstream");
+    }
+
+    #[test]
+    fn resolve_push_remote_falls_back_to_single_remote() {
+        let runner = MockRunner::with_failures(
+            &[("config --get branch.feat.remote", "exit code 1")],
+            &[("remote", "upstream")],
+        );
+        assert_eq!(resolve_push_remote(&runner, "/r", "feat"), "upstream");
+    }
+
+    #[test]
+    fn resolve_push_remote_prefers_origin_when_multiple() {
+        let runner = MockRunner::new(&[("remote", "origin\nupstream")], &[]);
+        assert_eq!(resolve_push_remote(&runner, "/r", "feat"), "origin");
+    }
+
+    #[test]
+    fn push_uses_configured_remote_for_upstream_fallback() {
+        let rows = vec![
+            ("rev-parse --show-toplevel", "/r"),
+            ("rev-parse --abbrev-ref HEAD", "feat"),
+            ("config --get branch.feat.remote", "upstream"),
+            ("push -u upstream feat --progress", "published"),
+        ];
+        let runner = MockRunner::with_failures(
+            &[(
+                "push --progress feat",
+                "fatal: The current branch feat has no upstream branch",
+            )],
+            &rows,
+        );
+        assert_eq!(
+            push_with(&runner, "/r", false, false, None).unwrap(),
+            "published"
+        );
     }
 }

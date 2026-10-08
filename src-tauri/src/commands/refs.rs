@@ -1,6 +1,6 @@
 use crate::commands::validation::{validate_clone_url, validate_ref_name, validate_remote_name};
 use crate::domain::RemoteInfo;
-use crate::runner::GitRunner;
+use crate::runner::{GitRunner, NETWORK_TIMEOUT};
 
 pub fn branch_delete(
     runner: &dyn GitRunner,
@@ -25,7 +25,7 @@ pub fn branch_rename(
     validate_ref_name(old)?;
     validate_ref_name(new)?;
     if new.trim().is_empty() {
-        return Err("nome da branch vazio".to_string());
+        return Err("empty branch name".to_string());
     }
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["branch", "-m", "--", old, new])
@@ -46,9 +46,14 @@ pub fn tag_create(
     repo_path: &str,
     name: &str,
     message: Option<String>,
+    signed: bool,
 ) -> Result<String, String> {
     validate_ref_name(name)?;
     let root = runner.repo_root(repo_path)?;
+    if signed {
+        let msg = message.filter(|m| !m.trim().is_empty()).unwrap_or_else(|| name.to_string());
+        return runner.run(Some(&root), &["tag", "-s", name, "-m", &msg]);
+    }
     match message {
         Some(m) if !m.trim().is_empty() => runner.run(Some(&root), &["tag", "-a", name, "-m", &m]),
         _ => runner.run(Some(&root), &["tag", "--", name]),
@@ -90,7 +95,7 @@ pub fn remote_add(
     validate_remote_name(name)?;
     validate_clone_url(url)?;
     if name.trim().is_empty() || url.trim().is_empty() {
-        return Err("nome ou URL do remoto vazio".to_string());
+        return Err("empty remote name or URL".to_string());
     }
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["remote", "add", "--", name, url])
@@ -112,7 +117,39 @@ git_command!(git_branch_rename, String, branch_rename, (repo_path: String, old: 
 
 git_command!(git_tag_list, Vec<String>, tag_list, (repo_path: String), ());
 
-git_command!(git_tag_create, String, tag_create, (repo_path: String, name: String), (message: Option<String>));
+pub fn tag_push(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    name: &str,
+    remote: Option<String>,
+) -> Result<String, String> {
+    validate_ref_name(name)?;
+    let root = runner.repo_root(repo_path)?;
+    let target = match remote {
+        Some(r) if !r.trim().is_empty() => {
+            validate_remote_name(r.trim())?;
+            r.trim().to_string()
+        }
+        _ => match runner
+            .run(Some(&root), &["rev-parse", "--abbrev-ref", "HEAD"])
+            .map(|s| s.trim().to_string())
+        {
+            Ok(branch) if !branch.is_empty() && branch != "HEAD" => {
+                crate::commands::sync::resolve_push_remote(runner, &root, &branch)
+            }
+            _ => "origin".to_string(),
+        },
+    };
+    runner.run_with_timeout(
+        Some(&root),
+        &["push", &target, "tag", "--", name],
+        NETWORK_TIMEOUT,
+    )
+}
+
+git_command!(git_tag_create, String, tag_create, (repo_path: String, name: String), (message: Option<String>, signed: bool));
+
+git_command!(git_tag_push, String, tag_push, (repo_path: String, name: String), (remote: Option<String>));
 
 git_command!(git_tag_delete, String, tag_delete, (repo_path: String, name: String), ());
 
@@ -171,10 +208,52 @@ mod tests {
         git(&dir, &["commit", "-m", "one"]);
 
         let runner = ProcessRunner;
-        tag_create(&runner, &dir, "v1.0", None).unwrap();
-        tag_create(&runner, &dir, "v2.0", Some("release".to_string())).unwrap();
+        tag_create(&runner, &dir, "v1.0", None, false).unwrap();
+        tag_create(&runner, &dir, "v2.0", Some("release".to_string()), false).unwrap();
         let tags = tag_list(&runner, &dir).unwrap();
         assert!(tags.contains(&"v1.0".to_string()));
         assert!(tags.contains(&"v2.0".to_string()));
+    }
+
+    #[test]
+    fn creates_signed_tags_with_explicit_message() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("tag -s v1.0 -m release", "tagged"),
+            ],
+            &[],
+        );
+        assert_eq!(
+            tag_create(&runner, "/r", "v1.0", Some("release".to_string()), true).unwrap(),
+            "tagged"
+        );
+    }
+
+    #[test]
+    fn pushes_tag_to_configured_remote() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("rev-parse --abbrev-ref HEAD", "feat"),
+                ("config --get branch.feat.remote", "upstream"),
+                ("push upstream tag -- v1.0", "pushed"),
+            ],
+            &[],
+        );
+        assert_eq!(
+            tag_push(&runner, "/r", "v1.0", None).unwrap(),
+            "pushed"
+        );
+
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("push origin tag -- v1.0", "pushed")],
+            &[],
+        );
+        assert_eq!(
+            tag_push(&runner, "/r", "v1.0", Some("origin".into())).unwrap(),
+            "pushed"
+        );
+        assert!(tag_push(&runner, "/r", "v1.0", Some("--evil".into())).is_err());
     }
 }

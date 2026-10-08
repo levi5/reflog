@@ -84,6 +84,7 @@ interface StatusResult {
   cherryPicking: boolean
   reverting: boolean
   rebasing: boolean
+  bisecting: boolean
 }
 
 interface FileStatus {
@@ -429,7 +430,9 @@ invoke<string>('git_merge_opts', {
 ### `git_push`
 
 Push to the upstream. If the branch has no upstream yet,
-it retries once with `push -u origin <branch>`.
+it retries once with `push -u <remote> <branch>`, where `<remote>` is
+resolved from `branch.<name>.remote`, falling back to the single configured
+remote or `origin`.
 
 ```ts
 invoke<string>('git_push', { repoPath: string })
@@ -492,7 +495,8 @@ invoke<string>('git_fetch_ref', {
 ### `git_pull`
 
 Pull from the upstream. If no upstream is configured,
-it sets `origin/<branch>` as upstream and retries once.
+it resolves the remote (`branch.<name>.remote`, else single remote, else
+`origin`), sets `<remote>/<branch>` as upstream and retries once.
 
 ```ts
 invoke<string>('git_pull', { repoPath: string })
@@ -520,6 +524,18 @@ invoke<string>('git_merge_abort', { repoPath: string })
 
 ---
 
+### `git_merge_continue`
+
+Continues an in-progress merge after conflicts are resolved and staged
+(`merge --continue`). The UI tries this first and falls back to a manual
+`add + commit` when git needs an explicit message.
+
+```ts
+invoke<string>('git_merge_continue', { repoPath: string })
+```
+
+---
+
 ### `git_stash`
 
 Creates a stash. Supports `push --staged` (staged only), `push --keep-index`
@@ -542,10 +558,21 @@ invoke<string>('git_stash', {
 
 ### `git_stash_pop`
 
-Pop stash (apply and remove the latest entry).
+Pop stash (apply and remove). Pass `index` to pop a specific entry
+(`stash pop stash@{n}`); omit it to pop the latest entry.
 
 ```ts
-invoke<string>('git_stash_pop', { repoPath: string })
+invoke<string>('git_stash_pop', { repoPath: string, index?: number | null })
+```
+
+---
+
+### `git_stash_clear`
+
+Drops all stash entries (`stash clear`). The UI asks for confirmation first.
+
+```ts
+invoke<string>('git_stash_clear', { repoPath: string })
 ```
 
 ---
@@ -808,15 +835,28 @@ invoke<string[]>('git_tag_list', { repoPath: string })
 
 ### `git_tag_create`
 
-Creates a lightweight tag, or an annotated tag (`-a -m`)
-when a non-empty `message` is given.
+Creates a lightweight tag, an annotated tag (`-a -m`)
+when a non-empty `message` is given, or a GPG-signed tag (`-s -m`)
+when `signed` is set (requires a configured GPG key).
 
 ```ts
 invoke<string>('git_tag_create', {
   repoPath: string,
   name: string,
-  message?: string
+  message?: string,
+  signed: boolean
 })
+```
+
+---
+
+### `git_tag_push`
+
+Pushes a single tag (`push <remote> tag <name>`). The remote defaults
+to the one tracked by the current branch (same resolution as `git_push`).
+
+```ts
+invoke<string>('git_tag_push', { repoPath: string, name: string, remote?: string | null })
 ```
 
 ---
@@ -963,12 +1003,19 @@ invoke<string>('git_gpg', { repoPath: string })
 
 ### `git_clone`
 
-Clones a repository (`clone --progress -- <url> <path>`).
-URLs using the `ext::` / `fd::` schemes are rejected.
-
 ```ts
-invoke<string>('git_clone', { url: string, path: string })
+invoke<string>('git_clone', {
+  url: string,
+  path: string,
+  depth?: number | null,
+  branch?: string | null,
+  recurseSubmodules: boolean,
+})
 ```
+
+Optional shallow clone (`--depth`), single-branch clone (`--branch`)
+and submodule recursion (`--recurse-submodules`).
+URLs using the `ext::` / `fd::` schemes are rejected.
 
 ---
 
@@ -1089,6 +1136,20 @@ invoke<string>('git_submodule_update', { repoPath: string, submodulePath?: strin
 
 ---
 
+### `git_submodule_sync` / `git_submodule_add` / `git_submodule_remove`
+
+`sync` refreshes submodule URLs from `.gitmodules` (`sync --recursive`).
+`add` registers a new submodule (`submodule add -- <url> <path>`);
+`remove` deinits it, runs `git rm` and drops its git dir.
+
+```ts
+invoke<string>('git_submodule_sync', { repoPath: string })
+invoke<string>('git_submodule_add', { repoPath: string, url: string, path: string })
+invoke<string>('git_submodule_remove', { repoPath: string, path: string })
+```
+
+---
+
 ### `git_superproject_chain`
 
 Resolves the repository chain from the outermost superproject down to
@@ -1106,7 +1167,8 @@ invoke<string[]>('git_superproject_chain', { repoPath: string })
 
 ### `git_worktree_list`
 
-Lists linked worktrees (`worktree list --porcelain`). The first entry is the main worktree.
+Lists linked worktrees (`worktree list --porcelain -v`). The first entry is the main worktree.
+`locked` / `prunable` come from the verbose listing.
 
 ```ts
 interface WorktreeInfo {
@@ -1116,6 +1178,8 @@ interface WorktreeInfo {
   detached: boolean
   bare: boolean
   main: boolean
+  locked?: boolean
+  prunable?: boolean
 }
 
 invoke<WorktreeInfo[]>('git_worktree_list', { repoPath: string })
@@ -1131,6 +1195,20 @@ invoke<WorktreeInfo[]>('git_worktree_list', { repoPath: string })
 ```ts
 invoke<string>('git_worktree_add', { repoPath: string, path: string, branch?: string | null, detach: boolean })
 invoke<string>('git_worktree_remove', { repoPath: string, path: string, force: boolean })
+```
+
+---
+
+### `git_worktree_lock` / `git_worktree_unlock` / `git_worktree_prune`
+
+`lock` prevents a worktree from being pruned or used (optional `--reason`);
+`unlock` releases it; `prune` drops metadata of worktrees whose
+directories no longer exist.
+
+```ts
+invoke<string>('git_worktree_lock', { repoPath: string, path: string, reason?: string | null })
+invoke<string>('git_worktree_unlock', { repoPath: string, path: string })
+invoke<string>('git_worktree_prune', { repoPath: string })
 ```
 
 ---
@@ -1159,12 +1237,46 @@ invoke<string>('git_run', { repoPath: string, args: string[] })
 
 ---
 
+## Bisect
+
+`git bisect` narrows a regression between a known-bad and known-good revision.
+Starting a bisection automatically resets it if the initial bad/good marking
+fails. While active, `status.bisecting` is true (detected from `BISECT_LOG`,
+with support for the older `BISECT_HEAD` marker).
+
+### `git_bisect_start`
+
+```ts
+invoke<string>('git_bisect_start', { repoPath: string, bad: string, good: string })
+```
+
+### `git_bisect_good` / `git_bisect_bad`
+
+Mark the checked-out candidate, or pass a revision to mark a specific commit.
+
+```ts
+invoke<string>('git_bisect_good', { repoPath: string, rev?: string | null })
+invoke<string>('git_bisect_bad', { repoPath: string, rev?: string | null })
+```
+
+### `git_bisect_skip` / `git_bisect_reset` / `git_bisect_log`
+
+```ts
+invoke<string>('git_bisect_skip', { repoPath: string })
+invoke<string>('git_bisect_reset', { repoPath: string })
+invoke<string>('git_bisect_log', { repoPath: string })
+```
+
+---
+
 ## Rebase
 
 Interactive rebase with a scripted sequence editor
 (`pick` / `squash` / `fixup` / `drop`; reorder by submitting `ops`
 in the desired order). `reword` / `edit` are intentionally unsupported:
 the backend is fully non-interactive (`GIT_EDITOR=true`).
+Works on Unix (`.sh` sequence editor) and Windows
+(`cmd /C copy /Y` sequence editor).
 
 ### `git_rebase_commits`
 

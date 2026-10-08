@@ -13,7 +13,7 @@ pub fn root_of(runner: &dyn GitRunner, path: &str) -> Result<String, String> {
 pub fn init(runner: &dyn GitRunner, path: &str) -> Result<String, String> {
     let path = path.trim();
     if path.is_empty() {
-        return Err("escolha uma pasta para inicializar".to_string());
+        return Err("choose a folder to initialize".to_string());
     }
     runner.run(None, &["init", "--", path])
 }

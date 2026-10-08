@@ -26,17 +26,17 @@ fn resolve_template_dir(
     let root = runner.repo_root(repo_path)?;
     let relative = match folder.trim() {
         "" => DEFAULT_TEMPLATE_FOLDER.to_string(),
-        value => clean_folder(value).ok_or_else(|| "pasta de template inválida".to_string())?,
+        value => clean_folder(value).ok_or_else(|| "invalid template folder".to_string())?,
     };
     Ok(format!("{root}/{relative}"))
 }
 
 fn check_name(name: &str) -> Result<(), String> {
     if name.trim().is_empty() || name.contains("..") || name.contains('/') || name.contains('\\') {
-        return Err("nome de template inválido".to_string());
+        return Err("invalid template name".to_string());
     }
     if !name.ends_with(".md") {
-        return Err("template precisa terminar com .md".to_string());
+        return Err("template must end with .md".to_string());
     }
     Ok(())
 }

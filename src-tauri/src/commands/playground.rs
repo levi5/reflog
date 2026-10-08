@@ -145,37 +145,37 @@ fn validate_submodule_foreach(args: &[String]) -> Result<(), String> {
     let mut idx = 1;
     while idx < args.len() && args[idx].starts_with("--") {
         if !FOREACH_FLAGS.contains(&args[idx].as_str()) {
-            return Err(format!("flag não permitida: {}", args[idx]));
+            return Err(format!("flag not allowed: {}", args[idx]));
         }
         idx += 1;
     }
     if idx >= args.len() || args[idx] != "foreach" {
-        return Err("submódulo precisa de subcomando".to_string());
+        return Err("submodule needs a subcommand".to_string());
     }
     idx += 1;
     while idx < args.len() && args[idx].starts_with("--") {
         if !FOREACH_FLAGS.contains(&args[idx].as_str()) {
-            return Err(format!("flag não permitida: {}", args[idx]));
+            return Err(format!("flag not allowed: {}", args[idx]));
         }
         idx += 1;
     }
     if idx + 1 != args.len() {
-        return Err("foreach precisa de um único comando entre aspas".to_string());
+        return Err("foreach needs a single quoted command".to_string());
     }
     let inner = split_shell_words(&args[idx])
-        .ok_or_else(|| "aspas desbalanceadas no comando interno".to_string())?;
+        .ok_or_else(|| "unbalanced quotes in inner command".to_string())?;
     if inner.is_empty() || inner[0] != "git" {
-        return Err("comando interno precisa começar com git".to_string());
+        return Err("inner command must start with git".to_string());
     }
     if inner.len() < 2 || !FOREACH_VERBS.contains(&inner[1].as_str()) {
         return Err(format!(
-            "verbo interno não permitido: {}",
+            "inner verb not allowed: {}",
             inner.get(1).cloned().unwrap_or_default()
         ));
     }
     for token in inner.iter().skip(2) {
         if !safe_token(token) {
-            return Err(format!("argumento interno não permitido: {token}"));
+            return Err(format!("inner argument not allowed: {token}"));
         }
     }
     Ok(())
@@ -185,15 +185,15 @@ fn validate_submodule(args: &[String]) -> Result<(), String> {
     let mut idx = 1;
     while idx < args.len() && args[idx].starts_with("--") {
         if !FOREACH_FLAGS.contains(&args[idx].as_str()) {
-            return Err(format!("flag não permitida: {}", args[idx]));
+            return Err(format!("flag not allowed: {}", args[idx]));
         }
         idx += 1;
     }
     if idx >= args.len() {
-        return Err("submódulo precisa de subcomando".to_string());
+        return Err("submodule needs a subcommand".to_string());
     }
     if !SUBMODULE_ALLOWED.contains(&args[idx].as_str()) {
-        return Err(format!("subcomando não permitido: {}", args[idx]));
+        return Err(format!("subcommand not allowed: {}", args[idx]));
     }
     if args[idx] == "foreach" {
         return validate_submodule_foreach(args);
@@ -204,10 +204,10 @@ fn validate_submodule(args: &[String]) -> Result<(), String> {
 pub fn run_git(runner: &dyn GitRunner, repo_path: &str, args: &[String]) -> Result<String, String> {
     crate::commands::validation::validate_repo_path(repo_path)?;
     if args.is_empty() {
-        return Err("comando vazio".to_string());
+        return Err("empty command".to_string());
     }
     if !ALLOWED.contains(&args[0].as_str()) {
-        return Err(format!("comando não permitido: {}", args[0]));
+        return Err(format!("command not allowed: {}", args[0]));
     }
     for arg in args {
         if arg.contains('\n')
@@ -224,7 +224,7 @@ pub fn run_git(runner: &dyn GitRunner, repo_path: &str, args: &[String]) -> Resu
                         .iter()
                         .any(|prefix| arg == *prefix || arg.starts_with(&format!("{prefix}=")))))
         {
-            return Err(format!("argumento não permitido: {arg}"));
+            return Err(format!("argument not allowed: {arg}"));
         }
     }
     if args[0] == "commit"
@@ -232,13 +232,13 @@ pub fn run_git(runner: &dyn GitRunner, repo_path: &str, args: &[String]) -> Resu
             .iter()
             .any(|arg| arg == "-m" || arg == "--allow-empty-message")
     {
-        return Err("commit precisa de -m \"mensagem\"".to_string());
+        return Err("commit needs -m \"message\"".to_string());
     }
     if args[0] == "tag"
         && args.iter().any(|arg| arg == "-a" || arg == "-s")
         && !args.iter().any(|arg| arg == "-m")
     {
-        return Err("tag anotada precisa de -m \"mensagem\"".to_string());
+        return Err("annotated tag needs -m \"message\"".to_string());
     }
     if args[0] == "submodule" {
         validate_submodule(args)?;
@@ -247,14 +247,14 @@ pub fn run_git(runner: &dyn GitRunner, repo_path: &str, args: &[String]) -> Resu
         && args.iter().any(|a| PATCH_MODE_FLAGS.contains(&a.as_str()))
     {
         return Err(format!(
-            "{} não aceita modo interativo (-p) no console: use a visão Staging",
+            "{} does not accept interactive (-p) mode in the console: use the Staging view",
             args[0]
         ));
     }
     if args[0] == "branch" && args.iter().any(|a| a == "-D" || a == "--delete") {
         let has_branch_name = args.iter().skip(1).any(|a| !a.starts_with("-"));
         if !has_branch_name {
-            return Err("branch -D precisa de um nome de branch".to_string());
+            return Err("branch -D needs a branch name".to_string());
         }
     }
     let root = runner.repo_root(repo_path)?;

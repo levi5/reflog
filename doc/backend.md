@@ -205,21 +205,36 @@ validated as repo-relative.
 | Command | Description |
 | --------- | ------------- |
 | `git_merge_opts` | Merge branch (plain / `--squash` / `--no-ff`) |
-| `git_push` | Push (retries once with `-u origin` if no upstream) |
+| `git_push` | Push (retries once with `-u <remote>` — resolved from `branch.<name>.remote`, else single remote, else `origin` — if no upstream) |
 | `git_push_with` | Push with intent: `--force-with-lease`, `--tags`, or `push <remote> --delete <branch>` |
 | `git_set_upstream` / `git_unset_upstream` | Publish or detach a branch from its tracking ref |
 | `git_fetch_ref` | Fetch a single remote with optional `--prune` / `--tags` |
-| `git_pull` | Pull (sets upstream to `origin/<branch>` and retries if missing) |
+| `git_pull` | Pull (resolves remote the same way, sets upstream and retries if missing) |
 | `git_fetch` | Fetch all remotes (optional `--prune`) |
 | `git_merge_abort` | Abort merge |
+| `git_merge_continue` | Continue merge (`merge --continue`) |
 | `git_stash` | Create stash (`push` with `--staged` / `--keep-index` / pathspec) |
-| `git_stash_pop` | Pop stash |
+| `git_stash_pop` | Pop stash (latest, or `stash@{n}` when `index` is given) |
+| `git_stash_clear` | Clear all stashes |
 | `git_stash_list` | List stashes |
 | `git_stash_drop` | Drop stash |
 | `git_stash_show` | Show stash contents |
 | `git_stash_apply` | Apply stash |
 | `git_stash_branch` | Create branch from stash (`stash branch`) |
 | `git_stash_apply_file` | Restore single file from stash (`restore --source` / `checkout`) |
+
+#### Bisect (`commands/bisect.rs`)
+
+| Command | Description |
+| --------- | ------------- |
+| `git_bisect_start` | Start and mark known bad/good revisions (resets on partial failure) |
+| `git_bisect_good` / `git_bisect_bad` | Mark the current or an explicit revision |
+| `git_bisect_skip` | Skip the checked-out candidate |
+| `git_bisect_reset` | End bisection and restore the original branch |
+| `git_bisect_log` | Return the current bisection transcript |
+
+`status` reports `bisecting: true` while `BISECT_LOG` exists (or the older
+`BISECT_HEAD` marker is present).
 
 #### Rebase (`commands/rebase.rs`)
 
@@ -231,8 +246,9 @@ validated as repo-relative.
 | `git_rebase_abort` | Abort rebase |
 
 `rebase_start` validates that the submitted op hashes match the live
-`onto..HEAD` set, writes the todo + a `cat`-over-`$1` editor script to
-the system temp dir (Unix only, `0o700`), and cleans both up afterwards.
+`onto..HEAD` set, writes the todo + a sequence editor to
+the system temp dir (`0o700` shell script on Unix, `cmd /C copy /Y`
+editor on Windows), and cleans up afterwards.
 `status` reports `rebasing: true` while `rebase-merge/` or `rebase-apply/`
 exists under the git dir.
 
@@ -243,7 +259,8 @@ exists under the git dir.
 | `git_branch_delete` | Delete branch |
 | `git_branch_rename` | Rename branch |
 | `git_tag_list` | List tags |
-| `git_tag_create` | Create tag |
+| `git_tag_create` | Create tag (lightweight / annotated / GPG-signed) |
+| `git_tag_push` | Push a single tag to the tracked remote |
 | `git_tag_delete` | Delete tag |
 | `git_remote_list` | List remotes |
 | `git_remote_add` | Add remote |
@@ -260,7 +277,7 @@ exists under the git dir.
 | `git_version` | Git version |
 | `git_remote_url` | Get remote URL |
 | `git_gpg` | GPG operations |
-| `git_clone` | Clone repository |
+| `git_clone` | Clone repository (`--depth` / `--branch` / `--recurse-submodules`) |
 
 #### Files (`commands/files/`)
 
@@ -284,6 +301,9 @@ exists under the git dir.
 |---------|-------------|
 | `git_submodule_list` | List submodules |
 | `git_submodule_update` | Update submodules |
+| `git_submodule_sync` | Sync submodule URLs from `.gitmodules` |
+| `git_submodule_add` | Add a submodule |
+| `git_submodule_remove` | Remove a submodule (deinit + `rm` + git dir) |
 | `git_superproject_chain` | Resolve the superproject chain of a repository |
 
 #### Playground (`commands/playground.rs`)

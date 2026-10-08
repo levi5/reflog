@@ -8,7 +8,7 @@ use wait_timeout::ChildExt;
 
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(60);
 pub const NETWORK_TIMEOUT: Duration = Duration::from_secs(300);
-pub const OUTPUT_LIMIT_ERROR: &str = "saída do git excede o limite permitido";
+pub const OUTPUT_LIMIT_ERROR: &str = "git output exceeds the allowed limit";
 
 pub trait GitRunner: Send + Sync {
     fn run(&self, repo: Option<&str>, args: &[&str]) -> Result<String, String>;
@@ -175,16 +175,16 @@ impl ProcessRunner {
 
         let mut child = cmd
             .spawn()
-            .map_err(|e| format!("falha ao executar git: {e}"))?;
+            .map_err(|e| format!("failed to execute git: {e}"))?;
 
         let stdout = child
             .stdout
             .take()
-            .ok_or_else(|| "stdout indisponível".to_string())?;
+            .ok_or_else(|| "stdout unavailable".to_string())?;
         let stderr = child
             .stderr
             .take()
-            .ok_or_else(|| "stderr indisponível".to_string())?;
+            .ok_or_else(|| "stderr unavailable".to_string())?;
         let activity = Arc::new(AtomicBool::new(false));
         let stdout_activity = Arc::clone(&activity);
         let stderr_activity = Arc::clone(&activity);
@@ -227,17 +227,17 @@ impl ProcessRunner {
                         let _ = child.wait();
                         let _ = stdout_reader.join();
                         let _ = stderr_reader.join();
-                        return Err("git excedeu o tempo limite".to_string());
+                        return Err("git timed out".to_string());
                     }
                 }
             }
         };
         let (stdout, stdout_exceeded) = stdout_reader
             .join()
-            .map_err(|_| "falha ao ler stdout do git".to_string())??;
+            .map_err(|_| "failed to read git stdout".to_string())??;
         let (stderr, stderr_exceeded) = stderr_reader
             .join()
-            .map_err(|_| "falha ao ler stderr do git".to_string())??;
+            .map_err(|_| "failed to read git stderr".to_string())??;
         if stdout_exceeded || stderr_exceeded {
             return Err(OUTPUT_LIMIT_ERROR.to_string());
         }
@@ -395,7 +395,7 @@ mod tests {
             Duration::from_millis(250),
             None,
         );
-        assert_eq!(result.unwrap_err(), "git excedeu o tempo limite");
+        assert_eq!(result.unwrap_err(), "git timed out");
     }
 }
 

@@ -38,7 +38,7 @@ fn validate_date(kind: &str, value: &str) -> Result<(), String> {
     if all_allowed {
         Ok(())
     } else {
-        Err(format!("data de {kind} inválida"))
+        Err(format!("invalid {kind} date"))
     }
 }
 
@@ -81,7 +81,7 @@ fn build_args(filter: &LogFilter, limit: usize, decorate: bool) -> Result<Vec<St
         args.push("--".to_string());
         args.push(path);
     } else if filter.follow {
-        return Err("--follow exige um caminho de arquivo".to_string());
+        return Err("--follow requires a file path".to_string());
     }
 
     Ok(args)

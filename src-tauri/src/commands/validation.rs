@@ -1,6 +1,6 @@
 pub fn validate_repo_path(path: &str) -> Result<(), String> {
     if path.is_empty() || path.contains('\0') || path.contains('\n') || path.len() > 4096 {
-        return Err("caminho do repositório inválido".to_string());
+        return Err("invalid repository path".to_string());
     }
     Ok(())
 }
@@ -18,7 +18,7 @@ pub fn validate_repo_relative_path(path: &str) -> Result<(), String> {
         || path.contains('\n')
         || path.len() > 4096
     {
-        return Err("caminho relativo inválido".to_string());
+        return Err("invalid relative path".to_string());
     }
     Ok(())
 }
@@ -44,7 +44,7 @@ pub fn validate_ref_name(name: &str) -> Result<(), String> {
         || name.contains("//")
         || name.len() > 256
     {
-        return Err("nome de ref inválido".to_string());
+        return Err("invalid ref name".to_string());
     }
     Ok(())
 }
@@ -60,7 +60,7 @@ pub fn validate_commit_oid(oid: &str) -> Result<(), String> {
             c.is_ascii_alphanumeric() || c == '_' || c == '.' || c == '/' || c == '~' || c == '^'
         })
     {
-        return Err("OID de commit inválido".to_string());
+        return Err("invalid commit OID".to_string());
     }
     Ok(())
 }
@@ -72,7 +72,7 @@ pub fn validate_remote_name(name: &str) -> Result<(), String> {
         || name.contains('\0')
         || name.contains('\n')
     {
-        return Err("nome de remoto inválido".to_string());
+        return Err("invalid remote name".to_string());
     }
     Ok(())
 }
@@ -84,7 +84,7 @@ pub fn validate_clone_url(url: &str) -> Result<(), String> {
         || url.contains('\n')
         || url.len() > 2048
     {
-        return Err("URL de clone inválida".to_string());
+        return Err("invalid clone URL".to_string());
     }
     let lower = url.to_ascii_lowercase();
     if lower.starts_with("ext::")
@@ -93,14 +93,14 @@ pub fn validate_clone_url(url: &str) -> Result<(), String> {
         || url.starts_with(';')
         || url.starts_with('|')
     {
-        return Err("URL de clone inválida".to_string());
+        return Err("invalid clone URL".to_string());
     }
     Ok(())
 }
 
 pub fn validate_clone_path(path: &str) -> Result<(), String> {
     if path.is_empty() || path.contains('\0') || path.contains('\n') {
-        return Err("caminho de destino inválido".to_string());
+        return Err("invalid destination path".to_string());
     }
     Ok(())
 }
@@ -122,31 +122,31 @@ pub const ALLOWED_CONFIG_KEYS: &[&str] = &[
 
 pub fn validate_config_key(key: &str) -> Result<(), String> {
     if key.is_empty() || key.starts_with('-') || key.contains('\0') || key.contains('\n') {
-        return Err("chave de configuração inválida".to_string());
+        return Err("invalid config key".to_string());
     }
     if !ALLOWED_CONFIG_KEYS.contains(&key) {
-        return Err("chave de configuração não permitida".to_string());
+        return Err("config key not allowed".to_string());
     }
     Ok(())
 }
 
 pub fn validate_config_value(value: &str) -> Result<(), String> {
     if value.contains('\0') || value.contains('\n') || value.starts_with('-') {
-        return Err("valor de configuração inválido".to_string());
+        return Err("invalid config value".to_string());
     }
     Ok(())
 }
 
 pub fn validate_stash_message(message: &str) -> Result<(), String> {
     if message.contains('\0') || message.len() > 1024 {
-        return Err("mensagem de stash inválida".to_string());
+        return Err("invalid stash message".to_string());
     }
     Ok(())
 }
 
 pub fn validate_patch_size(patch: &str, max_bytes: usize) -> Result<(), String> {
     if patch.as_bytes().len() > max_bytes {
-        return Err("patch excede tamanho máximo".to_string());
+        return Err("patch exceeds maximum size".to_string());
     }
     Ok(())
 }
@@ -158,14 +158,14 @@ pub fn validate_rev_spec(rev: &str) -> Result<(), String> {
         || rev.contains('\n')
         || rev.len() > 512
     {
-        return Err("revisão inválida".to_string());
+        return Err("invalid revision".to_string());
     }
     Ok(())
 }
 
 pub fn validate_search_term(term: &str) -> Result<(), String> {
     if term.contains('\0') || term.contains('\n') || term.len() > 512 {
-        return Err("termo de busca inválido".to_string());
+        return Err("invalid search term".to_string());
     }
     Ok(())
 }

@@ -102,7 +102,7 @@ pub fn merge_base(
     let out = runner.run(Some(&root), &["merge-base", a, b])?;
     let base = out.trim();
     if base.is_empty() {
-        return Err("os refs não compartilham um ancestral comum".to_string());
+        return Err("refs share no common ancestor".to_string());
     }
     store_merge_base(&root, a, b, base);
     Ok(base.to_string())

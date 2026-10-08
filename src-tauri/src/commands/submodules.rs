@@ -180,9 +180,54 @@ pub fn superproject_chain(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec
     Ok(chain)
 }
 
+pub fn submodule_sync(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
+    let root = runner.repo_root(repo_path)?;
+    runner.run_with_timeout(
+        Some(&root),
+        &["submodule", "sync", "--recursive"],
+        NETWORK_TIMEOUT,
+    )
+}
+
+pub fn submodule_add(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    url: &str,
+    path: &str,
+) -> Result<String, String> {
+    crate::commands::validation::validate_clone_url(url)?;
+    let trimmed = path.trim();
+    crate::commands::validation::validate_repo_relative_path(trimmed)?;
+    let root = runner.repo_root(repo_path)?;
+    let owned_path = trimmed.to_string();
+    runner.run_with_timeout(
+        Some(&root),
+        &["submodule", "add", "--", url, &owned_path],
+        NETWORK_TIMEOUT,
+    )
+}
+
+pub fn submodule_remove(runner: &dyn GitRunner, repo_path: &str, path: &str) -> Result<String, String> {
+    let trimmed = path.trim();
+    crate::commands::validation::validate_repo_relative_path(trimmed)?;
+    let root = runner.repo_root(repo_path)?;
+    let owned = trimmed.to_string();
+    runner.run(Some(&root), &["submodule", "deinit", "-f", "--", &owned])?;
+    let out = runner.run(Some(&root), &["rm", "-f", "--", &owned])?;
+    let modules_dir = std::path::Path::new(&root).join(".git/modules").join(&owned);
+    let _ = std::fs::remove_dir_all(&modules_dir);
+    Ok(out)
+}
+
 git_command!(git_submodule_list, Vec<SubmoduleInfo>, submodule_list, (repo_path: String), ());
 
 git_command!(git_submodule_update, String, submodule_update, (repo_path: String), (submodule_path: Option<String>));
+
+git_command!(git_submodule_sync, String, submodule_sync, (repo_path: String), ());
+
+git_command!(git_submodule_add, String, submodule_add, (repo_path: String, url: String, path: String), ());
+
+git_command!(git_submodule_remove, String, submodule_remove, (repo_path: String, path: String), ());
 
 git_command!(git_superproject_chain, Vec<String>, superproject_chain, (repo_path: String), ());
 
@@ -312,6 +357,48 @@ mod tests {
             runner.calls_for("rev-list --left-right --count HEAD...@{u}"),
             0
         );
+    }
+
+    #[test]
+    fn syncs_recursive() {
+        let runner = MockRunner::new(
+            &[("rev-parse --show-toplevel", "/r"), ("submodule sync --recursive", "synced")],
+            &[],
+        );
+        assert_eq!(submodule_sync(&runner, "/r").unwrap(), "synced");
+    }
+
+    #[test]
+    fn adds_with_url_and_path_validation() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("submodule add -- https://x/y.git libs/y", "added"),
+            ],
+            &[],
+        );
+        assert_eq!(
+            submodule_add(&runner, "/r", "https://x/y.git", "libs/y").unwrap(),
+            "added"
+        );
+        assert!(submodule_add(&runner, "/r", "ext::sh -c evil", "libs/y").is_err());
+        assert!(submodule_add(&runner, "/r", "https://x/y.git", "../evil").is_err());
+        assert!(submodule_add(&runner, "/r", "https://x/y.git", "--help").is_err());
+    }
+
+    #[test]
+    fn removes_via_deinit_and_rm() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("submodule deinit -f -- libs/old", "deinit"),
+                ("rm -f -- libs/old", "removed"),
+            ],
+            &[],
+        );
+        assert_eq!(submodule_remove(&runner, "/r", "libs/old").unwrap(), "removed");
+        assert!(submodule_remove(&runner, "/r", "../evil").is_err());
+        assert!(submodule_remove(&runner, "/r", "").is_err());
     }
 
     #[test]

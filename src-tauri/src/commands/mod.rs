@@ -15,6 +15,7 @@ macro_rules! git_command {
     };
 }
 
+pub mod bisect;
 pub mod files;
 pub mod history;
 pub mod meta;

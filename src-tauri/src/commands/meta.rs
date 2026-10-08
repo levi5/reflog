@@ -27,14 +27,40 @@ pub fn gpg(runner: &dyn GitRunner, repo_path: &str) -> Result<String, String> {
         .map(|s| s.trim().to_string())
 }
 
-pub fn clone(runner: &dyn GitRunner, url: &str, path: &str) -> Result<String, String> {
+pub fn clone(
+    runner: &dyn GitRunner,
+    url: &str,
+    path: &str,
+    depth: Option<u32>,
+    branch: Option<String>,
+    recurse_submodules: bool,
+) -> Result<String, String> {
     validate_clone_url(url)?;
     validate_clone_path(path)?;
-    runner.run_with_timeout(
-        None,
-        &["clone", "--progress", "--", url, path],
-        NETWORK_TIMEOUT,
-    )
+    let mut cmd: Vec<String> = vec!["clone".to_string(), "--progress".to_string()];
+    if let Some(d) = depth {
+        if d == 0 || d > 1_000_000 {
+            return Err("invalid clone depth".to_string());
+        }
+        cmd.push("--depth".to_string());
+        cmd.push(d.to_string());
+    }
+    if let Some(b) = branch {
+        let name = b.trim().to_string();
+        if !name.is_empty() {
+            crate::commands::validation::validate_ref_name(&name)?;
+            cmd.push("--branch".to_string());
+            cmd.push(name);
+        }
+    }
+    if recurse_submodules {
+        cmd.push("--recurse-submodules".to_string());
+    }
+    cmd.push("--".to_string());
+    cmd.push(url.to_string());
+    cmd.push(path.to_string());
+    let refs: Vec<&str> = cmd.iter().map(|s| s.as_str()).collect();
+    runner.run_with_timeout(None, &refs, NETWORK_TIMEOUT)
 }
 
 fn get_key(runner: &dyn GitRunner, repo_path: &str, key: &str, global: bool) -> String {
@@ -134,7 +160,7 @@ git_command!(git_remote_url, String, remote_url, (repo_path: String), ());
 
 git_command!(git_gpg, String, gpg, (repo_path: String), ());
 
-git_command!(git_clone, String, clone, (url: String, path: String), ());
+git_command!(git_clone, String, clone, (url: String, path: String), (depth: Option<u32>, branch: Option<String>, recurse_submodules: bool));
 
 git_command!(git_config_get, String, config_get, (repo_path: String, key: String), (global: bool));
 
@@ -179,5 +205,39 @@ mod tests {
         assert!(config_set(&runner, "/r", "core.sshCommand", "sh -c evil", false).is_err());
         assert!(config_set(&runner, "/r", "credential.helper", "store", false).is_err());
         assert!(config_set(&runner, "/r", "user.name", "Dev", false).is_ok());
+    }
+
+    #[test]
+    fn clone_supports_depth_branch_and_recurse() {
+        let runner = MockRunner::new(
+            &[(
+                "clone --progress --depth 1 --branch main --recurse-submodules -- https://x/y.git /tmp/y",
+                "cloned",
+            )],
+            &[],
+        );
+        assert_eq!(
+            clone(
+                &runner,
+                "https://x/y.git",
+                "/tmp/y",
+                Some(1),
+                Some("main".into()),
+                true
+            )
+            .unwrap(),
+            "cloned"
+        );
+
+        let runner = MockRunner::new(
+            &[("clone --progress -- https://x/y.git /tmp/y", "cloned")],
+            &[],
+        );
+        assert_eq!(clone(&runner, "https://x/y.git", "/tmp/y", None, None, false).unwrap(), "cloned");
+
+        let runner = MockRunner::new(&[], &[]);
+        assert!(clone(&runner, "https://x/y.git", "/tmp/y", Some(0), None, false).is_err());
+        assert!(clone(&runner, "https://x/y.git", "/tmp/y", None, Some("--evil".into()), false).is_err());
+        assert!(clone(&runner, "ext::sh -c evil", "/tmp/y", None, None, false).is_err());
     }
 }

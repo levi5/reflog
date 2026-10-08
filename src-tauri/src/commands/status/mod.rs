@@ -69,6 +69,8 @@ pub fn status_of(runner: &dyn GitRunner, repo_path: &str) -> Result<StatusResult
     let revert = runner.path_exists(&git_state_path(runner, &root, "REVERT_HEAD"));
     let rebasing = runner.path_exists(&git_state_path(runner, &root, "rebase-merge"))
         || runner.path_exists(&git_state_path(runner, &root, "rebase-apply"));
+    let bisecting = runner.path_exists(&git_state_path(runner, &root, "BISECT_LOG"))
+        || runner.path_exists(&git_state_path(runner, &root, "BISECT_HEAD"));
 
     let head = full_head(runner, &root);
 
@@ -83,6 +85,7 @@ pub fn status_of(runner: &dyn GitRunner, repo_path: &str) -> Result<StatusResult
         cherry_picking: cherry,
         reverting: revert,
         rebasing,
+        bisecting,
     })
 }
 
@@ -106,7 +109,7 @@ mod tests {
                 ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
                 (
                     "status --porcelain=v1 -z -b -uall",
-                    "## main...origin/main [ahead 2, behind 1]\0M  f.tsx\0UU ola.txt\0?? new.txt\0",
+                    "## main...origin/main [ahead 2, behind 1]\0M  f.tsx\0UU hello.txt\0?? new.txt\0",
                 ),
             ],
             &[],
@@ -174,5 +177,34 @@ mod tests {
         let status = status_of(&runner, "/r").unwrap();
         assert!(status.rebasing);
         assert!(!status.merging);
+    }
+
+    #[test]
+    fn detects_bisect_in_progress() {
+        let runner = MockRunner::new(
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("rev-parse --abbrev-ref HEAD", "main"),
+                ("rev-parse --git-path MERGE_HEAD", "/r/.git/MERGE_HEAD"),
+                (
+                    "rev-parse --git-path CHERRY_PICK_HEAD",
+                    "/r/.git/CHERRY_PICK_HEAD",
+                ),
+                ("rev-parse --git-path REVERT_HEAD", "/r/.git/REVERT_HEAD"),
+                ("rev-parse --git-path rebase-merge", "/r/.git/rebase-merge"),
+                ("rev-parse --git-path rebase-apply", "/r/.git/rebase-apply"),
+                ("rev-parse --git-path BISECT_LOG", "/r/.git/BISECT_LOG"),
+                (
+                    "status --porcelain=v1 -z -b -uall",
+                    "## main...origin/main\0",
+                ),
+            ],
+            &[],
+        )
+        .with_existing(&["/r/.git/BISECT_LOG"]);
+        let status = status_of(&runner, "/r").unwrap();
+        assert!(status.bisecting);
+        assert!(!status.merging);
+        assert!(!status.rebasing);
     }
 }

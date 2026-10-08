@@ -28,7 +28,7 @@ pub fn commit(
 ) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
     if message.trim().is_empty() {
-        return Err("mensagem de commit vazia".to_string());
+        return Err("empty commit message".to_string());
     }
     let mut owned: Vec<String> = vec!["commit".to_string(), "-m".to_string(), message.to_string()];
     if signoff {
@@ -50,7 +50,7 @@ pub fn amend_commit(
 ) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
     if message.trim().is_empty() {
-        return Err("mensagem de commit vazia".to_string());
+        return Err("empty commit message".to_string());
     }
     let mut owned: Vec<String> = vec![
         "commit".to_string(),
@@ -140,7 +140,7 @@ pub fn apply_patch(
 ) -> Result<String, String> {
     validate_patch_size(patch, MAX_PATCH_BYTES)?;
     if patch.trim().is_empty() {
-        return Err("patch vazio".to_string());
+        return Err("empty patch".to_string());
     }
     let root = runner.repo_root(repo_path)?;
     let mut owned: Vec<String> = vec!["apply".to_string()];
@@ -199,7 +199,7 @@ pub fn reset(
         "soft" => "--soft",
         "hard" => "--hard",
         "mixed" => "--mixed",
-        _ => return Err("modo de reset inválido".to_string()),
+        _ => return Err("invalid reset mode".to_string()),
     };
     let root = runner.repo_root(repo_path)?;
     runner.run(Some(&root), &["reset", flag, target])
