@@ -155,11 +155,9 @@ export function DiffPanel({
     </div>
   )
 
-  if (!busy) return body
-
   return (
-    <div className={classnames(styles.diffWrap, stale && styles.diffStale)} aria-busy={loading}>
-      <BusyBar visible label={t("loading")} />
+    <div className={classnames(styles.diffWrap, busy && styles.diffStale)} aria-busy={loading}>
+      <BusyBar visible={busy} label={t("loading")} />
       {body}
     </div>
   )
