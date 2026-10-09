@@ -83,7 +83,9 @@ describe("side panels expose their actions", () => {
           onStashMessageChange={() => {}}
           onStash={() => {}}
           onPop={() => {}}
-          stashes={[{ selector: "stash@{0}", index: 0, hash: "50c7b05", author: "Dev", date: "27 de out.", message: "wip" }]}
+          stashes={[
+            { selector: "stash@{0}", index: 0, hash: "50c7b05", author: "Dev", date: "27 de out.", message: "wip" },
+          ]}
           onApply={() => {}}
           onShowDiff={async () => ""}
           onDrop={() => {}}

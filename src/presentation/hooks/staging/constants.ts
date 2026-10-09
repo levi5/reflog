@@ -1,0 +1,1 @@
+export const BLAME_CACHE_ENTRIES = 20

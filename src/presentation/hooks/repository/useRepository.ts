@@ -157,6 +157,7 @@ export function useRepository(lang: Lang) {
     blameLines: staging.blameLines,
     blameLoading: staging.blameLoading,
     blameError: staging.blameError,
+    blameStale: staging.blameStale,
     trackedFiles: staging.trackedFiles,
     loadBlame: staging.loadBlame,
     loadTracked: staging.loadTracked,

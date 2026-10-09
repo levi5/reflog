@@ -1,11 +1,13 @@
+import classnames from "classnames"
 import { codeHighlightUseCase } from "../../../data"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"
 import { useSearchParams } from "react-router-dom"
 
 import { SearchBox } from "../../components/Search"
 import { Status } from "../../components/Status"
+import { BusyBar } from "../../components/Bar/Busy"
 import { Editor } from "../../components/Editor"
 import { Commit } from "../../components/Commit"
 import { Resizable } from "@/presentation/components/Resizable"
@@ -21,6 +23,7 @@ import styles from "./style.module.scss"
 type Props = Record<string, never>
 
 const TRACKED_FILE_LIMIT = 400
+const VIRTUALIZE_AFTER_LINES = 200
 
 export const Blame = (_props: Props) => {
   const { lang } = useSettingsContext()
@@ -28,10 +31,11 @@ export const Blame = (_props: Props) => {
   const { query, scope } = useSearch()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null)
+  const blameScrollRef = useRef<HTMLElement>(null)
   const fileParam = searchParams.get("file")
   const repoPath = repo.repo
   const blameFile = repo.blameFile
-  const loadBlame = repo.loadBlame
+  const blameLines = repo.blameLines
   const loadTracked = repo.loadTracked
 
   useEffect(() => {
@@ -39,21 +43,18 @@ export const Blame = (_props: Props) => {
   }, [repoPath, loadTracked])
 
   useEffect(() => {
-    if (fileParam && repoPath && fileParam !== blameFile && !repo.blameLoading) {
-      void loadBlame(fileParam)
-    }
-  }, [fileParam, repoPath, blameFile, repo.blameLoading, loadBlame])
+    if (fileParam && repoPath && fileParam !== blameFile) void repo.loadBlame(fileParam)
+  }, [fileParam, repoPath, blameFile, repo.loadBlame])
 
   const handleSelectFile = useCallback(
     (filePath: string) => {
       setSearchParams((prev) => {
-        const nextSearchParams = new URLSearchParams(prev)
-        nextSearchParams.set("file", filePath)
-        return nextSearchParams
+        const next = new URLSearchParams(prev)
+        next.set("file", filePath)
+        return next
       })
-      void loadBlame(filePath)
     },
-    [setSearchParams, loadBlame],
+    [setSearchParams],
   )
 
   const matchedFiles = useMemo(() => {
@@ -73,26 +74,30 @@ export const Blame = (_props: Props) => {
     [matchedFiles],
   )
 
-  const codeNodes = useMemo(
-    (): ReactNode[] =>
-      repo.blameLines.map((line: (typeof repo.blameLines)[0]) => {
-        if (line.text === "") return " "
-
-        const tree = codeHighlightUseCase.highlightLineHast(line.text, repo.blameFile)
-
-        if (!tree) return line.text
-        return toJsxRuntime(tree, { Fragment, jsx, jsxs })
-      }),
-    [repo.blameLines, repo.blameFile],
-  )
-
   const blameRows = useVirtualRows({
-    count: repo.blameLines.length,
+    count: blameLines.length,
     estimate: 22,
     overscan: 24,
-    enabled: repo.blameLines.length > 200,
+    enabled: blameLines.length > VIRTUALIZE_AFTER_LINES,
   })
 
+  useEffect(() => {
+    blameRows.reset()
+    if (blameScrollRef.current) blameScrollRef.current.scrollTop = 0
+  }, [blameFile, blameRows.reset])
+
+  const visibleRows = blameRows.items.map(({ index }) => {
+    const line = blameLines[index]
+    if (!line) return null
+    const tree = line.text === "" ? null : codeHighlightUseCase.highlightLineHast(line.text, blameFile)
+    return {
+      line,
+      code: tree ? toJsxRuntime(tree, { Fragment, jsx, jsxs }) : line.text,
+    }
+  })
+
+  const hasContent = blameLines.length > 0
+  const showSkeleton = repo.blameLoading && !hasContent
   const truncated = matchedFiles.length > TRACKED_FILE_LIMIT
 
   return (
@@ -105,7 +110,7 @@ export const Blame = (_props: Props) => {
             <span className={styles.pct}>{repo.trackedFiles.length}</span>
           </div>
           <SearchBox placeholder={t(lang, "searchFiles")} />
-          <Status.File files={files} selectedFilePath={repo.blameFile} detailed={false} onSelect={handleSelectFile} />
+          <Status.File files={files} selectedFilePath={blameFile} detailed={false} onSelect={handleSelectFile} />
           {truncated && (
             <p className={styles.truncated}>
               {t(lang, "blameTruncated")
@@ -119,30 +124,38 @@ export const Blame = (_props: Props) => {
         <div className={styles.wrapperMain}>
           <div className={styles.wrapperFile}>
             <div className={styles.mainHead}>
-              <h3>{repo.blameFile || t(lang, "treeBlame")}</h3>
-              {repo.blameFile && (
-                <button type="button" className="mini-btn" onClick={() => repo.openEditor(repo.blameFile)}>
+              <h3 className={classnames(styles.fileTitle, repo.blameStale && styles.fileTitleStale)}>
+                {blameFile || t(lang, "treeBlame")}
+              </h3>
+              {blameFile && (
+                <button type="button" className="mini-btn" onClick={() => repo.openEditor(blameFile)}>
                   {t(lang, "editFile")}
                 </button>
               )}
             </div>
-            {repo.blameLoading && (
-              <Skeleton.Lines count={18} label={t(lang, "blameLoading")} className={styles.skeleton} />
-            )}
+            <BusyBar visible={repo.blameLoading} label={t(lang, "blameLoading")} />
+            {showSkeleton && <Skeleton.Lines count={18} label={t(lang, "blameLoading")} className={styles.skeleton} />}
             {!repo.blameLoading && repo.blameError !== null && (
               <p className={styles.error} role="alert">
                 {t(lang, "blameFailed")}
               </p>
             )}
-            {!repo.blameLoading && repo.blameError === null && repo.blameLines.length === 0 && (
+            {!hasContent && !showSkeleton && repo.blameError === null && (
               <pre className={styles.diff}>{t(lang, "blameEmpty")}</pre>
             )}
-            {repo.blameLines.length !== 0 && (
-              <section className={styles.diff} aria-label={t(lang, "blame")}>
+            {hasContent && (
+              <section
+                ref={blameScrollRef}
+                className={classnames(styles.diff, repo.blameStale && styles.diffStale)}
+                aria-label={t(lang, "blame")}
+                aria-busy={repo.blameLoading}
+                onScroll={blameRows.onScroll}
+              >
                 <div style={{ height: blameRows.totalHeight, position: "relative" }}>
                   <div style={{ transform: `translateY(${blameRows.offsetTop}px)` }}>
-                    {blameRows.items.map(({ index }) => {
-                      const { commit, summary, lineno, author, date } = repo.blameLines[index]
+                    {visibleRows.map((row) => {
+                      if (!row) return null
+                      const { commit, summary, lineno, author, date } = row.line
                       return (
                         <div key={lineno} className={styles.blameRow} title={`${commit} · ${summary}`}>
                           <span className={styles.ln}>{lineno}</span>
@@ -153,8 +166,8 @@ export const Blame = (_props: Props) => {
                               setSelectedCommit({
                                 hash: commit,
                                 short: commit.slice(0, 7),
-                                author: author,
-                                date: date,
+                                author,
+                                date,
                                 message: summary,
                                 parents: [],
                                 refs: [],
@@ -166,7 +179,7 @@ export const Blame = (_props: Props) => {
                           </button>
                           <span className={styles.author}>{author}</span>
                           <span className={styles.date}>{date}</span>
-                          <code className={styles.code}>{codeNodes[index] ?? " "}</code>
+                          <code className={styles.code}>{row.code}</code>
                         </div>
                       )
                     })}

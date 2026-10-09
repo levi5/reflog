@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import type { CommitFileChange } from "../../../../types"
+import { lruSet } from "../../../hooks/ui/lru"
 import { MAX_DIFF_CACHE_ENTRIES } from "./constants"
 import { useTranslation } from "../../../context"
 
@@ -17,16 +18,6 @@ interface Options {
   hash: string | null
   loadFiles?: (hash: string) => Promise<CommitFileChange[]>
   loadDiff?: (hash: string, file: string) => Promise<string>
-}
-
-function cacheDiff(cache: Map<string, string>, key: string, diff: string): void {
-  cache.delete(key)
-  cache.set(key, diff)
-  while (cache.size > MAX_DIFF_CACHE_ENTRIES) {
-    const oldestKey = cache.keys().next().value
-    if (oldestKey === undefined) break
-    cache.delete(oldestKey)
-  }
 }
 
 export function useCommitDiff({ hash, loadFiles, loadDiff }: Options): CommitDiffState {
@@ -90,7 +81,7 @@ export function useCommitDiff({ hash, loadFiles, loadDiff }: Options): CommitDif
       setLoadingDiff(true)
       void loadDiff(hash, nextFile)
         .then((diff) => {
-          cacheDiff(diffCache.current, cacheKey, diff)
+          lruSet(diffCache.current, cacheKey, diff, MAX_DIFF_CACHE_ENTRIES)
           if (request === diffRequest.current) setDiffText(diff)
         })
         .catch((error: unknown) => {

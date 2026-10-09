@@ -6,11 +6,6 @@
   overflow: hidden;
 }
 
-.templateItem.active {
-  background: var(--bg-highest);
-  border-color: var(--faint);
-}
-
 .templateMeta small {
   font-size: var(--font-sm);
   color: var(--muted);
@@ -281,12 +276,6 @@
     gap: 6px;
     box-sizing: border-box;
   }
-}
-
-.welcomeState p {
-  margin: 0;
-  font-size: 13px;
-  max-width: 440px;
 }
 
 .bannerSuccess {
