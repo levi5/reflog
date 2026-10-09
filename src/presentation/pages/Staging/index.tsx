@@ -2,6 +2,7 @@ import { mergeStatsUseCase } from "../../../data"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Navigate } from "react-router-dom"
 import { t } from "../../../i18n"
+import type { FileStatus } from "../../../types"
 
 import { Branch } from "../../components/Branch"
 import { Commit } from "../../components/Commit"
@@ -26,6 +27,8 @@ import { useStagingFiles } from "./useStagingFiles"
 import styles from "./style.module.scss"
 
 type Props = Record<string, never>
+
+const EMPTY_STATUS_FILES: FileStatus[] = []
 
 export function Staging(_props: Props) {
   const { lang } = useSettingsContext()
@@ -61,6 +64,9 @@ export function Staging(_props: Props) {
     (filePath: string, staged: boolean) => repo.selectDiff(filePath, staged),
     [repo.selectDiff],
   )
+  const handleStageFile = useCallback((filePath: string) => void repo.stageFile(filePath), [repo.stageFile])
+  const handleUnstageFile = useCallback((filePath: string) => void repo.unstageFile(filePath), [repo.unstageFile])
+  const explorerQuery = scope === "files" || scope === "all" ? query : ""
 
   const branches = useMemo(
     () =>
@@ -207,12 +213,12 @@ export function Staging(_props: Props) {
           {tab === "explorer" && (
             <ExplorerTree
               trackedFiles={repo.trackedFiles}
-              statusFiles={repo.status?.files ?? []}
-              query={scope === "files" || scope === "all" ? query : ""}
+              statusFiles={repo.status?.files ?? EMPTY_STATUS_FILES}
+              query={explorerQuery}
               selectedFilePath={repo.selectedFile}
               onSelect={handleSelectDiff}
-              onStage={(filePath) => void repo.stageFile(filePath)}
-              onUnstage={(filePath) => void repo.unstageFile(filePath)}
+              onStage={handleStageFile}
+              onUnstage={handleUnstageFile}
               busy={repo.busy}
             />
           )}

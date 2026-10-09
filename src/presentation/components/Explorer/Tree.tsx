@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, File as FileIcon, Folder as FolderIcon } from "lucide-react"
-import { useMemo, useState } from "react"
+import { memo, useMemo, useState } from "react"
 import { useTranslation } from "../../context"
 import type { FileStatus, FileTreeNode } from "../../../types"
 import { buildFileTree, filterTree } from "./build-file-tree"
@@ -17,15 +17,7 @@ interface ExplorerTreeProps {
   busy?: boolean
 }
 
-function TreeNode({
-  node,
-  depth,
-  selectedFilePath,
-  onSelect,
-  onStage,
-  onUnstage,
-  busy,
-}: {
+interface TreeNodeProps {
   node: FileTreeNode
   depth: number
   selectedFilePath?: string | null
@@ -33,13 +25,24 @@ function TreeNode({
   onStage?: (filePath: string) => void
   onUnstage?: (filePath: string) => void
   busy?: boolean
-}) {
+}
+
+const TreeNode = memo(function TreeNode({
+  node,
+  depth,
+  selectedFilePath,
+  onSelect,
+  onStage,
+  onUnstage,
+  busy,
+}: TreeNodeProps) {
   const [open, setOpen] = useState(depth < 2)
   if (node.isDir) {
     return (
-      <div className={styles.dirBlock}>
+      <div className={styles.dirBlock} role="none">
         <button
           type="button"
+          role="treeitem"
           className={styles.dirRow}
           style={{ paddingLeft: 8 + depth * 14 }}
           onClick={() => setOpen((value) => !value)}
@@ -51,7 +54,7 @@ function TreeNode({
           <span className={styles.dirCount}>{node.children.length}</span>
         </button>
         {open && (
-          <div className={styles.dirChildren}>
+          <div className={styles.dirChildren} role="group">
             {node.children.map((child) => (
               <TreeNode
                 key={child.path}
@@ -74,9 +77,12 @@ function TreeNode({
     <div
       className={`${styles.fileRow} ${selected ? styles.fileRowSelected : ""}`}
       style={{ paddingLeft: 8 + depth * 14 }}
+      role="none"
     >
       <button
         type="button"
+        role="treeitem"
+        aria-selected={selected}
         className={styles.fileMain}
         onClick={() => onSelect?.(node.path, node.staged ?? false)}
         title={node.path}
@@ -114,7 +120,7 @@ function TreeNode({
       )}
     </div>
   )
-}
+})
 
 export function ExplorerTree({
   trackedFiles,
