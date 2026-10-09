@@ -1,8 +1,10 @@
+import classnames from "classnames"
 import { useCallback, useMemo, useState } from "react"
 import { diffParserUseCase } from "../../../../data"
 import type { ParsedDiff } from "../../../../domain/entities/diff/diff"
 import { MAX_DIFF_BYTES, MAX_DIFF_LINES } from "../../../../shared/constants/limits"
 import { useTranslation } from "../../../context"
+import { BusyBar } from "../../Bar/Busy"
 import { EmptyState } from "../../Empty/State"
 import { DiffHunkList } from "./DiffHunkList"
 import { countLines, LARGE_DIFF_PAGE_LINES, selectedLinesOf, takeLines } from "./lines"
@@ -14,6 +16,7 @@ interface DiffPanelProps {
   diffContent: string
   loaded: boolean
   loading: boolean
+  stale?: boolean
   errorMessage: string | null
   maxHeight?: number
   onLoad: () => void
@@ -36,6 +39,7 @@ export function DiffPanel({
   diffContent,
   loaded,
   loading,
+  stale = false,
   errorMessage,
   maxHeight,
   onLoad,
@@ -116,45 +120,48 @@ export function DiffPanel({
 
   if (!filePath) return <EmptyState message={t("selectFileHint")} />
 
-  if (!loaded) {
-    return (
-      <div className={styles.largeDiffBanner}>
-        {errorMessage && (
-          <span className={styles.loadError} role="alert">
-            {errorMessage}
-          </span>
-        )}
-        <button type="button" className="primary" onClick={onLoad} disabled={loading}>
-          {loading ? t("loading") : t("loadDiff")}
-        </button>
-        {loading && <div className={styles.diffSkeleton} role="status" aria-busy aria-label={t("loading")} />}
-      </div>
-    )
-  }
-
-  if (isLargeDiff) {
-    return <LargeDiffView key={`${filePath}:${diffContent.length}`} diffContent={diffContent} maxHeight={maxHeight} />
-  }
-
-  if (parsedDiff.hunks.length === 0) {
-    return (
+  const busy = loading || stale
+  const body = loaded ? (
+    isLargeDiff ? (
+      <LargeDiffView key={`${filePath}:${diffContent.length}`} diffContent={diffContent} maxHeight={maxHeight} />
+    ) : parsedDiff.hunks.length === 0 ? (
       <pre className={styles.diff} style={maxHeight ? { maxHeight } : undefined}>
         {diffContent}
       </pre>
+    ) : (
+      <DiffHunkList
+        parsedDiff={parsedDiff}
+        isStaged={isStaged}
+        maxHeight={maxHeight}
+        selectedKeys={selectedKeys}
+        onToggleLine={toggleLine}
+        onToggleHunk={applyHunk}
+        onStageSelected={applySelectedLines}
+        onDiscardHunk={discardHunk}
+      />
     )
-  }
+  ) : loading ? (
+    <div className={styles.diffSkeleton} role="status" aria-busy aria-label={t("loading")} />
+  ) : (
+    <div className={styles.largeDiffBanner}>
+      {errorMessage && (
+        <span className={styles.loadError} role="alert">
+          {errorMessage}
+        </span>
+      )}
+      <button type="button" className="primary" onClick={onLoad} disabled={loading}>
+        {t("loadDiff")}
+      </button>
+    </div>
+  )
+
+  if (!busy) return body
 
   return (
-    <DiffHunkList
-      parsedDiff={parsedDiff}
-      isStaged={isStaged}
-      maxHeight={maxHeight}
-      selectedKeys={selectedKeys}
-      onToggleLine={toggleLine}
-      onToggleHunk={applyHunk}
-      onStageSelected={applySelectedLines}
-      onDiscardHunk={discardHunk}
-    />
+    <div className={classnames(styles.diffWrap, stale && styles.diffStale)} aria-busy={loading}>
+      <BusyBar visible label={t("loading")} />
+      {body}
+    </div>
   )
 }
 

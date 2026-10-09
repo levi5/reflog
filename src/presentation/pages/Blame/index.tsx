@@ -1,7 +1,7 @@
 import classnames from "classnames"
 import { codeHighlightUseCase } from "../../../data"
 import { toJsxRuntime } from "hast-util-to-jsx-runtime"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Fragment, jsx, jsxs } from "react/jsx-runtime"
 import { useSearchParams } from "react-router-dom"
 
@@ -31,7 +31,6 @@ export const Blame = (_props: Props) => {
   const { query, scope } = useSearch()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null)
-  const blameScrollRef = useRef<HTMLElement>(null)
   const fileParam = searchParams.get("file")
   const repoPath = repo.repo
   const blameFile = repo.blameFile
@@ -79,12 +78,8 @@ export const Blame = (_props: Props) => {
     estimate: 22,
     overscan: 24,
     enabled: blameLines.length > VIRTUALIZE_AFTER_LINES,
+    resetKey: blameFile,
   })
-
-  useEffect(() => {
-    blameRows.reset()
-    if (blameScrollRef.current) blameScrollRef.current.scrollTop = 0
-  }, [blameFile, blameRows.reset])
 
   const visibleRows = blameRows.items.map(({ index }) => {
     const line = blameLines[index]
@@ -145,7 +140,7 @@ export const Blame = (_props: Props) => {
             )}
             {hasContent && (
               <section
-                ref={blameScrollRef}
+                key={blameFile}
                 className={classnames(styles.diff, repo.blameStale && styles.diffStale)}
                 aria-label={t(lang, "blame")}
                 aria-busy={repo.blameLoading}

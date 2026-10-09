@@ -5,6 +5,7 @@ export interface VirtualRowsOptions {
   estimate: number
   overscan?: number
   enabled?: boolean
+  resetKey?: string
 }
 
 export interface VirtualRowsResult {
@@ -20,6 +21,7 @@ export function useVirtualRows({
   estimate,
   overscan = 12,
   enabled = true,
+  resetKey,
 }: VirtualRowsOptions): VirtualRowsResult {
   const [scrollTop, setScrollTop] = useState(0)
   const [viewport, setViewport] = useState(0)
@@ -46,6 +48,11 @@ export function useVirtualRows({
     setScrollTop(0)
     setViewport(0)
   }, [])
+
+  useEffect(() => {
+    setScrollTop(0)
+    setViewport(0)
+  }, [resetKey])
 
   return useMemo(() => {
     if (!enabled || count === 0) {

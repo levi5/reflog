@@ -152,6 +152,7 @@ export function useRepository(lang: Lang) {
     diffStaged: staging.diffStaged,
     diffLoaded: staging.diffLoaded,
     diffLoading: staging.diffLoading,
+    diffStale: staging.diffStale,
     diffError: staging.diffError,
     blameFile: staging.blameFile,
     blameLines: staging.blameLines,
