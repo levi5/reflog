@@ -49,7 +49,9 @@
   background: var(--bg-raised);
   color: var(--grape);
   font-weight: 700;
-}.docsHead {
+}
+
+.docsHead {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -188,4 +190,5 @@
   }
   .summaryItem {
     white-space: nowrap;
-  }}
+  }
+}

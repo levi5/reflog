@@ -8,7 +8,9 @@
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
-}.settingsHead p {
+}
+
+.settingsHead p {
   margin: 3px 0 0;
   color: var(--muted);
   font-size: 12px;
@@ -227,7 +229,9 @@
 .materialSwatch.selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--grape-dim);
-}.miniHead {
+}
+
+.miniHead {
   margin: 6px 0 0;
   font-size: var(--font-sm);
   font-weight: 600;
@@ -240,13 +244,17 @@
   margin: 0;
   font-size: 12px;
   color: var(--muted);
-}.presetList li code {
+}
+
+.presetList li code {
   background: var(--bg-deep);
   border: 1px solid var(--border-soft);
   border-radius: 4px;
   padding: 1px 6px;
   font-size: var(--font-sm);
-}.presetForm {
+}
+
+.presetForm {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;

@@ -16,10 +16,14 @@
 
 .tabsRoot {
   width: 100%;
-}.templateItem.active {
+}
+
+.templateItem.active {
   background: var(--bg-highest);
   border-color: var(--faint);
-}.templateMeta small {
+}
+
+.templateMeta small {
   font-size: var(--font-sm);
   color: var(--muted);
   display: flex;
@@ -84,4 +88,3 @@
   font-size: 11.5px;
   line-height: 1.4;
 }
-
