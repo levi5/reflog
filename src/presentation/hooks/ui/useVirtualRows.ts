@@ -26,6 +26,7 @@ export function useVirtualRows({
   const [scrollTop, setScrollTop] = useState(0)
   const [viewport, setViewport] = useState(0)
   const frameRef = useRef<number | null>(null)
+  const keyRef = useRef(resetKey)
 
   useEffect(() => {
     return () => {
@@ -50,6 +51,8 @@ export function useVirtualRows({
   }, [])
 
   useEffect(() => {
+    if (keyRef.current === resetKey) return
+    keyRef.current = resetKey
     setScrollTop(0)
     setViewport(0)
   }, [resetKey])
