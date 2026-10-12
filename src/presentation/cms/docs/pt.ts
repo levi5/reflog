@@ -116,7 +116,7 @@ export const docsPtContent: DocsContent = {
       title: "Branches e remotos",
       steps: [
         "Crie, renomeie e delete branches na aba Branches; Fetch faz prune.",
-        "Digite o nome da branch e clique em Executar para deletar.",
+        "Marque várias branches para excluir todas de uma vez, comum ou forçadas.",
         "No banner de merge, marque Squash para juntar sem commitar ou No-ff.",
         "Gerencie remotos e veja ahead/behind na barra de status.",
       ],

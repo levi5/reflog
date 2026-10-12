@@ -54,6 +54,7 @@ const TreeNode = memo(function TreeNode({
           <span className={styles.dirCount}>{node.children.length}</span>
         </button>
         {open && (
+          // biome-ignore lint/a11y/useSemanticElements: <fieldset> groups form controls; the nested tree pattern needs role="group".
           <div className={styles.dirChildren} role="group">
             {node.children.map((child) => (
               <TreeNode

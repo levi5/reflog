@@ -1,8 +1,14 @@
 import { ArrowDown, ArrowUp, Circle, CircleDot, Pencil, Trash2 } from "lucide-react"
 import { useTranslation } from "../../../context"
 import type { BranchInfo } from "../../../../types"
+import { Checkbox } from "../../Checkbox"
 import { ListItem } from "../../List/Item"
 import styles from "./style.module.scss"
+
+export interface BranchCheckSelection {
+  checked: ReadonlySet<string>
+  onToggle: (branchName: string, range: boolean) => void
+}
 
 interface BranchRenameInputProps {
   draftName: string
@@ -133,6 +139,7 @@ interface BranchCardProps {
   onStartRename: (branchName: string) => void
   onConfirmDelete?: (branchName: string | null) => void
   confirmingDelete?: boolean
+  selection?: BranchCheckSelection
 }
 
 export function BranchCard({
@@ -149,17 +156,29 @@ export function BranchCard({
   onStartRename,
   onConfirmDelete,
   confirmingDelete = false,
+  selection,
 }: BranchCardProps) {
   const { t } = useTranslation()
   const BranchIcon = branch.current ? CircleDot : Circle
   const showRenameInput = isRenaming && !branch.remote
   const hasBehind = (branch.behind ?? 0) > 0
   const hasAhead = (branch.ahead ?? 0) > 0
+  const selectable = selection !== undefined && !branch.remote && !branch.current
 
   return (
     <ListItem
       className={styles.fcard}
       active={branch.current}
+      align="center"
+      leading={
+        selectable ? (
+          <Checkbox
+            checked={selection.checked.has(branch.name)}
+            label={`${t("selectBranch")}: ${branch.name}`}
+            onChange={(_checked, range) => selection.onToggle(branch.name, range)}
+          />
+        ) : undefined
+      }
       style={{ animationDelay: `${Math.min(index * 35, 350)}ms` }}
       title={
         <>

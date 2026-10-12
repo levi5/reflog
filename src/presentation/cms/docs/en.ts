@@ -116,6 +116,7 @@ export const docsEnContent: DocsContent = {
       title: "Branches and remotes",
       steps: [
         "Create, rename and delete branches in the Branches tab; Fetch prunes.",
+        "Tick several branches to delete or force delete them all at once.",
         "In the merge banner, check Squash to join without committing, or No-ff.",
         "Manage remotes and watch ahead/behind in the status bar.",
       ],

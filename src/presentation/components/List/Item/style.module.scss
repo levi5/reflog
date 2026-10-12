@@ -19,11 +19,22 @@
   }
 }
 
+.centered {
+  align-items: center;
+}
+
 .content {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+}
+
+.leading {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  min-height: 17px;
 }
 
 .title {

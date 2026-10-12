@@ -102,6 +102,7 @@ export function useRepository(lang: Lang) {
     checkoutBranch: core.checkoutBranch,
     createBranchFrom: core.createBranchFrom,
     deleteBranch: core.deleteBranch,
+    deleteBranches: core.deleteBranches,
     renameBranch: core.renameBranch,
     fetchPrune: core.fetchPrune,
     fetchFromRemote: core.fetchFromRemote,
