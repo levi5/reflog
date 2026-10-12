@@ -1,9 +1,11 @@
 import { GitBranchPlus } from "lucide-react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "../../../context"
 import type { BranchInfo } from "../../../../types"
+import { useBranchSelection } from "../../../hooks/branch/use-branch-selection"
 import { InlineForm } from "../../Form/Inline"
-import { BranchCard } from "./BranchCard"
+import { BranchCard, type BranchCheckSelection } from "./BranchCard"
+import { BranchSelectionToolbar } from "./SelectionToolbar"
 import styles from "./style.module.scss"
 
 interface BranchPanelProps {
@@ -16,6 +18,8 @@ interface BranchPanelProps {
   onDeleteBranch: (branchName: string, force?: boolean) => void
   onRenameBranch: (oldName: string, newName: string) => void
   onCreateBranchFrom?: (branchName: string, from: string) => void
+  onDeleteBranches?: (branchNames: string[], force: boolean) => void
+  selectionKey?: string
   busy?: boolean
 }
 
@@ -54,6 +58,8 @@ export function BranchPanel({
   onDeleteBranch,
   onRenameBranch,
   onCreateBranchFrom,
+  onDeleteBranches,
+  selectionKey = "",
   busy = false,
 }: BranchPanelProps) {
   const { t } = useTranslation()
@@ -61,6 +67,27 @@ export function BranchPanel({
   const [renameDraft, setRenameDraft] = useState("")
   const [fromDraft, setFromDraft] = useState("")
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const selection = useBranchSelection(branches, selectionKey)
+  const bulk = onDeleteBranches !== undefined
+
+  const selectable = useMemo(() => branches.filter((branch) => !branch.remote && !branch.current), [branches])
+
+  const selectedBranches = useMemo(
+    () => selectable.filter((branch) => selection.checked.has(branch.name)),
+    [selectable, selection.checked],
+  )
+
+  const selectionProps = useMemo<BranchCheckSelection | undefined>(
+    () => (bulk ? { checked: selection.checked, onToggle: selection.toggle } : undefined),
+    [bulk, selection.checked, selection.toggle],
+  )
+
+  const runBulkDelete = (force: boolean) => {
+    if (!onDeleteBranches || selectedBranches.length === 0) return
+    const names = selectedBranches.map((branch) => branch.name)
+    selection.clear()
+    onDeleteBranches(names, force)
+  }
 
   const startRename = (branchName: string) => {
     setRenamingBranchName(branchName)
@@ -117,6 +144,17 @@ export function BranchPanel({
           />
         </InlineForm>
       )}
+      {bulk && (
+        <BranchSelectionToolbar
+          count={selectedBranches.length}
+          total={selectable.length}
+          onSelectAll={() => selection.selectAll(selectedBranches.length !== selectable.length)}
+          onDelete={() => runBulkDelete(false)}
+          onForceDelete={() => runBulkDelete(true)}
+          onClear={selection.clear}
+          busy={busy}
+        />
+      )}
       {branches.map((branch, index) => (
         <BranchCard
           key={branch.name}
@@ -133,6 +171,7 @@ export function BranchPanel({
           onStartRename={startRename}
           onConfirmDelete={setConfirmDelete}
           confirmingDelete={confirmDelete === branch.name}
+          selection={selectionProps}
         />
       ))}
     </>

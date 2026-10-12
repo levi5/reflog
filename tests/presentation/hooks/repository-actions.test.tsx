@@ -20,6 +20,7 @@ function renderActions(confirmed = true) {
     remoteRemove: vi.fn().mockResolvedValue("ok"),
     cherryPick: vi.fn().mockResolvedValue("ok"),
     reset: vi.fn().mockResolvedValue("ok"),
+    run: vi.fn().mockResolvedValue("abc1234"),
   }
   const runAction = vi.fn<RunAction>(async (work) => {
     await work()
@@ -111,5 +112,50 @@ describe("repository actions", () => {
     expect(git.remoteAdd).not.toHaveBeenCalled()
     expect(requestConfirm).not.toHaveBeenCalled()
     expect(git.reset).toHaveBeenCalledWith("/repo", "abc123", "soft")
+  })
+
+  it("does not delete any branch when the bulk confirmation is declined", async () => {
+    const { actions, git, requestConfirm } = renderActions(false)
+    await actions.deleteBranches(["feature-a", "feature-b"])
+    expect(requestConfirm).toHaveBeenCalledTimes(1)
+    expect(git.branchDelete).not.toHaveBeenCalled()
+  })
+
+  it("deletes every selected branch in one go and offers a single undo", async () => {
+    const { actions, git, runAction } = renderActions()
+    await actions.deleteBranches(["feature-a", "feature-b"])
+    expect(git.branchDelete).toHaveBeenCalledTimes(2)
+    expect(git.branchDelete).toHaveBeenNthCalledWith(1, "/repo", "feature-a", false)
+    expect(git.branchDelete).toHaveBeenNthCalledWith(2, "/repo", "feature-b", false)
+    const options = runAction.mock.calls.at(-1)?.[2]
+    expect(options?.undoLabel).toBe("Delete 2 branch(es)")
+    await options?.undo?.()
+    expect(git.run).toHaveBeenCalledWith("/repo", ["branch", "feature-a", "abc1234"])
+    expect(git.run).toHaveBeenCalledWith("/repo", ["branch", "feature-b", "abc1234"])
+  })
+
+  it("force deletes the whole selection when the force flag is on", async () => {
+    const { actions, git } = renderActions()
+    await actions.deleteBranches(["feature-a", "feature-b"], true)
+    expect(git.branchDelete).toHaveBeenCalledWith("/repo", "feature-a", true)
+    expect(git.branchDelete).toHaveBeenCalledWith("/repo", "feature-b", true)
+  })
+
+  it("names the branches that survived a partial bulk deletion", async () => {
+    const { actions, git, runAction } = renderActions()
+    git.branchDelete.mockImplementation(async (_repo: string, name: string) => {
+      if (name === "feature-b") throw new Error("not fully merged")
+      return "ok"
+    })
+    await expect(actions.deleteBranches(["feature-a", "feature-b"])).rejects.toThrow("feature-b")
+    expect(git.branchDelete).toHaveBeenCalledTimes(2)
+    expect(runAction.mock.calls.at(-1)?.[1]).toBeUndefined()
+  })
+
+  it("does nothing when the bulk selection is empty", async () => {
+    const { actions, git, requestConfirm } = renderActions()
+    await actions.deleteBranches([])
+    expect(requestConfirm).not.toHaveBeenCalled()
+    expect(git.branchDelete).not.toHaveBeenCalled()
   })
 })

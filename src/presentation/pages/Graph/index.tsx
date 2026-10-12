@@ -162,6 +162,8 @@ export function Graph(_props: Props) {
             onDeleteBranch={repo.deleteBranch}
             onRenameBranch={repo.renameBranch}
             onCreateBranchFrom={repo.createBranchFrom}
+            onDeleteBranches={repo.deleteBranches}
+            selectionKey={repo.repo}
           />
         </>
       }

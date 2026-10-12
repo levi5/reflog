@@ -238,6 +238,7 @@ export function useRepoCore(lang: Lang, git: IGitApi = defaultGitApi) {
     checkoutBranch: branchOps.checkoutBranch,
     createBranchFrom: branchOps.createBranchFrom,
     deleteBranch: branchOps.deleteBranch,
+    deleteBranches: branchOps.deleteBranches,
     renameBranch: branchOps.renameBranch,
     fetchPrune: syncOps.fetchPrune,
     fetchFromRemote: syncOps.fetchFromRemote,

@@ -9,6 +9,22 @@ export function useBranchOps(deps: RepositoryActionDeps) {
   const { lang, repo, runAction, requestConfirm, git = defaultGitApi } = deps
   const gitAction = useGitAction(lang, runAction)
 
+  const restoreBranches = useCallback(
+    (tips: { name: string; hash: string }[]) =>
+      runAction(
+        async () => {
+          for (const tip of tips) await git.run(repo, ["branch", tip.name, tip.hash])
+          return ""
+        },
+        undefined,
+        {
+          loadingMessage: t(lang, "actionProcessing"),
+          successMessage: t(lang, "actionSuccess"),
+        },
+      ),
+    [git, repo, lang, runAction],
+  )
+
   const checkoutBranch = useCallback(
     async (branch: string) => {
       if (!repo || !branch) return Promise.resolve()
@@ -69,16 +85,53 @@ export function useBranchOps(deps: RepositoryActionDeps) {
         successMessage: t(lang, "deleteBranchSuccess"),
         successDuration: tipHash ? 8000 : undefined,
         undoLabel: formatMessage(lang, "undoDeleteBranch", { name }),
-        undo: tipHash
-          ? () =>
-              runAction(() => git.run(repo, ["branch", name, tipHash]), undefined, {
-                loadingMessage: t(lang, "actionProcessing"),
-                successMessage: t(lang, "actionSuccess"),
-              })
-          : undefined,
+        undo: tipHash ? () => restoreBranches([{ name, hash: tipHash }]) : undefined,
       })
     },
-    [git, repo, lang, runAction, requestConfirm],
+    [git, repo, lang, runAction, requestConfirm, restoreBranches],
+  )
+
+  const deleteBranches = useCallback(
+    async (names: string[], force = false) => {
+      if (!repo || names.length === 0) return Promise.resolve()
+      const confirmed = await requestConfirm(
+        t(lang, "deleteBranch"),
+        formatMessage(lang, force ? "confirmForceDeleteBranches" : "confirmDeleteBranches", { count: names.length }),
+      )
+      if (!confirmed) return Promise.resolve()
+      const tips: { name: string; hash: string }[] = []
+      for (const name of names) {
+        const resolved = await _Either.try.async(() => git.run(repo, ["rev-parse", name]))
+        const tipHash = resolved.isRight()
+          ? String(resolved.value ?? "")
+              .trim()
+              .split("\n")[0]
+          : ""
+        if (tipHash) tips.push({ name, hash: tipHash })
+      }
+      const failed: string[] = []
+      return runAction(
+        async () => {
+          for (const name of names) {
+            const deleted = await _Either.try.async(() => git.branchDelete(repo, name, force))
+            if (deleted.isLeft()) failed.push(name)
+          }
+          if (failed.length > 0) {
+            throw new Error(formatMessage(lang, "partialBranchDeleteFailed", { names: failed.join(", ") }))
+          }
+          return ""
+        },
+        undefined,
+        {
+          loadingMessage: t(lang, "deleteBranchesLoading"),
+          successMessage: formatMessage(lang, "deleteBranchesSuccess", { count: names.length }),
+          successDuration: tips.length > 0 ? 8000 : undefined,
+          undoLabel: formatMessage(lang, "undoDeleteBranches", { count: names.length }),
+          undo: tips.length > 0 ? () => restoreBranches(tips) : undefined,
+        },
+      )
+    },
+    [git, repo, lang, runAction, requestConfirm, restoreBranches],
   )
 
   const renameBranch = useCallback(
@@ -98,6 +151,7 @@ export function useBranchOps(deps: RepositoryActionDeps) {
     checkoutBranch,
     createBranchFrom,
     deleteBranch,
+    deleteBranches,
     renameBranch,
   }
 }

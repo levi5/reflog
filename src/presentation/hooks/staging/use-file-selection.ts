@@ -23,9 +23,17 @@ export function useFileSelection(paths: readonly string[], resetKey: string) {
       anchorRef.current = path
       return setChecked((prev) =>
         range && anchor !== null && anchor !== path
-          ? applyRange(prev, rangeBetween(paths, anchor, path), !prev.has(anchor))
+          ? applyRange(prev, rangeBetween(paths, anchor, path), true)
           : toggleChecked(prev, path),
       )
+    },
+    [paths],
+  )
+
+  const selectAll = useCallback(
+    (select: boolean) => {
+      anchorRef.current = null
+      setChecked((prev) => applyRange(prev, paths, select))
     },
     [paths],
   )
@@ -35,5 +43,5 @@ export function useFileSelection(paths: readonly string[], resetKey: string) {
     setChecked(EMPTY)
   }, [])
 
-  return { checked: visible, toggle, clear }
+  return { checked: visible, toggle, selectAll, clear }
 }

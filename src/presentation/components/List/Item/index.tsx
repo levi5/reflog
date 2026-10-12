@@ -6,14 +6,29 @@ interface ListItemProps {
   title: ReactNode
   description?: string
   actions?: ReactNode
+  leading?: ReactNode
+  align?: "start" | "center"
   active?: boolean
   className?: string
   style?: CSSProperties
 }
 
-export function ListItem({ title, description, actions, active = false, className, style }: ListItemProps) {
+export function ListItem({
+  title,
+  description,
+  actions,
+  leading,
+  align = "start",
+  active = false,
+  className,
+  style,
+}: ListItemProps) {
   return (
-    <div className={classnames(styles.item, active && styles.active, className)} style={style}>
+    <div
+      className={classnames(styles.item, align === "center" && styles.centered, active && styles.active, className)}
+      style={style}
+    >
+      {leading && <span className={styles.leading}>{leading}</span>}
       <div className={styles.content}>
         <span className={styles.title}>{title}</span>
         {description && (

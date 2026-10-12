@@ -109,7 +109,7 @@ The sidebar and header components themselves live under
 #### Git/Repository
 
 - `Status/` - File status rows (staged/unstaged/conflicted)
-- `Branch/` - Branch panel (create, checkout, delete, rename)
+- `Branch/` - Branch panel (create, checkout, multi-select delete, rename)
 - `Commit/` - Commit list, detail, message form and the shared detail modal (`Commit.DetailModal`)
 - `Diff/` - Diff viewer + preview (syntax highlighted)
 - `Merge/` - Conflict resolver, merge tool
@@ -127,9 +127,12 @@ The sidebar and header components themselves live under
 - `Select/` - Custom dropdowns
 - `Toast/` - Notifications
 - `Pagination/`, `Skeleton/`, `Resizable/`, `Accordion/`, `Form/` - Paging, loading skeletons, split layouts, disclosure, inline forms
-- `Switch/` - The only toggle primitive: every labelled on/off control (sign-off,
-  GPG, stash options, submodule sync) renders through it, never a bare
-  checkbox. `Search/`, `Command/` - Search box, palette
+- `Switch/` - The toggle primitive for labelled on/off controls (sign-off,
+  GPG, stash options, submodule sync), never a bare checkbox
+- `Checkbox/` - Multi-selection checkbox: a native input for keyboard and
+  assistive tech, a custom box on top. Reports the shift modifier so lists can
+  select ranges. Used by the branch panel
+- `Search/`, `Command/` - Search box, palette
 - `List/` - List primitives, including `List.Paged`
 - `Code/`, `Picker/`, `Wrapper/`, `Animation/` - Highlighting, pickers, layout helpers, spinners
 
@@ -209,6 +212,7 @@ factory layer in between.
 | `useStaging` | Staging area operations |
 | `useMerge` | Merge/conflict state |
 | `useBranchOps`, `useTagOps`, `useRemoteOps`, `useStashOps` | Branch/tag/remote/stash actions |
+| `useBranchSelection` | Checkbox selection for the branch panel (wraps `useFileSelection`, drops remote and current branches) |
 | `useSyncOps` | Pull/push/fetch/upstream actions (internal to `useRepoCore`) |
 | `useGitAction` / `useGitActions` | `runAction` adapters with i18n messages |
 | `usePaginated` | Paginated IPC loading (log/graph pages) |

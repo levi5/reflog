@@ -1,0 +1,103 @@
+.wrap {
+  --box-size: 15px;
+  --box-hit: 22px;
+  --box-radius: 5px;
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--box-size);
+  height: var(--box-size);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.sm {
+  --box-size: 13px;
+  --box-hit: 18px;
+  --box-radius: 4px;
+}
+
+.input {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--box-hit);
+  height: var(--box-hit);
+  margin: 0;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  appearance: none;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.box {
+  position: relative;
+  display: block;
+  width: var(--box-size);
+  height: var(--box-size);
+  border-radius: var(--box-radius);
+  border: 1px solid var(--border);
+  background: var(--bg-deep);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.box::after {
+  --tick-w: calc(var(--box-size) * 0.26);
+  --tick-h: calc(var(--box-size) * 0.52);
+  --tick-stroke: calc(var(--box-size) * 0.13);
+  /* o "L" das bordas, depois de rotacionar, tem o centro de massa abaixo do
+     centro da caixa: --tick-lift sobe a marca para o centro óptico */
+  --tick-lift: calc(var(--box-size) * 0.123);
+  content: "";
+  position: absolute;
+  top: calc(50% - var(--tick-lift));
+  left: 50%;
+  width: var(--tick-w);
+  height: var(--tick-h);
+  border: solid var(--on-accent);
+  border-width: 0 var(--tick-stroke) var(--tick-stroke) 0;
+  border-radius: calc(var(--box-size) * 0.06);
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0.5);
+  transition: opacity 0.12s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wrap:hover .box {
+  border-color: color-mix(in srgb, var(--grape) 55%, transparent);
+}
+
+.input:checked + .box {
+  background: var(--grape);
+  border-color: var(--grape);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--grape) 30%, transparent);
+}
+
+.input:checked + .box::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(45deg) scale(1);
+}
+
+.input:focus-visible + .box {
+  outline: 2px solid var(--grape);
+  outline-offset: 2px;
+}
+
+.input:disabled {
+  cursor: default;
+}
+
+.input:disabled + .box {
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .box,
+  .box::after {
+    transition: none;
+  }
+}
