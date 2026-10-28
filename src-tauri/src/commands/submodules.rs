@@ -207,14 +207,20 @@ pub fn submodule_add(
     )
 }
 
-pub fn submodule_remove(runner: &dyn GitRunner, repo_path: &str, path: &str) -> Result<String, String> {
+pub fn submodule_remove(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    path: &str,
+) -> Result<String, String> {
     let trimmed = path.trim();
     crate::commands::validation::validate_repo_relative_path(trimmed)?;
     let root = runner.repo_root(repo_path)?;
     let owned = trimmed.to_string();
     runner.run(Some(&root), &["submodule", "deinit", "-f", "--", &owned])?;
     let out = runner.run(Some(&root), &["rm", "-f", "--", &owned])?;
-    let modules_dir = std::path::Path::new(&root).join(".git/modules").join(&owned);
+    let modules_dir = std::path::Path::new(&root)
+        .join(".git/modules")
+        .join(&owned);
     let _ = std::fs::remove_dir_all(&modules_dir);
     Ok(out)
 }
@@ -362,7 +368,10 @@ mod tests {
     #[test]
     fn syncs_recursive() {
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("submodule sync --recursive", "synced")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("submodule sync --recursive", "synced"),
+            ],
             &[],
         );
         assert_eq!(submodule_sync(&runner, "/r").unwrap(), "synced");
@@ -396,7 +405,10 @@ mod tests {
             ],
             &[],
         );
-        assert_eq!(submodule_remove(&runner, "/r", "libs/old").unwrap(), "removed");
+        assert_eq!(
+            submodule_remove(&runner, "/r", "libs/old").unwrap(),
+            "removed"
+        );
         assert!(submodule_remove(&runner, "/r", "../evil").is_err());
         assert!(submodule_remove(&runner, "/r", "").is_err());
     }

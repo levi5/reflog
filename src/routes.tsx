@@ -6,6 +6,7 @@ import { MainLayout } from "./presentation/layout/MainLayout"
 import { RouteErrorElement, RouteNotFound } from "./presentation/components/ErrorBoundary/RouteErrorElement"
 import { MessageProvider, RepoProvider } from "./presentation/context"
 import { detectLocale, formatMessage } from "./i18n"
+import { FloatingMenu } from "./presentation/components/Floating"
 
 const Welcome = lazy(() =>
   import("./presentation/pages/Welcome").then((pageModule) => ({ default: pageModule.Welcome })),
@@ -80,6 +81,7 @@ export async function repoLoader({ params }: { params: Record<string, string | u
 }
 
 export const router = createHashRouter([
+  { path: "/floating", element: <FloatingMenu />, errorElement: <RouteErrorElement /> },
   {
     path: "/",
     element: (

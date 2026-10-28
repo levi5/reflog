@@ -4,8 +4,9 @@ pub mod error;
 
 pub use conflicts::parse_conflict_text;
 pub use entities::{
-    BranchInfo, CommitFileChange, CommitInfo, CompareFileStat, ConfigEntry, ConflictFile, FileStatus,
-    Identity, ReflogEntry, RemoteInfo, StashItem, StatusResult, SubmoduleInfo, WorktreeInfo,
+    BranchInfo, CommitFileChange, CommitInfo, CompareFileStat, ConfigEntry, ConflictFile,
+    FileStatus, Identity, ReflogEntry, RemoteInfo, StashItem, StatusResult, SubmoduleInfo,
+    WorktreeInfo,
 };
 #[allow(unused_imports)]
 pub use error::AppError;

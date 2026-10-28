@@ -1,6 +1,5 @@
 use crate::commands::validation::{
-    validate_ref_name, validate_remote_name, validate_repo_relative_path,
-    validate_stash_message,
+    validate_ref_name, validate_remote_name, validate_repo_relative_path, validate_stash_message,
 };
 use crate::domain::StashItem;
 use crate::runner::{GitRunner, NETWORK_TIMEOUT};
@@ -205,8 +204,7 @@ pub fn push_with(
                 || err.contains("no upstream")
             {
                 let remote = resolve_push_remote(runner, &root, &branch);
-                let mut with_set_upstream =
-                    vec!["push".to_string(), "-u".to_string(), remote];
+                let mut with_set_upstream = vec!["push".to_string(), "-u".to_string(), remote];
                 if force {
                     with_set_upstream.insert(1, "--force-with-lease".to_string());
                 }
@@ -315,7 +313,11 @@ pub fn stash(
     runner.run(Some(&root), &refs)
 }
 
-    pub fn stash_pop(runner: &dyn GitRunner, repo_path: &str, index: Option<usize>) -> Result<String, String> {
+pub fn stash_pop(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    index: Option<usize>,
+) -> Result<String, String> {
     let root = runner.repo_root(repo_path)?;
     match index {
         Some(i) => runner.run(Some(&root), &["stash", "pop", &format!("stash@{{{i}}}")]),
@@ -417,9 +419,9 @@ git_command!(git_merge_opts, String, merge_opts, (repo_path: String, branch: Str
 
 git_command!(git_fetch, String, fetch, (repo_path: String), (prune: bool));
 
-    git_command!(git_merge_abort, String, merge_abort, (repo_path: String), ());
+git_command!(git_merge_abort, String, merge_abort, (repo_path: String), ());
 
-    git_command!(git_merge_continue, String, merge_continue, (repo_path: String), ());
+git_command!(git_merge_continue, String, merge_continue, (repo_path: String), ());
 
 git_command!(git_pull, String, pull, (repo_path: String), ());
 
@@ -441,9 +443,9 @@ git_command!(git_fetch_ref, String, fetch_ref, (repo_path: String, remote: Strin
 
 git_command!(git_stash, String, stash, (repo_path: String), (message: Option<String>, keep_index: bool, staged_only: bool, paths: Vec<String>));
 
-    git_command!(git_stash_pop, String, stash_pop, (repo_path: String), (index: Option<usize>));
+git_command!(git_stash_pop, String, stash_pop, (repo_path: String), (index: Option<usize>));
 
-    git_command!(git_stash_clear, String, stash_clear, (repo_path: String), ());
+git_command!(git_stash_clear, String, stash_clear, (repo_path: String), ());
 
 git_command!(git_stash_list, Vec<StashItem>, stash_list, (repo_path: String), ());
 
@@ -593,7 +595,15 @@ mod tests {
         );
 
         assert_eq!(
-            stash(&runner, "/r", Some("before-checkout".into()), false, false, vec![]).unwrap(),
+            stash(
+                &runner,
+                "/r",
+                Some("before-checkout".into()),
+                false,
+                false,
+                vec![]
+            )
+            .unwrap(),
             "Saved"
         );
     }
@@ -603,7 +613,10 @@ mod tests {
         let runner = MockRunner::new(
             &[
                 ("rev-parse --show-toplevel", "/r"),
-                ("stash push --keep-index --include-untracked -m wip", "Saved"),
+                (
+                    "stash push --keep-index --include-untracked -m wip",
+                    "Saved",
+                ),
             ],
             &[],
         );
@@ -613,7 +626,10 @@ mod tests {
         );
 
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("stash push --staged -m wip", "Saved")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash push --staged -m wip", "Saved"),
+            ],
             &[],
         );
         assert_eq!(
@@ -629,14 +645,38 @@ mod tests {
             &[],
         );
         assert_eq!(
-            stash(&runner, "/r", None, false, false, vec!["src/a.ts".to_string()]).unwrap(),
+            stash(
+                &runner,
+                "/r",
+                None,
+                false,
+                false,
+                vec!["src/a.ts".to_string()]
+            )
+            .unwrap(),
             "Saved"
         );
 
         let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
         assert!(stash(&runner, "/r", None, true, true, vec![]).is_err());
-        assert!(stash(&runner, "/r", None, false, false, vec!["../evil".to_string()]).is_err());
-        assert!(stash(&runner, "/r", None, false, false, vec!["--help".to_string()]).is_err());
+        assert!(stash(
+            &runner,
+            "/r",
+            None,
+            false,
+            false,
+            vec!["../evil".to_string()]
+        )
+        .is_err());
+        assert!(stash(
+            &runner,
+            "/r",
+            None,
+            false,
+            false,
+            vec!["--help".to_string()]
+        )
+        .is_err());
     }
 
     #[test]
@@ -648,13 +688,22 @@ mod tests {
             ],
             &[],
         );
-        assert_eq!(stash_branch(&runner, "/r", "fix/conflict", Some(1)).unwrap(), "branched");
+        assert_eq!(
+            stash_branch(&runner, "/r", "fix/conflict", Some(1)).unwrap(),
+            "branched"
+        );
 
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("stash branch hotfix", "branched")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash branch hotfix", "branched"),
+            ],
             &[],
         );
-        assert_eq!(stash_branch(&runner, "/r", "hotfix", None).unwrap(), "branched");
+        assert_eq!(
+            stash_branch(&runner, "/r", "hotfix", None).unwrap(),
+            "branched"
+        );
 
         let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
         assert!(stash_branch(&runner, "/r", "--evil", Some(0)).is_err());
@@ -670,7 +719,10 @@ mod tests {
             ],
             &[],
         );
-        assert_eq!(stash_apply_file(&runner, "/r", "src/a.ts", 0).unwrap(), "restored");
+        assert_eq!(
+            stash_apply_file(&runner, "/r", "src/a.ts", 0).unwrap(),
+            "restored"
+        );
 
         let runner = MockRunner::with_failures(
             &[("restore --source=stash@{2} -- src/b.ts", "unknown option")],
@@ -679,7 +731,10 @@ mod tests {
                 ("checkout stash@{2} -- src/b.ts", "checked out"),
             ],
         );
-        assert_eq!(stash_apply_file(&runner, "/r", "src/b.ts", 2).unwrap(), "checked out");
+        assert_eq!(
+            stash_apply_file(&runner, "/r", "src/b.ts", 2).unwrap(),
+            "checked out"
+        );
 
         let runner = MockRunner::new(&[("rev-parse --show-toplevel", "/r")], &[]);
         assert!(stash_apply_file(&runner, "/r", "../evil", 0).is_err());
@@ -688,7 +743,10 @@ mod tests {
     #[test]
     fn merge_continue_runs_native_continue() {
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("merge --continue", "ok")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("merge --continue", "ok"),
+            ],
             &[],
         );
         assert_eq!(merge_continue(&runner, "/r").unwrap(), "ok");
@@ -697,7 +755,10 @@ mod tests {
     #[test]
     fn stash_pop_targets_selector_when_indexed() {
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("stash pop stash@{2}", "popped")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash pop stash@{2}", "popped"),
+            ],
             &[],
         );
         assert_eq!(stash_pop(&runner, "/r", Some(2)).unwrap(), "popped");
@@ -712,7 +773,10 @@ mod tests {
     #[test]
     fn stash_clear_runs_clear() {
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("stash clear", "cleared")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("stash clear", "cleared"),
+            ],
             &[],
         );
         assert_eq!(stash_clear(&runner, "/r").unwrap(), "cleared");
@@ -720,10 +784,7 @@ mod tests {
 
     #[test]
     fn resolve_push_remote_prefers_branch_config() {
-        let runner = MockRunner::new(
-            &[("config --get branch.feat.remote", "upstream")],
-            &[],
-        );
+        let runner = MockRunner::new(&[("config --get branch.feat.remote", "upstream")], &[]);
         assert_eq!(resolve_push_remote(&runner, "/r", "feat"), "upstream");
     }
 

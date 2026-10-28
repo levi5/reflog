@@ -6,6 +6,7 @@ import { Bar } from "../../components/Bar"
 import { Command } from "../../components/Command"
 import { Dialog } from "../../components/Dialog"
 import { FatalError } from "../../components/FatalError"
+import { FloatingRuntime } from "../../components/Floating/Runtime"
 import { Merge } from "../../components/Merge"
 import { Toast } from "../../components/Toast"
 import { Tabs } from "../../components/Tabs"
@@ -124,6 +125,7 @@ export function AppLayout() {
 
   return (
     <SearchProvider>
+      <FloatingRuntime />
       <Windows.Frame>
         <a className={styles.skipLink} href="#main-content">
           {t(lang, "skipToContent")}

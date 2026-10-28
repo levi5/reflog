@@ -50,8 +50,7 @@ pub fn parse(porcelain: &str) -> Porcelain {
         if x == "R" || x == "C" || y == "R" || y == "C" {
             let _ = entries.next();
         }
-        let unmerged =
-            (x == "U" || y == "U") || (x == "A" && y == "A") || (x == "D" && y == "D");
+        let unmerged = (x == "U" || y == "U") || (x == "A" && y == "A") || (x == "D" && y == "D");
         let staged = x != " " && x != "?" && x != "!";
         files.push(FileStatus {
             path: p,
@@ -75,7 +74,9 @@ mod tests {
 
     #[test]
     fn parses_tracking_and_flags() {
-        let parsed = parse("## main...origin/main [ahead 2, behind 1]\0M  f.tsx\0UU hello.txt\0?? new.txt\0");
+        let parsed = parse(
+            "## main...origin/main [ahead 2, behind 1]\0M  f.tsx\0UU hello.txt\0?? new.txt\0",
+        );
         assert_eq!(parsed.ahead, 2);
         assert_eq!(parsed.behind, 1);
         assert!(parsed.files[0].staged);

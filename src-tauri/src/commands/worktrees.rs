@@ -58,10 +58,7 @@ fn validate_worktree_path(path: &str) -> Result<(), String> {
 
 pub fn worktree_list(runner: &dyn GitRunner, repo_path: &str) -> Result<Vec<WorktreeInfo>, String> {
     let root = runner.repo_root(repo_path)?;
-    let out = runner.run(
-        Some(&root),
-        &["worktree", "list", "--porcelain", "-v"],
-    )?;
+    let out = runner.run(Some(&root), &["worktree", "list", "--porcelain", "-v"])?;
     Ok(parse_worktree_list(&out))
 }
 
@@ -106,7 +103,10 @@ pub fn worktree_remove(
     let root = runner.repo_root(repo_path)?;
     let owned = trimmed.to_string();
     if force {
-        runner.run(Some(&root), &["worktree", "remove", "--force", "--", &owned])
+        runner.run(
+            Some(&root),
+            &["worktree", "remove", "--force", "--", &owned],
+        )
     } else {
         runner.run(Some(&root), &["worktree", "remove", "--", &owned])
     }
@@ -137,7 +137,11 @@ pub fn worktree_lock(
     }
 }
 
-pub fn worktree_unlock(runner: &dyn GitRunner, repo_path: &str, path: &str) -> Result<String, String> {
+pub fn worktree_unlock(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    path: &str,
+) -> Result<String, String> {
     let trimmed = path.trim();
     validate_worktree_path(trimmed)?;
     let root = runner.repo_root(repo_path)?;
@@ -234,10 +238,16 @@ mod tests {
             ],
             &[],
         );
-        assert_eq!(worktree_unlock(&runner, "/r", "/tmp/wt").unwrap(), "unlocked");
+        assert_eq!(
+            worktree_unlock(&runner, "/r", "/tmp/wt").unwrap(),
+            "unlocked"
+        );
 
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("worktree prune", "pruned")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("worktree prune", "pruned"),
+            ],
             &[],
         );
         assert_eq!(worktree_prune(&runner, "/r").unwrap(), "pruned");

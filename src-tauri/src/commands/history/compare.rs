@@ -151,7 +151,11 @@ pub fn diff_stat_files(
         let added = fields[0].parse::<usize>().unwrap_or(0);
         let removed = fields[1].parse::<usize>().unwrap_or(0);
         let path = fields[2].to_string();
-        files.push(CompareFileStat { path, added, removed });
+        files.push(CompareFileStat {
+            path,
+            added,
+            removed,
+        });
     }
     Ok(files)
 }
