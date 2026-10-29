@@ -1,4 +1,6 @@
 import { emitTo, listen } from "@tauri-apps/api/event"
+import { isTauri } from "@tauri-apps/api/core"
+import { getCurrentWindow } from "@tauri-apps/api/window"
 import type { BranchInfo, FileStatus, StashItem, StatusResult } from "../../../types"
 import { detectLocale, t } from "../../../i18n"
 
@@ -22,6 +24,7 @@ export type FloatingOperation =
 
 export interface FloatingRequest {
   id: string
+  replyTo?: string
   repoPath: string
   operation: FloatingOperation
 }
@@ -67,7 +70,8 @@ export async function requestFloating<T>(operation: FloatingOperation, repoPath 
           stop()
           return
         }
-        return emitTo("main", "floating-request", { id, repoPath, operation } satisfies FloatingRequest)
+        const replyTo = isTauri() ? getCurrentWindow().label : "floating"
+        return emitTo("main", "floating-request", { id, repoPath, operation, replyTo } satisfies FloatingRequest)
       })
       .catch(fail)
   })

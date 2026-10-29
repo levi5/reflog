@@ -97,7 +97,17 @@ export function FloatingMenu() {
       return
     }
     if (action === "commit" || action === "merge" || action === "stash") {
-      resize(action)
+      if (!isTauri()) {
+        resize(action)
+        return
+      }
+      try {
+        expand(false)
+        await resizing.current
+        await invoke("open_floating_workspace", { workspace: action })
+      } catch (e) {
+        setError(String(e))
+      }
       return
     }
     try {

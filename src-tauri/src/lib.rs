@@ -104,6 +104,8 @@ pub fn run() {
             floating::floating_enabled,
             floating::set_floating_mode,
             floating::resize_floating,
+            floating::open_floating_workspace,
+            floating::close_floating_workspace,
             floating::sync_floating_viewport,
             floating::start_floating_resize,
             floating::finish_floating_resize,

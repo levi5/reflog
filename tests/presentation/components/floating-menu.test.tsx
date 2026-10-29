@@ -60,21 +60,21 @@ describe("Floating radial menu", () => {
     expect(screen.getByRole("button", { name: /Floating mode|Modo flutuante/ }).textContent).toBe("")
   })
 
-  it.each(["Merge", "Commit"])("opens %s without performing a Git operation", async (label) => {
+  it.each(["Merge", "Commit", "Stash"])("opens %s in a separate window without resizing the button", async (label) => {
     mount()
     await open()
+    if (label === "Stash") fireEvent.click(screen.getByRole("button", { name: /More actions|Mais opções/ }))
     fireEvent.click(screen.getByRole("button", { name: label }))
     await waitFor(() =>
-      expect(invoke).toHaveBeenCalledWith("resize_floating", {
-        expanded: true,
-        panel: true,
+      expect(invoke).toHaveBeenCalledWith("open_floating_workspace", {
         workspace: label.toLowerCase(),
       }),
     )
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /Back to floating button|Voltar ao botão/ })).toBeTruthy(),
-    )
-    expect(invoke.mock.calls.every(([command]) => command === "resize_floating")).toBe(true)
+    expect(screen.getByRole("button", { name: /Floating mode|Modo flutuante|^(Back|Voltar)$/ })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /Back to floating button|Voltar ao botão/ })).toBeNull()
+    expect(
+      invoke.mock.calls.filter(([command]) => command === "resize_floating").every(([, args]) => !args.panel),
+    ).toBe(true)
   })
 
   it("collapses with Escape and hides on a second Escape", async () => {

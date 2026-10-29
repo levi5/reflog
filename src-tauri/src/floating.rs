@@ -12,6 +12,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 const LABEL: &str = "floating";
+const WORKSPACE_LABEL: &str = "floating-workspace";
 const SHORTCUT: &str = "Ctrl+Shift+Space";
 const EXPANDED: f64 = 300.0;
 const TRAY: &str = "floating-tray";
@@ -100,10 +101,21 @@ pub struct FloatingState {
     enabled: AtomicBool,
     exiting: AtomicBool,
     geometry: Mutex<Geometry>,
+    workspace_geometry: Mutex<Geometry>,
     saving: Mutex<()>,
     startup_error: Mutex<Option<String>>,
     pointer_monitor_started: AtomicBool,
     pointer_epoch: AtomicU64,
+}
+
+impl FloatingState {
+    fn geometry_for(&self, label: &str) -> Result<&Mutex<Geometry>, String> {
+        match label {
+            LABEL => Ok(&self.geometry),
+            WORKSPACE_LABEL => Ok(&self.workspace_geometry),
+            _ => Err("Only floating windows can change their geometry".into()),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -154,7 +166,8 @@ fn save_preferences(app: &AppHandle) -> Result<(), String> {
     let _saving = state.saving.lock().map_err(|e| e.to_string())?;
     let (anchor, panel_sizes) = {
         let geometry = state.geometry.lock().map_err(|e| e.to_string())?;
-        (geometry.anchor, geometry.panel_sizes.clone())
+        let panels = state.workspace_geometry.lock().map_err(|e| e.to_string())?;
+        (geometry.anchor, panels.panel_sizes.clone())
     };
     let preferences = Preferences {
         enabled: state.enabled.load(Ordering::SeqCst),
@@ -183,6 +196,8 @@ pub fn restore(app: &AppHandle) {
         Ok(preferences) => {
             if let Ok(mut geometry) = app.state::<FloatingState>().geometry.lock() {
                 geometry.anchor = preferences.anchor;
+            }
+            if let Ok(mut geometry) = app.state::<FloatingState>().workspace_geometry.lock() {
                 geometry.panel_sizes = preferences
                     .panel_sizes
                     .into_iter()
@@ -270,6 +285,9 @@ fn apply_mode(app: &AppHandle, enabled: bool) -> Result<(), String> {
             .store(false, Ordering::SeqCst);
         if let Some(window) = app.get_webview_window(LABEL) {
             let _ = window.emit("floating-hidden", ());
+            window.hide().map_err(|e| e.to_string())?;
+        }
+        if let Some(window) = app.get_webview_window(WORKSPACE_LABEL) {
             window.hide().map_err(|e| e.to_string())?;
         }
         app.remove_tray_by_id(TRAY);
@@ -510,12 +528,12 @@ fn ensure_tray(app: &AppHandle) -> Result<(), String> {
 
 // Closing the panel must preserve its webview: it owns the active repository bridge.
 pub fn handle_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
-    if window.label() == LABEL {
+    if window.label() == WORKSPACE_LABEL {
         if let tauri::WindowEvent::Resized(size) = event {
             let state = window.state::<FloatingState>();
             // Programmatic set_size may dispatch this event while geometry is
             // locked. Only deliberate native resize drags should be remembered.
-            if let Ok(mut geometry) = state.geometry.try_lock() {
+            if let Ok(mut geometry) = state.workspace_geometry.try_lock() {
                 if geometry.panel && geometry.manual_resize && geometry.scale > 0.0 {
                     let panel_size = PanelSize {
                         width: size.width as f64 / geometry.scale,
@@ -560,19 +578,16 @@ pub fn quit(app: AppHandle) {
 
 #[tauri::command]
 pub fn drag_floating(window: WebviewWindow) -> Result<(), String> {
-    if window.label() != LABEL {
-        return Err("Only the floating window can drag itself".into());
-    }
     window
         .state::<FloatingState>()
-        .geometry
+        .geometry_for(window.label())?
         .lock()
         .map_err(|e| e.to_string())?
         .manual_move = true;
     if let Err(error) = window.start_dragging() {
         window
             .state::<FloatingState>()
-            .geometry
+            .geometry_for(window.label())?
             .lock()
             .map_err(|e| e.to_string())?
             .manual_move = false;
@@ -583,12 +598,12 @@ pub fn drag_floating(window: WebviewWindow) -> Result<(), String> {
 
 #[tauri::command]
 pub fn finish_floating_drag(window: WebviewWindow) -> Result<(), String> {
-    if window.label() != LABEL {
-        return Err("Only the floating window can finish its drag".into());
-    }
     let (expanded, panel) = {
         let state = window.state::<FloatingState>();
-        let geometry = state.geometry.lock().map_err(|e| e.to_string())?;
+        let geometry = state
+            .geometry_for(window.label())?
+            .lock()
+            .map_err(|e| e.to_string())?;
         if !geometry.manual_move {
             return Ok(());
         }
@@ -599,19 +614,86 @@ pub fn finish_floating_drag(window: WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub async fn open_floating_workspace(
+    window: WebviewWindow,
+    workspace: WorkspaceKind,
+) -> Result<(), String> {
+    if window.label() != LABEL {
+        return Err("Only the floating button can open a workspace".into());
+    }
+    let app = window.app_handle();
+    let panel = match app.get_webview_window(WORKSPACE_LABEL) {
+        Some(panel) => panel,
+        None => {
+            let kind = match workspace {
+                WorkspaceKind::Commit => "commit",
+                WorkspaceKind::Merge => "merge",
+                WorkspaceKind::Stash => "stash",
+            };
+            let anchor = radial_center(
+                window.outer_position().map_err(|e| e.to_string())?,
+                window.inner_size().map_err(|e| e.to_string())?,
+            );
+            {
+                let state = app.state::<FloatingState>();
+                let mut geometry = state.workspace_geometry.lock().map_err(|e| e.to_string())?;
+                geometry.anchor = Some(anchor);
+                geometry.workspace = workspace;
+                geometry.panel = true;
+                geometry.expanded = true;
+            }
+            tauri::WebviewWindowBuilder::new(
+                app,
+                WORKSPACE_LABEL,
+                WebviewUrl::App(format!("index.html#/floating-workspace/{kind}").into()),
+            )
+            .title("Reflog — Quick")
+            .decorations(false)
+            .transparent(true)
+            .shadow(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .resizable(true)
+            .visible(false)
+            .build()
+            .map_err(|e| e.to_string())?
+        }
+    };
+    app.state::<FloatingState>()
+        .workspace_geometry
+        .lock()
+        .map_err(|e| e.to_string())?
+        .workspace = workspace;
+    resize_window(&panel, true, true)?;
+    panel
+        .emit("floating-workspace-changed", workspace)
+        .map_err(|e| e.to_string())?;
+    show_floating_window(&panel)?;
+    panel.set_focus().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn close_floating_workspace(window: WebviewWindow) -> Result<(), String> {
+    if window.label() != WORKSPACE_LABEL {
+        return Err("Only the quick workspace can close itself".into());
+    }
+    window.hide().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn resize_floating(
     window: WebviewWindow,
     expanded: bool,
     panel: Option<bool>,
     workspace: Option<WorkspaceKind>,
 ) -> Result<(), String> {
-    if window.label() != LABEL {
-        return Err("Only the floating window can resize itself".into());
+    if window.label() == LABEL && panel.unwrap_or(false) {
+        return Err("Quick workspaces must use their own window".into());
     }
     if let Some(workspace) = workspace {
         window
             .state::<FloatingState>()
-            .geometry
+            .geometry_for(window.label())?
             .lock()
             .map_err(|e| e.to_string())?
             .workspace = workspace;
@@ -621,12 +703,15 @@ pub fn resize_floating(
 
 #[tauri::command]
 pub fn start_floating_resize(window: WebviewWindow) -> Result<(), String> {
-    if window.label() != LABEL {
+    if window.label() != WORKSPACE_LABEL {
         return Err("Only the floating window can resize itself".into());
     }
     {
         let state = window.state::<FloatingState>();
-        let mut geometry = state.geometry.lock().map_err(|e| e.to_string())?;
+        let mut geometry = state
+            .geometry_for(window.label())?
+            .lock()
+            .map_err(|e| e.to_string())?;
         if !geometry.panel {
             return Err("The radial button has a fixed size".into());
         }
@@ -639,7 +724,7 @@ pub fn start_floating_resize(window: WebviewWindow) -> Result<(), String> {
     {
         window
             .state::<FloatingState>()
-            .geometry
+            .geometry_for(window.label())?
             .lock()
             .map_err(|e| e.to_string())?
             .manual_resize = false;
@@ -650,13 +735,16 @@ pub fn start_floating_resize(window: WebviewWindow) -> Result<(), String> {
 
 #[tauri::command]
 pub fn finish_floating_resize(window: WebviewWindow) -> Result<(), String> {
-    if window.label() != LABEL {
+    if window.label() != WORKSPACE_LABEL {
         return Err("Only the floating window can resize itself".into());
     }
     let size = window.inner_size().map_err(|e| e.to_string())?;
     {
         let state = window.state::<FloatingState>();
-        let mut geometry = state.geometry.lock().map_err(|e| e.to_string())?;
+        let mut geometry = state
+            .geometry_for(window.label())?
+            .lock()
+            .map_err(|e| e.to_string())?;
         if !geometry.manual_resize {
             return Ok(());
         }
@@ -674,12 +762,15 @@ pub fn finish_floating_resize(window: WebviewWindow) -> Result<(), String> {
 
 #[tauri::command]
 pub fn reset_floating_panel_size(window: WebviewWindow) -> Result<(), String> {
-    if window.label() != LABEL {
+    if window.label() != WORKSPACE_LABEL {
         return Err("Only the floating window can resize itself".into());
     }
     {
         let state = window.state::<FloatingState>();
-        let mut geometry = state.geometry.lock().map_err(|e| e.to_string())?;
+        let mut geometry = state
+            .geometry_for(window.label())?
+            .lock()
+            .map_err(|e| e.to_string())?;
         if !geometry.panel {
             return Err("No compact workspace is open".into());
         }
@@ -697,9 +788,6 @@ pub fn sync_floating_viewport(
     css_width: f64,
     css_height: f64,
 ) -> Result<(), String> {
-    if window.label() != LABEL {
-        return Err("Only the floating window can synchronize its viewport".into());
-    }
     let physical = window.inner_size().map_err(|e| e.to_string())?;
     // A ResizeObserver event may race an explicit panel resize. Ignore that
     // transitional measurement; the following layout reports the settled size.
@@ -708,7 +796,10 @@ pub fn sync_floating_viewport(
     };
     let (expanded, panel) = {
         let state = window.state::<FloatingState>();
-        let mut geometry = state.geometry.lock().map_err(|e| e.to_string())?;
+        let mut geometry = state
+            .geometry_for(window.label())?
+            .lock()
+            .map_err(|e| e.to_string())?;
         if geometry.manual_move
             || geometry.manual_resize
             || geometry
@@ -737,25 +828,20 @@ fn viewport_scale(width: u32, height: u32, css_width: f64, css_height: f64) -> R
 }
 
 fn resize_window(window: &WebviewWindow, expanded: bool, panel: bool) -> Result<(), String> {
-    if window.label() != LABEL {
-        return Err("Only the floating window can resize itself".into());
-    }
     let state = window.state::<FloatingState>();
-    let mut geometry = state.geometry.lock().map_err(|e| e.to_string())?;
+    let mut geometry = state
+        .geometry_for(window.label())?
+        .lock()
+        .map_err(|e| e.to_string())?;
     if geometry.initialized && !geometry.manual_move && !panel && !geometry.panel {
         // Hover only changes the input radius, never the OS window bounds.
         geometry.expanded = expanded;
         return Ok(());
     }
-    // Never derive the next hover position from the preceding resize: only a real
-    // user drag may change the anchor. Work in physical pixels to avoid DPI drift.
     if geometry.anchor.is_none() || geometry.manual_move {
         let position = window.outer_position().map_err(|e| e.to_string())?;
         let size = window.inner_size().map_err(|e| e.to_string())?;
-        geometry.anchor = Some(Anchor {
-            x: position.x as f64 + size.width as f64 / 2.0,
-            y: position.y as f64 + size.height as f64 / 2.0,
-        });
+        geometry.anchor = Some(radial_center(position, size));
         geometry.manual_move = false;
     }
     let mut anchor = geometry.anchor.ok_or("Missing floating anchor")?;
@@ -953,6 +1039,43 @@ mod tests {
         assert_eq!(fit_axis(-106.0, 0.0, 1920.0, 300.0), 0.0);
         assert_eq!(fit_axis(1800.0, 0.0, 1920.0, 300.0), 1620.0);
         assert_eq!(fit_axis(600.0, 0.0, 1920.0, 300.0), 600.0);
+    }
+
+    #[test]
+    fn moving_and_resizing_quick_panels_does_not_change_button_geometry() {
+        let state = super::FloatingState::default();
+        let anchor = Anchor { x: 450.0, y: 350.0 };
+        state
+            .geometry_for(super::LABEL)
+            .unwrap()
+            .lock()
+            .unwrap()
+            .anchor = Some(anchor);
+        for workspace in [
+            super::WorkspaceKind::Commit,
+            super::WorkspaceKind::Merge,
+            super::WorkspaceKind::Stash,
+        ] {
+            let mut panel = state
+                .geometry_for(super::WORKSPACE_LABEL)
+                .unwrap()
+                .lock()
+                .unwrap();
+            panel.workspace = workspace;
+            panel.anchor = Some(Anchor {
+                x: 1200.0,
+                y: 700.0,
+            });
+            panel.manual_move = true;
+            panel
+                .panel_sizes
+                .insert(workspace, workspace.default_size());
+            let button = state.geometry_for(super::LABEL).unwrap().lock().unwrap();
+            assert_eq!(button.anchor, Some(anchor));
+            assert!(!button.manual_move);
+            assert!(button.panel_sizes.is_empty());
+        }
+        assert!(state.geometry_for("main").is_err());
     }
 
     #[test]

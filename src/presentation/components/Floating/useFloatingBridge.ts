@@ -173,9 +173,11 @@ export function useFloatingBridge() {
         if (acquired) working.current = false
       }
       if (!disposed)
-        await emitTo("floating", "floating-reply", { id: request.id, data, error } satisfies FloatingReply).catch(
-          console.error,
-        )
+        await emitTo(request.replyTo === "floating-workspace" ? "floating-workspace" : "floating", "floating-reply", {
+          id: request.id,
+          data,
+          error,
+        } satisfies FloatingReply).catch(console.error)
     })
     return () => {
       disposed = true
