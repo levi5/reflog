@@ -1,0 +1,218 @@
+.workspace {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--border-input);
+  border-radius: 16px;
+  background: var(--bg-base);
+  color: var(--fg);
+  font-size: 12px;
+  box-shadow: 0 4px 16px #0005;
+  user-select: none;
+
+  button, input, textarea, select { font-size: 12px; }
+  button { min-height: 28px; }
+  input, textarea { user-select: text; }
+  min-width: 0;
+}
+
+.header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel2);
+}
+.heading {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  text-align: left;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: grab;
+  strong { font-size: 14px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+.repoStatus {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px;
+  color: var(--accent);
+  strong { overflow-wrap: anywhere; }
+  span { margin-left: auto; color: var(--muted); }
+  small { width: 100%; color: var(--amber); }
+}
+.body { flex: 1; min-height: 0; overflow: auto; padding: 0 12px 12px; }
+.filters {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+  margin: 0 0 10px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  button { display: flex; gap: 5px; align-items: center; padding: 4px 7px; background: var(--bg-panel2); }
+  b { font-size: 10px; opacity: 0.8; }
+  button[aria-pressed=true] { border-color: var(--accent); color: var(--accent); background: var(--grape-dim); }
+}
+.search { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.search input { width: 100%; min-width: 0; padding: 7px; border: 1px solid var(--border-input); border-radius: 7px; }
+.hint { font-size: 11px; line-height: 1.5; color: var(--muted); }
+.sourceControl { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sourceControl > .hint { margin: 2px 0 6px; }
+.fileGroup { min-width: 0; border: 1px solid var(--border-soft); border-radius: 6px; overflow: hidden; }
+.groupHeader { display: flex; align-items: center; gap: 4px; padding: 2px 4px; background: var(--bg-panel2); }
+.groupToggle {
+  display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;
+  padding: 4px 2px; background: transparent; border: 0; box-shadow: none; text-align: left;
+  strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+  > svg { flex-shrink: 0; }
+}
+.collapsedChevron { transform: rotate(-90deg); }
+.groupCount { margin-left: auto; flex-shrink: 0; padding: 1px 6px; border-radius: 8px; color: var(--muted); background: var(--bg-base); font-size: 10px; }
+.groupAction {
+  display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0;
+  width: 28px; height: 28px; padding: 4px; border: 0; box-shadow: none; background: transparent;
+  &:hover:not(:disabled) { color: var(--accent); background: var(--bg-base); }
+}
+.groupEmpty { padding: 8px 10px; margin: 0; color: var(--muted); font-size: 11px; }
+.file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 1px 6px 1px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  > svg { color: var(--muted); flex-shrink: 0; }
+  code { color: var(--green); white-space: pre; }
+  &:hover { background: var(--bg-panel2); }
+}
+.fileName {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 5px 2px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+}
+.fileName .filePath {
+  display: flex; align-items: baseline; gap: 6px;
+  > span { flex-shrink: 0; max-width: 100%; }
+  > small { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+.commitFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex-shrink: 0;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel2);
+  textarea { width: 100%; resize: vertical; max-height: 140px; min-height: 65px; padding: 8px; border: 1px solid var(--border-input); border-radius: 7px; }
+  > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  button { max-width: 100%; white-space: normal; }
+  small { color: var(--muted); }
+}
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 25px 12px; color: var(--muted); text-align: center; }
+.error, .success, .conflictBanner { display: flex; align-items: center; gap: 7px; padding: 9px 12px; flex-shrink: 0; overflow-wrap: anywhere; }
+.error { background: var(--red-dim); color: var(--red); max-height: 110px; overflow: auto; button { margin-left: auto; flex-shrink: 0; } }
+.success { background: var(--green-dim); color: var(--green); }
+.conflictBanner { justify-content: space-between; background: var(--red-dim); color: var(--red); font-size: 11px; }
+.danger { color: var(--red); }
+.stashes, .merge { display: flex; flex-direction: column; gap: 10px; input:not([type=checkbox]) { width: 100%; padding: 8px; border: 1px solid var(--border-input); border-radius: 7px; } }
+.stash { padding: 10px; border: 1px solid var(--border); border-radius: 10px; p { overflow-wrap: anywhere; } small { color: var(--muted); } > div { display: flex; gap: 8px; margin-top: 10px; } }
+.merge { padding: 5px 0; label:not(.check) { display: flex; flex-direction: column; gap: 8px; } hr { width: 100%; border: 0; border-top: 1px solid var(--border); } }
+.mergeFlow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 14px 10px; border-radius: 10px; background: var(--grape-dim); color: var(--accent); overflow-wrap: anywhere; }
+.check { display: flex; gap: 8px; align-items: center; padding: 5px 0; }
+.warning { color: var(--amber); padding: 10px; border: 1px solid var(--amber); border-radius: 7px; font-size: 11px; line-height: 1.5; }
+.conflictFile { justify-content: flex-start; overflow-wrap: anywhere; white-space: normal; text-align: left; color: var(--red); }
+.overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-base);
+  overflow: auto;
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  header strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  textarea { flex: 1; min-height: 0; resize: none; overflow: auto; margin: 0; padding: 10px; background: var(--bg-panel2); border: 1px solid var(--border); border-radius: 8px; font: 11px/1.7 var(--mono); white-space: pre; }
+  ul { flex: 1; min-height: 60px; overflow: auto; padding: 12px 12px 12px 28px; margin: 0; border: 1px solid var(--border); border-radius: 8px; line-height: 1.8; overflow-wrap: anywhere; }
+}
+.reviewDetail { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; }
+.reviewBranch { display: flex; align-items: center; gap: 7px; color: var(--accent); }
+.reviewActions { display: flex; justify-content: flex-end; gap: 10px; margin-top: auto; }
+.windowTools {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  button { width: 28px; min-width: 28px; height: 28px; padding: 4px; }
+  button:first-child { cursor: grab; touch-action: none; }
+  button:first-child:active { cursor: grabbing; }
+}
+.resizeBar { flex: 0 0 24px; display: flex; justify-content: flex-end; height: 24px; background: var(--bg-panel2); border-top: 1px solid var(--border-soft); }
+.workspace .resizeGrip {
+  width: 28px;
+  height: 24px;
+  min-height: 24px;
+  padding: 2px;
+  border: 0;
+  border-radius: 6px 0 12px;
+  background: var(--bg-panel2);
+  color: var(--muted);
+  cursor: nwse-resize;
+  touch-action: none;
+  &:hover { color: var(--accent); }
+  &:active:not(:disabled) { transform: none; }
+}
+.branchPicker { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.branchSelect {
+  width: 100%;
+  [role=listbox] {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(220px, max(96px, calc(100dvh - 300px)));
+    background: var(--bg-base);
+    color: var(--fg);
+    border-color: var(--border-input);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  [role=option] { color: var(--fg); }
+  [role=option][data-active=true], [role=option][aria-selected=true] { color: var(--accent); background: var(--grape-dim); }
+}
+.branchSelectButton { max-width: none; min-height: 36px; background: var(--bg-panel2); color: var(--fg); border-color: var(--border-input); }
+@media (max-width: 420px) {
+  .header { gap: 3px; padding: 8px 5px; }
+  .header > button:global(.ghost) { padding: 4px; }
+  .heading strong { font-size: 12px; }
+  .commitFooter > div { flex-wrap: wrap; }
+}
+.spin { animation: rotate 1s linear infinite; }
+@media (max-height: 520px) {
+  .sourceControl > .hint { display: none; }
+  .commitFooter { gap: 5px; padding: 8px 12px; }
+  .commitFooter textarea { min-height: 48px; max-height: 80px; }
+  .repoStatus { padding: 6px 14px; }
+}
+@keyframes rotate { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }

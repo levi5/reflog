@@ -6,6 +6,7 @@ use tauri_plugin_cli::CliExt;
 
 mod commands;
 mod domain;
+mod floating;
 mod runner;
 #[cfg(test)]
 mod test_support;
@@ -55,15 +56,35 @@ pub fn run() {
         }
     }
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            if let Some(value) = args.get(1).filter(|value| !value.starts_with('-')) {
+                let path = PathBuf::from(value);
+                let path = if path.is_absolute() {
+                    path
+                } else {
+                    PathBuf::from(cwd).join(path)
+                };
+                let path = resolve_cli_path(&path.to_string_lossy());
+                if let Ok(mut stored) = app.state::<CliPath>().0.lock() {
+                    *stored = Some(path.clone());
+                }
+                let _ = app.emit("cli-open-path", path);
+            }
+            let _ = floating::floating_action(app.clone(), "panel".into());
+        }))
         .plugin(tauri_plugin_cli::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .on_window_event(floating::handle_window_event)
+        .manage(floating::FloatingState::default())
         .manage(AppState {
             runner: Arc::new(ProcessRunner),
         })
         .manage(CliPath(Mutex::new(None)))
         .setup(|app| {
+            floating::restore(app.handle());
             if let Ok(matches) = app.cli().matches() {
                 if let Some(path_arg) = matches.args.get("path") {
                     if let Some(value) = path_arg.value.as_str() {
@@ -80,6 +101,17 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            floating::floating_enabled,
+            floating::set_floating_mode,
+            floating::resize_floating,
+            floating::sync_floating_viewport,
+            floating::start_floating_resize,
+            floating::finish_floating_resize,
+            floating::reset_floating_panel_size,
+            floating::floating_action,
+            floating::drag_floating,
+            floating::finish_floating_drag,
+            floating::quit,
             commands::repo::check_repo,
             commands::repo::repo_root,
             commands::repo::init_repo,

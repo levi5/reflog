@@ -20,7 +20,7 @@ jobs:
       - name: system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
@@ -60,7 +60,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils rpm libfuse2
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils rpm libfuse2
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
@@ -71,6 +71,12 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
       - run: pnpm install --frozen-lockfile
+      - name: cache Linux bundling tools
+        if: runner.os == 'Linux'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tauri
+          key: tauri-bundler-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'src-tauri/Cargo.lock') }}
       - name: check version and tag
         id: version
         run: node scripts/check-version.mjs --github-output
@@ -88,12 +94,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          tauriScript: pnpm tauri
           tagName: v__VERSION__
           releaseName: "Reflog v__VERSION__"
           releaseBody: |
             AppImage, .deb and .rpm for Linux; -setup.exe for Windows (MSI is built only for final versions, WiX requires a numeric version).
           prerelease: ${{ steps.version.outputs.prerelease }}
-          args: ${{ steps.bundles.outputs.value }}
+          args: ${{ steps.bundles.outputs.value }} --verbose
           releaseAssetNamePattern: "[name]_[version]_[platform]_[arch][setup].[ext]"
           uploadWorkflowArtifacts: true
           retryAttempts: 2

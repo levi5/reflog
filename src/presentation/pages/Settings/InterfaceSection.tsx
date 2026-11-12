@@ -1,8 +1,20 @@
 import classnames from "classnames"
-import { Brush, CaseSensitive, Check, History, Languages, Layers, Palette, SlidersHorizontal } from "lucide-react"
+import {
+  Brush,
+  CaseSensitive,
+  Check,
+  CircleDot,
+  History,
+  Languages,
+  Layers,
+  Palette,
+  SlidersHorizontal,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 import { Select, type SelectOption } from "../../components/Select"
 import { Switch } from "../../components/Switch"
+import { FloatingModeControl } from "../../components/Floating/ModeControl"
+import { invoke, isTauri } from "@tauri-apps/api/core"
 import { useSettingsContext, useTranslation } from "../../context"
 import type { StringKey } from "../../../i18n"
 import { clamp } from "../../../shared/utils/number"
@@ -95,6 +107,27 @@ export function InterfaceSection() {
       <AccentSettingCard currentAccent={accent} currentTheme={theme} onAccentChange={setAccent} />
       <FontSizeSettingCard currentFontSize={fontSize} onFontSizeChange={setFontSize} />
       <ReopenLastSettingCard checked={reopenLastRepo} onCheckedChange={setReopenLastRepo} />
+      <SettingCard icon={<CircleDot size={15} />} title={t("floatingMode")} hint={t("floatingSettingsHint")}>
+        <FloatingModeControl />
+      </SettingCard>
+      {isTauri() && (
+        <SettingCard icon={<CircleDot size={15} />} title={t("floatingQuit")} hint={t("floatingQuitHint")}>
+          <QuitReflogButton />
+        </SettingCard>
+      )}
+    </>
+  )
+}
+
+function QuitReflogButton() {
+  const { t } = useTranslation()
+  const [error, setError] = useState("")
+  return (
+    <>
+      <button type="button" className="danger" onClick={() => void invoke("quit").catch((e) => setError(String(e)))}>
+        {t("floatingQuit")}
+      </button>
+      {error && <span role="alert">{error}</span>}
     </>
   )
 }

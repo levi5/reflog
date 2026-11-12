@@ -31,11 +31,19 @@ pub fn bisect_start(
     Ok(out)
 }
 
-pub fn bisect_good(runner: &dyn GitRunner, repo_path: &str, rev: Option<String>) -> Result<String, String> {
+pub fn bisect_good(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    rev: Option<String>,
+) -> Result<String, String> {
     mark(runner, repo_path, "good", rev)
 }
 
-pub fn bisect_bad(runner: &dyn GitRunner, repo_path: &str, rev: Option<String>) -> Result<String, String> {
+pub fn bisect_bad(
+    runner: &dyn GitRunner,
+    repo_path: &str,
+    rev: Option<String>,
+) -> Result<String, String> {
     mark(runner, repo_path, "bad", rev)
 }
 

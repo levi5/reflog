@@ -33,6 +33,27 @@ A modern desktop Git client built with **Tauri 2**, **React 19**, and **Rust** �
 | ↩️ **Undo** | `Ctrl+Z` / `Ctrl+Shift+Z` over a bounded stack of reversible actions |
 | ⚙️ **Automations** | Commit templates, recipes, monitors, quick actions |
 | 🛠️ **Settings** | Git config editor (allow-listed keys), identity profiles, GPG status, remotes |
+| ⭕ **Floating mode** | Optional always-on-top, draggable radial menu with a global show/hide shortcut |
+
+### Floating mode (desktop)
+
+Enable **Settings → Interface → Floating mode** once. The preference and button position are saved in the application's configuration directory (`floating-mode.json`). On the next launch, Reflog restores the quick button without requiring the main panel to be opened. Hover to reveal **Merge**, **Commit**, **Open panel**, and **More actions** slices. Hold and drag the center to reposition it; a simple click does not start a drag.
+
+- **Ctrl+Shift+Space** shows or hides the floating button, even over other applications, while the mode is enabled.
+- **Commit** opens a compact source-control workspace with collapsible Staged, Changes (including untracked files), and Conflicts groups, searchable file/diff previews, and a separate stash tab. Use the group-header **+** to stage all working changes or **−** to unstage all staged files; each row also has its own action. Partially staged files appear in both groups with the corresponding staged/working-tree diff. Existing partial staging is preserved until explicitly changed. Review the staged file list and explicitly confirm before committing. Commit drafts survive returning to the floating button during the session. A dedicated bottom resize bar stays separate from commit and review buttons, including at the minimum window size.
+- **Open repository** in a compact workspace opens a directory picker and loads the selected Git repository there, without raising the main application. The folder icon also lets you switch repositories directly from quick commit.
+- **Merge** opens a compact merge center with source branch selection, squash / no-fast-forward options, and a review step. Conflicted files appear with a link to the full conflict resolver; continuing or aborting an existing Git operation stays in the full panel.
+- Compact workspaces have individual default sizes: Commit **520×700**, Merge **480×620**, and Stash **500×640** CSS pixels, fitted to the current monitor and effective WebView scale. Drag the header or grip icon to move any workspace, including its diff/review screens. Drag the bottom-right corner to resize; custom dimensions are saved independently per workspace. The reset-size icon restores only the current workspace's default. The radial button remains fixed-size.
+- Merge uses the application's themed branch picker instead of an OS-native select, so its menu follows dark/light colors and remains scrollable in smaller windows.
+- Stashes can be previewed, created (including untracked files), or restored into a clean working tree without dropping the original stash. Mutating actions run through the existing main repository session and report errors inside the floating workspace.
+- **Open panel** restores the full interface. When no repository is open, the compact workspaces offer a button to open one instead of silently doing nothing.
+- **More actions** opens a second radial level with **Stash**, **History**, **Compare**, **Settings**, and **Hide**. Click the central **Back** button (or press Escape) to return. History, Compare, Settings, and Open panel use the standard application UI, not a compact replacement.
+- Closing the panel while floating mode is enabled hides it instead of terminating the application. The active repository and quick actions remain available in the background.
+- The system tray menu can reopen Reflog, open Settings, show/hide the floating button, or **Quit Reflog**. Settings also includes an explicit Quit button. Quitting terminates this session without clearing the saved preference; disabling the Settings switch turns the mode off persistently.
+- Hover never resizes or repositions the native radial window: it only reveals circular arc slices around the fixed center. Transparent corners and the hidden ring let clicks pass through to applications underneath. After dragging, the button stays far enough inside the monitor to keep all radial actions reachable. Only explicit compact workspace actions resize the window; returning restores the saved radial position.
+- Native surface dimensions are calibrated against the effective CSS viewport, since GTK/WebKit zoom can differ from the monitor scale factor and otherwise clip the circle at its four edges.
+- This does not enable operating-system login autostart. On Linux, displaying the tray icon requires AppIndicator/system tray support (GNOME may need a tray extension).
+- If the shortcut is already in use, activation reports an error rather than silently enabling an unreachable mode. Global shortcuts depend on desktop support; on Linux, the shortcut plugin requires X11/XWayland.
 
 ---
 
@@ -156,7 +177,7 @@ reflog .
 
 ```bash
 # Ubuntu / Debian / Linux Mint
-sudo apt install -y libwebkit2gtk-4.1-dev librsvg2-dev libappindicator3-dev patchelf rpm
+sudo apt install -y libwebkit2gtk-4.1-dev librsvg2-dev libayatana-appindicator3-dev patchelf rpm
 ```
 
 `rpm` is only needed for the RPM bundle, `patchelf` only for AppImage. The
@@ -172,6 +193,18 @@ pnpm tauri build --bundles deb,appimage        # add ,rpm if you installed rpm
 Artifacts land in `src-tauri/target/release/bundle/` (`.deb`, `.AppImage`, `.rpm`) and the
 raw binary in `src-tauri/target/release/reflog`. `targets: "all"` in `tauri.conf.json` also
 tries RPM and AppImage, so it fails without the packages above.
+
+On Debian-based Linux, `pnpm tauri build` automatically creates a temporary index
+of shared-library package owners. This avoids repeated full `dpkg-query` scans
+during AppImage packaging, while preserving the libraries' copyright files. The
+index is rebuilt for every build, removed afterwards, and never changes the system
+package database. Windows and other platforms use the normal CLI unchanged.
+Set `REFLOG_DPKG_CACHE=0` to disable this optimization for troubleshooting.
+
+For visible packaging progress, use `pnpm tauri build --bundles appimage --verbose`.
+For a faster local installer without AppImage packaging, use
+`pnpm tauri build --bundles deb`. The release workflow uses the same optimized
+command, verbose logs, and a cache for downloaded Tauri bundling tools.
 
 The Windows `.msi` cannot be produced on Linux — WiX runs on Windows only. Build it with CI
 (`gh run download <run-id>`) or on a Windows machine with `pnpm tauri build`.

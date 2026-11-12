@@ -233,11 +233,22 @@ mod tests {
             &[("clone --progress -- https://x/y.git /tmp/y", "cloned")],
             &[],
         );
-        assert_eq!(clone(&runner, "https://x/y.git", "/tmp/y", None, None, false).unwrap(), "cloned");
+        assert_eq!(
+            clone(&runner, "https://x/y.git", "/tmp/y", None, None, false).unwrap(),
+            "cloned"
+        );
 
         let runner = MockRunner::new(&[], &[]);
         assert!(clone(&runner, "https://x/y.git", "/tmp/y", Some(0), None, false).is_err());
-        assert!(clone(&runner, "https://x/y.git", "/tmp/y", None, Some("--evil".into()), false).is_err());
+        assert!(clone(
+            &runner,
+            "https://x/y.git",
+            "/tmp/y",
+            None,
+            Some("--evil".into()),
+            false
+        )
+        .is_err());
         assert!(clone(&runner, "ext::sh -c evil", "/tmp/y", None, None, false).is_err());
     }
 }

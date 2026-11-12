@@ -1,0 +1,105 @@
+.host {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  touch-action: none;
+}
+
+.disc {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  overflow: hidden;
+  border-radius: 50%;
+  clip-path: circle(50% at 50% 50%);
+  isolation: isolate;
+  // WebKit otherwise lets transformed quadrant children escape the round clip.
+  -webkit-mask-image: radial-gradient(white, white);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+  background: var(--bg-base);
+  box-shadow: 0 3px 8px #0005;
+}
+
+.expanded {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.slice {
+  position: absolute;
+  inset: 0;
+  width: 280px;
+  height: 280px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: var(--bg-panel2);
+  backdrop-filter: none;
+  appearance: none;
+
+  &:nth-child(2) { background: color-mix(in srgb, var(--green) 12%, var(--bg-base)); }
+  &:nth-child(3) { background: color-mix(in srgb, var(--grape) 14%, var(--bg-base)); }
+  &:nth-child(4) { background: color-mix(in srgb, var(--amber) 12%, var(--bg-base)); }
+  &:hover:not(:disabled), &:focus-visible {
+    background: color-mix(in srgb, var(--accent) 28%, var(--bg-base));
+    outline: none;
+    border-color: var(--accent);
+  }
+  &:active:not(:disabled) { transform: none; }
+
+  span {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.center {
+  z-index: 1;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: 2px solid var(--accent);
+  background: var(--bg-base);
+  color: var(--accent);
+  box-shadow: 0 2px 6px #0006;
+  cursor: grab;
+  &:hover:not(:disabled) { background: var(--bg-base-2); }
+  &:active:not(:disabled) { cursor: grabbing; transform: none; }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.error {
+  position: absolute;
+  bottom: 0;
+  z-index: 2;
+  max-width: 100%;
+  color: var(--red);
+  font-size: 10px;
+  padding: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .disc { transition: none; }
+}

@@ -51,7 +51,9 @@ pub fn tag_create(
     validate_ref_name(name)?;
     let root = runner.repo_root(repo_path)?;
     if signed {
-        let msg = message.filter(|m| !m.trim().is_empty()).unwrap_or_else(|| name.to_string());
+        let msg = message
+            .filter(|m| !m.trim().is_empty())
+            .unwrap_or_else(|| name.to_string());
         return runner.run(Some(&root), &["tag", "-s", name, "-m", &msg]);
     }
     match message {
@@ -241,13 +243,13 @@ mod tests {
             ],
             &[],
         );
-        assert_eq!(
-            tag_push(&runner, "/r", "v1.0", None).unwrap(),
-            "pushed"
-        );
+        assert_eq!(tag_push(&runner, "/r", "v1.0", None).unwrap(), "pushed");
 
         let runner = MockRunner::new(
-            &[("rev-parse --show-toplevel", "/r"), ("push origin tag -- v1.0", "pushed")],
+            &[
+                ("rev-parse --show-toplevel", "/r"),
+                ("push origin tag -- v1.0", "pushed"),
+            ],
             &[],
         );
         assert_eq!(
