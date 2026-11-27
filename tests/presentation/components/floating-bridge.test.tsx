@@ -90,6 +90,17 @@ describe("Floating bridge safety", () => {
     expect(state.git.commit).not.toHaveBeenCalled()
   })
 
+  it("sends workspace replies to the independent panel window", async () => {
+    await state.handler?.({
+      payload: { id: "panel", repoPath: "/project", operation: { kind: "snapshot" }, replyTo: "floating-workspace" },
+    })
+    expect(state.emit).toHaveBeenCalledWith(
+      "floating-workspace",
+      "floating-reply",
+      expect.objectContaining({ id: "panel" }),
+    )
+  })
+
   it("can open the chosen repository even if none is active", async () => {
     state.repo.repo = ""
     const reply = await send({ kind: "open-repo", path: "/chosen" }, "")
